@@ -1,0 +1,5 @@
+{
+  "name": "Vinyl Scrobbler",
+  "description": "A web application to browse your Discogs vinyl collection and scrobble plays to Last.fm.",
+  "requestFramePermissions": []
+}
