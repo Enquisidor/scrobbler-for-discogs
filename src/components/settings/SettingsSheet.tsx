@@ -54,6 +54,14 @@ export default function SettingsSheet({ isOpen, onClose, settings, onSettingsCha
     });
   }
 
+  const handleResetApp = () => {
+    if (window.confirm('Are you sure? This will log you out, clear your cached collection, and reset all settings.')) {
+        localStorage.clear();
+        sessionStorage.clear();
+        window.location.reload();
+    }
+  };
+
   return (
     <div className="fixed inset-0 bg-black/60 z-40 flex items-end" onClick={onClose}>
       <div 
@@ -102,6 +110,37 @@ export default function SettingsSheet({ isOpen, onClose, settings, onSettingsCha
                     onChange={(checked) => onSettingsChange({ ...settings, selectFeaturesByDefault: checked })}
                     disabled={!settings.showFeatures}
                 />
+            </div>
+            <div className="pt-4">
+                <h3 className="text-xs font-bold uppercase text-gray-500 tracking-wider mb-2">Metadata Source</h3>
+                <p className="text-xs text-gray-400 mb-3">This scrobbler can attempt to match your albums with Apple Music to provide cleaner artist and album names. When enabled, matched metadata will override Discogs data.</p>
+                <SettingsToggle
+                    label="Use Apple Music for Artist Names"
+                    description="Use standardized artist names from Apple Music (if available)."
+                    checked={settings.useAppleMusicArtist}
+                    onChange={(checked) => onSettingsChange({ ...settings, useAppleMusicArtist: checked })}
+                />
+                 <SettingsToggle
+                    label="Use Apple Music for Album Names"
+                    description="Use standardized album titles from Apple Music (if available)."
+                    checked={settings.useAppleMusicAlbum}
+                    onChange={(checked) => onSettingsChange({ ...settings, useAppleMusicAlbum: checked })}
+                />
+            </div>
+            <div className="pt-4 mt-4 border-t border-gray-700">
+                <h3 className="text-xs font-bold uppercase text-red-500 tracking-wider mb-2">Danger Zone</h3>
+                <div className="flex justify-between items-center py-3">
+                    <div>
+                        <label className="font-semibold text-gray-200">Reset Application</label>
+                        <p className="text-sm text-gray-400">Clear all cached data, settings, and credentials.</p>
+                    </div>
+                    <button 
+                        onClick={handleResetApp}
+                        className="bg-red-600 hover:bg-red-700 text-white text-sm font-bold py-2 px-4 rounded-full transition-colors"
+                    >
+                        Reset App
+                    </button>
+                </div>
             </div>
         </main>
       </div>

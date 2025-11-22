@@ -44,6 +44,11 @@ export interface DiscogsLabel {
   id: number;
 }
 
+export interface DiscogsIdentifier {
+  type: string;
+  value: string;
+}
+
 export interface DiscogsTrack {
   position: string;
   title: string;
@@ -55,7 +60,6 @@ export interface DiscogsTrack {
 }
 
 export interface DiscogsReleaseBasic {
-  id: number;
   title: string;
   artists: DiscogsArtist[];
   year: number;
@@ -72,6 +76,54 @@ export interface DiscogsRelease {
   date_added: string;
   basic_information: DiscogsReleaseBasic;
   tracklist?: DiscogsTrack[];
+  identifiers?: DiscogsIdentifier[]; // Added for matching barcodes
+}
+
+// ITunes Types
+export interface ITunesResult {
+    wrapperType: string;
+    collectionType: string;
+    artistName: string;
+    collectionName: string;
+    collectionCensoredName: string;
+    artistViewUrl: string;
+    collectionViewUrl: string;
+    artworkUrl100: string;
+    collectionPrice: number;
+    releaseDate: string;
+    primaryGenreName: string;
+    trackCount: number;
+    country: string;
+    currency: string;
+    copyright?: string; // Contains label info usually
+    collectionExplicitness?: string;
+}
+
+export interface ITunesResponse {
+    resultCount: number;
+    results: ITunesResult[];
+}
+
+export enum AppleSearchStrategyType {
+    ARTIST_PLUS_YEAR = 'ARTIST_PLUS_YEAR', // Search by Artist+Year to correct/find Album
+    ALBUM_PLUS_YEAR = 'ALBUM_PLUS_YEAR',   // Search by Album+Year to correct/find Artist
+    ARTIST_ONLY = 'ARTIST_ONLY',           // Search directly for an artist as a final fallback
+}
+
+export enum ReleaseType {
+    ALBUM = 'Album',
+    SINGLE = 'Single',
+    EP = 'EP',
+    COMPILATION = 'Compilation',
+    UNKNOWN = 'Unknown',
+}
+
+export interface AppleSearchStrategy {
+    query: string;
+    type: AppleSearchStrategyType;
+    attribute?: 'artistTerm' | 'albumTerm';
+    omitEntity?: boolean;
+    entity?: 'album' | 'musicArtist';
 }
 
 // --- App-specific Types ---
@@ -90,24 +142,41 @@ export interface Settings {
   selectSubtracksByDefault: boolean;
   showFeatures: boolean;
   selectFeaturesByDefault: boolean;
+  useAppleMusicArtist: boolean;
+  useAppleMusicAlbum: boolean;
 }
 
-export interface EnrichedTrack extends Omit<DiscogsTrack, 'sub_tracks'> {
-  display_artist: string;
-  featured_artists: string;
-  sub_tracks?: EnrichedTrack[];
+export interface AppleMusicMetadata {
+    artist?: string;
+    album?: string;
+    lastChecked?: number;
+    primaryGenreName?: string;
+    copyright?: string;
+    country?: string;
+    explicit?: boolean;
+    // Fields for cascading logic
+    score?: number;
+    rawItunesResult?: ITunesResult;
 }
 
 export interface QueueItem extends DiscogsRelease {
-  tracklist: EnrichedTrack[] | null;
+  instanceKey: string;
+  tracklist: DiscogsTrack[] | null;
   isLoading: boolean;
+  useTrackArtist: boolean;
+  error?: string;
+  scrobbledTrackCount?: number;
+  scrobbledTrackKeys?: string[];
 }
 
-export type SelectedTracks = Record<number, Set<string>>;
-export type SelectedFeatures = Record<number, Set<string>>;
+export type SelectedTracks = Record<string, Set<string>>;
+export type SelectedFeatures = Record<string, Set<string>>;
+// Map of InstanceKey -> TrackKey -> Set of Selected Artist Names
+export type ArtistSelections = Record<string, Record<string, Set<string>>>;
 
 export interface LastfmTrackScrobble {
   artist: string;
   track: string;
+  album?: string;
   timestamp: number;
 }

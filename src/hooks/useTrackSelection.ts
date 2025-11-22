@@ -1,301 +1,293 @@
 import { useState, useMemo, useEffect } from 'react';
-import type { QueueItem, SelectedTracks, SelectedFeatures, Settings } from '../types';
+import type { QueueItem, SelectedTracks, SelectedFeatures, Settings, ArtistSelections } from '../types';
+import { getTrackFeaturedArtists } from './utils/queueUtils';
+import { cleanArtistName } from './utils/formattingUtils';
 
 export function useTrackSelection(queue: QueueItem[], settings: Settings) {
     const [selectedTracks, setSelectedTracks] = useState<SelectedTracks>({});
     const [selectedFeatures, setSelectedFeatures] = useState<SelectedFeatures>({});
+    const [artistSelections, setArtistSelections] = useState<ArtistSelections>({});
+
+    console.log('[TrackSelection] Hook running/re-rendering.');
 
     useEffect(() => {
-        // This effect synchronizes the feature selection state with the global settings,
-        // ensuring the queue visually reflects the current preferences.
+        console.log('[TrackSelection] Feature selection useEffect triggered.', {
+            selectFeaturesByDefault: settings.selectFeaturesByDefault,
+            showFeatures: settings.showFeatures,
+            queueLength: queue.length,
+        });
+
         setSelectedFeatures(currentSelectedFeatures => {
             const newSelectedFeatures: SelectedFeatures = {};
             let hasChanged = false;
     
             for (const item of queue) {
-                const releaseId = item.id;
-                const currentReleaseFeatures = currentSelectedFeatures[releaseId] || new Set();
-                const newReleaseFeatures = new Set<string>();
+                const instanceKey = item.instanceKey;
+                const currentInstanceFeatures = currentSelectedFeatures[instanceKey] || new Set();
+                const newInstanceFeatures = new Set<string>();
     
-                // Determine what the new feature set should be based on settings and selected tracks.
                 if (settings.showFeatures && settings.selectFeaturesByDefault) {
-                    const currentSelectedTracks = selectedTracks[releaseId];
+                    const currentSelectedTracks = selectedTracks[instanceKey];
                     if (currentSelectedTracks) {
                         for (const trackKey of currentSelectedTracks) {
                             const ids = trackKey.split('-').map(Number);
                             const parentTrack = item.tracklist?.[ids[0]];
                             const track = ids.length > 1 ? parentTrack?.sub_tracks?.[ids[1]] : parentTrack;
-    
-                            if (track?.featured_artists) {
-                                newReleaseFeatures.add(trackKey);
+                            
+                            if (track) {
+                                const features = getTrackFeaturedArtists(track);
+                                if (features) {
+                                    newInstanceFeatures.add(trackKey);
+                                }
                             }
                         }
                     }
                 }
-                // If settings are off, newReleaseFeatures remains an empty set, correctly deselecting all.
     
-                // Compare with the current state to see if an update is needed for this release.
-                if (currentReleaseFeatures.size !== newReleaseFeatures.size || 
-                    ![...currentReleaseFeatures].every(key => newReleaseFeatures.has(key))) {
+                if (currentInstanceFeatures.size !== newInstanceFeatures.size || 
+                    ![...currentInstanceFeatures].every(key => newInstanceFeatures.has(key))) {
                     hasChanged = true;
                 }
                 
-                newSelectedFeatures[releaseId] = newReleaseFeatures;
+                newSelectedFeatures[instanceKey] = newInstanceFeatures;
             }
     
-            // Also check if any releases were removed from the queue entirely.
             if (!hasChanged) {
                 const oldKeys = Object.keys(currentSelectedFeatures);
-                const newKeys = queue.map(item => String(item.id));
+                const newKeys = queue.map(item => item.instanceKey);
                 if (oldKeys.length !== newKeys.length || !oldKeys.every(k => newKeys.includes(k))) {
                     hasChanged = true;
                 }
             }
     
-            // Only update state if something actually changed to prevent re-render loops.
+            if (hasChanged) {
+                console.log('[TrackSelection] Feature selections have changed and will be updated.');
+            }
             return hasChanged ? newSelectedFeatures : currentSelectedFeatures;
         });
     }, [settings.selectFeaturesByDefault, settings.showFeatures, queue, selectedTracks]);
 
     const initializeSelection = (item: QueueItem) => {
-        if (!settings.selectAllTracksPerRelease || !item.tracklist?.length) return;
-        
-        const newSelectedTracks = new Set<string>();
-        const newSelectedFeatures = new Set<string>();
+        console.log(`[TrackSelection] ACTION: initializeSelection for "${item.basic_information.title}" (key: ${item.instanceKey})`);
+        const instanceKey = item.instanceKey;
+        if (settings.selectAllTracksPerRelease && item.tracklist?.length) {
+            const newSelectedTracks = new Set<string>();
+            const newSelectedFeatures = new Set<string>();
 
-        item.tracklist.forEach((track, pIndex) => {
-            if (track.type_ === 'heading') return;
-            
-            const hasSubTracks = track.sub_tracks && track.sub_tracks.length > 0;
-
-            if (hasSubTracks) {
-                if (settings.selectSubtracksByDefault) {
-                    track.sub_tracks!.forEach((subTrack, sIndex) => {
-                        const key = `${pIndex}-${sIndex}`;
+            item.tracklist.forEach((track, pIndex) => {
+                if (track.type_ === 'heading') return;
+                const hasSubTracks = track.sub_tracks && track.sub_tracks.length > 0;
+                if (hasSubTracks) {
+                    if (settings.selectSubtracksByDefault) {
+                        track.sub_tracks!.forEach((subTrack, sIndex) => {
+                            const key = `${pIndex}-${sIndex}`;
+                            newSelectedTracks.add(key);
+                            if (settings.showFeatures && settings.selectFeaturesByDefault && getTrackFeaturedArtists(subTrack)) {
+                                newSelectedFeatures.add(key);
+                            }
+                        });
+                    } else {
+                        const key = String(pIndex);
                         newSelectedTracks.add(key);
-                        if (settings.showFeatures && settings.selectFeaturesByDefault && subTrack.featured_artists) {
+                        if (settings.showFeatures && settings.selectFeaturesByDefault && getTrackFeaturedArtists(track)) {
                             newSelectedFeatures.add(key);
                         }
-                    });
+                    }
                 } else {
                     const key = String(pIndex);
                     newSelectedTracks.add(key);
-                    if (settings.showFeatures && settings.selectFeaturesByDefault && track.featured_artists) {
+                    if (settings.showFeatures && settings.selectFeaturesByDefault && getTrackFeaturedArtists(track)) {
                         newSelectedFeatures.add(key);
                     }
                 }
-            } else {
-                const key = String(pIndex);
-                newSelectedTracks.add(key);
-                if (settings.showFeatures && settings.selectFeaturesByDefault && track.featured_artists) {
-                    newSelectedFeatures.add(key);
-                }
-            }
-        });
-        
-        setSelectedTracks(prev => ({ ...prev, [item.id]: newSelectedTracks }));
-        setSelectedFeatures(prev => ({ ...prev, [item.id]: newSelectedFeatures }));
+            });
+            
+            setSelectedTracks(prev => ({ ...prev, [instanceKey]: newSelectedTracks }));
+            setSelectedFeatures(prev => ({ ...prev, [instanceKey]: newSelectedFeatures }));
+        }
+
+        if (item.tracklist?.length) {
+             const newArtistSelections: Record<string, Set<string>> = {};
+             item.tracklist.forEach((track, pIndex) => {
+                const processTrack = (t: any, key: string) => {
+                    const selectedSet = new Set<string>();
+                    if (t.artists) {
+                        t.artists.forEach((a: any) => selectedSet.add(cleanArtistName(a.name)));
+                    }
+                    if (settings.showFeatures && settings.selectFeaturesByDefault && t.extraartists) {
+                        t.extraartists
+                            .filter((a: any) => a.role.toLowerCase().includes('feat'))
+                            .forEach((a: any) => selectedSet.add(cleanArtistName(a.name)));
+                    }
+                    if (selectedSet.size > 0) newArtistSelections[key] = selectedSet;
+                };
+                if (track.sub_tracks && track.sub_tracks.length > 0) {
+                    track.sub_tracks.forEach((sub, sIndex) => processTrack(sub, `${pIndex}-${sIndex}`));
+                } 
+                processTrack(track, String(pIndex));
+             });
+             setArtistSelections(prev => ({ ...prev, [instanceKey]: newArtistSelections }));
+        }
     };
 
-    const clearSelection = (releaseId: number) => {
-        setSelectedTracks(prevTracks => {
-            const newTracks = { ...prevTracks };
-            delete newTracks[releaseId];
-            return newTracks;
-        });
-        setSelectedFeatures(prevFeatures => {
-            const newFeatures = { ...prevFeatures };
-            delete newFeatures[releaseId];
-            return newFeatures;
-        });
+    const clearSelectionForInstance = (instanceKey: string) => {
+        console.log(`[TrackSelection] ACTION: clearSelectionForInstance for key: ${instanceKey}`);
+        setSelectedTracks(prev => { const copy = { ...prev }; delete copy[instanceKey]; return copy; });
+        setSelectedFeatures(prev => { const copy = { ...prev }; delete copy[instanceKey]; return copy; });
+        setArtistSelections(prev => { const copy = { ...prev }; delete copy[instanceKey]; return copy; });
     };
     
     const resetSelections = () => {
+        console.log('[TrackSelection] ACTION: resetSelections (clearing all selections).');
         setSelectedTracks({});
         setSelectedFeatures({});
+        setArtistSelections({});
     };
 
-    const handleTrackToggle = (releaseId: number, trackKey: string) => {
-        const isAdding = !selectedTracks[releaseId]?.has(trackKey);
+    const handleTrackToggle = (instanceKey: string, trackKey: string) => {
+        const isAdding = !selectedTracks[instanceKey]?.has(trackKey);
+        console.log(`[TrackSelection] ACTION: handleTrackToggle (${isAdding ? 'adding' : 'removing'})`, { instanceKey, trackKey });
 
         setSelectedTracks(prev => {
-            const releaseSet = new Set(prev[releaseId] || []);
-            if (isAdding) releaseSet.add(trackKey);
-            else releaseSet.delete(trackKey);
-            return { ...prev, [releaseId]: releaseSet };
+            const instanceSet = new Set(prev[instanceKey] || []);
+            if (isAdding) instanceSet.add(trackKey);
+            else instanceSet.delete(trackKey);
+            return { ...prev, [instanceKey]: instanceSet };
         });
-
-        if (isAdding) {
-            if (settings.showFeatures && settings.selectFeaturesByDefault) {
-                const item = queue.find(i => i.id === releaseId);
-                const ids = trackKey.split('-').map(Number);
-                const parentTrack = item?.tracklist?.[ids[0]];
-                const track = ids.length > 1 ? parentTrack?.sub_tracks?.[ids[1]] : parentTrack;
-                
-                if (track?.featured_artists) {
-                    setSelectedFeatures(prev => {
-                        const releaseSet = new Set(prev[releaseId] || []);
-                        releaseSet.add(trackKey);
-                        return { ...prev, [releaseId]: releaseSet };
-                    });
-                }
-            }
-        } else {
-            setSelectedFeatures(prev => {
-                const releaseSet = new Set(prev[releaseId] || []);
-                releaseSet.delete(trackKey);
-                return { ...prev, [releaseId]: releaseSet };
+        
+        if (!isAdding) {
+             setSelectedFeatures(prev => {
+                const instanceSet = new Set(prev[instanceKey] || []);
+                instanceSet.delete(trackKey);
+                return { ...prev, [instanceKey]: instanceSet };
             });
         }
     };
     
-    const handleFeatureToggle = (releaseId: number, trackKey: string) => {
+    const handleFeatureToggle = (instanceKey: string, trackKey: string) => {
+        console.log(`[TrackSelection] ACTION: handleFeatureToggle for`, { instanceKey, trackKey });
         setSelectedFeatures(prev => {
-            const releaseSet = new Set(prev[releaseId] || []);
-            releaseSet.has(trackKey) ? releaseSet.delete(trackKey) : releaseSet.add(trackKey);
-            return { ...prev, [releaseId]: releaseSet };
+            const instanceSet = new Set(prev[instanceKey] || []);
+            instanceSet.has(trackKey) ? instanceSet.delete(trackKey) : instanceSet.add(trackKey);
+            return { ...prev, [instanceKey]: instanceSet };
         });
     };
 
-    const handleToggleParent = (releaseId: number, parentIndex: number, subTrackKeys: string[]) => {
+    const handleArtistToggle = (instanceKey: string, trackKey: string, artistName: string) => {
+        console.log(`[TrackSelection] ACTION: handleArtistToggle for`, { instanceKey, trackKey, artistName });
+        setArtistSelections(prev => {
+            const instanceMap = { ...(prev[instanceKey] || {}) };
+            const trackSet = new Set(instanceMap[trackKey] || []);
+            trackSet.has(artistName) ? trackSet.delete(artistName) : trackSet.add(artistName);
+            instanceMap[trackKey] = trackSet;
+            return { ...prev, [instanceKey]: instanceMap };
+        });
+    };
+
+    const handleScrobbleModeToggle = (instanceKey: string, useTrackArtist: boolean) => {
+        console.log(`[TrackSelection] ACTION: handleScrobbleModeToggle to ${useTrackArtist ? 'Track Artists' : 'Album Artist'}`, { instanceKey });
+        const item = queue.find(i => i.instanceKey === instanceKey);
+        if (!item || !item.tracklist) return;
+
+        setArtistSelections(prev => {
+            const instanceMap = { ...(prev[instanceKey] || {}) };
+            const processTrack = (t: any, key: string) => {
+                const currentSet = new Set(instanceMap[key] || []);
+                if (t.artists) {
+                    t.artists.forEach((a: any) => {
+                        const name = cleanArtistName(a.name);
+                        if (useTrackArtist) currentSet.add(name);
+                        else currentSet.delete(name);
+                    });
+                }
+                instanceMap[key] = currentSet;
+            };
+            item.tracklist!.forEach((track, pIndex) => {
+                 if (track.sub_tracks) track.sub_tracks.forEach((sub, sIndex) => processTrack(sub, `${pIndex}-${sIndex}`));
+                 processTrack(track, String(pIndex));
+            });
+            return { ...prev, [instanceKey]: instanceMap };
+        });
+    };
+
+    const handleToggleParent = (instanceKey: string, parentIndex: number, subTrackKeys: string[]) => {
+        console.log(`[TrackSelection] ACTION: handleToggleParent for`, { instanceKey, parentIndex });
         if (subTrackKeys.length === 0) return;
-        
-        const releaseSelectedSet = selectedTracks[releaseId] || new Set();
-        const numSelectedSubtracks = subTrackKeys.filter(key => releaseSelectedSet.has(key)).length;
+        const selectedSet = selectedTracks[instanceKey] || new Set();
+        const numSelectedSubtracks = subTrackKeys.filter(key => selectedSet.has(key)).length;
         const shouldSelectAllSubTracks = numSelectedSubtracks < subTrackKeys.length;
         
-        const newSelectedTracks = new Set(releaseSelectedSet);
-        const newSelectedFeatures = new Set(selectedFeatures[releaseId] || []);
-        
+        const newSelectedTracks = new Set(selectedSet);
+        const newSelectedFeatures = new Set(selectedFeatures[instanceKey] || []);
         newSelectedTracks.delete(String(parentIndex)); 
         newSelectedFeatures.delete(String(parentIndex));
 
-        const item = queue.find(i => i.id === releaseId);
-        const parentTrack = item?.tracklist?.[parentIndex];
+        if (shouldSelectAllSubTracks) subTrackKeys.forEach(key => newSelectedTracks.add(key));
+        else subTrackKeys.forEach(key => { newSelectedTracks.delete(key); newSelectedFeatures.delete(key); });
         
-        if (shouldSelectAllSubTracks) {
-            subTrackKeys.forEach(key => newSelectedTracks.add(key));
-            if (settings.showFeatures && settings.selectFeaturesByDefault) {
-                subTrackKeys.forEach(key => {
-                    const sIndex = Number(key.split('-')[1]);
-                    const subTrack = parentTrack?.sub_tracks?.[sIndex];
-                    if (subTrack?.featured_artists) newSelectedFeatures.add(key);
-                });
-            }
-        } else {
-            subTrackKeys.forEach(key => {
-                newSelectedTracks.delete(key);
-                newSelectedFeatures.delete(key);
-            });
-        }
-        
-        setSelectedTracks(prev => ({...prev, [releaseId]: newSelectedTracks}));
-        setSelectedFeatures(prev => ({...prev, [releaseId]: newSelectedFeatures}));
+        setSelectedTracks(prev => ({...prev, [instanceKey]: newSelectedTracks}));
+        setSelectedFeatures(prev => ({...prev, [instanceKey]: newSelectedFeatures}));
     };
 
-    const handleSelectParentAsSingle = (releaseId: number, parentKey: string, subTrackKeys: string[]) => {
-        const newSelectedTracks = new Set(selectedTracks[releaseId] || []);
-        const newSelectedFeatures = new Set(selectedFeatures[releaseId] || []);
-        
-        subTrackKeys.forEach(key => {
-            newSelectedTracks.delete(key);
-            newSelectedFeatures.delete(key);
-        });
-        
+    const handleSelectParentAsSingle = (instanceKey: string, parentKey: string, subTrackKeys: string[]) => {
+        console.log(`[TrackSelection] ACTION: handleSelectParentAsSingle for`, { instanceKey, parentKey });
+        const newSelectedTracks = new Set(selectedTracks[instanceKey] || []);
+        subTrackKeys.forEach(key => newSelectedTracks.delete(key));
         newSelectedTracks.add(parentKey);
-
-        if (settings.showFeatures && settings.selectFeaturesByDefault) {
-            const item = queue.find(i => i.id === releaseId);
-            const parentTrack = item?.tracklist?.[Number(parentKey)];
-            if(parentTrack?.featured_artists) newSelectedFeatures.add(parentKey);
-        }
-
-        setSelectedTracks(prev => ({ ...prev, [releaseId]: newSelectedTracks }));
-        setSelectedFeatures(prev => ({ ...prev, [releaseId]: newSelectedFeatures }));
+        setSelectedTracks(prev => ({ ...prev, [instanceKey]: newSelectedTracks }));
     };
     
-    const handleSelectAll = (releaseId: number) => {
-        const item = queue.find(i => i.id === releaseId);
+    const handleSelectAll = (instanceKey: string) => {
+        console.log(`[TrackSelection] ACTION: handleSelectAll for`, { instanceKey });
+        const item = queue.find(i => i.instanceKey === instanceKey);
         if (!item || !item.tracklist) return;
-
         const allKeys = new Set<string>();
-        const allFeatures = new Set<string>();
         item.tracklist.forEach((track, pIndex) => {
             if (track.type_ === 'heading') return;
-            if (track.sub_tracks && track.sub_tracks.length > 0) {
-                track.sub_tracks.forEach((subTrack, sIndex) => {
-                    const key = `${pIndex}-${sIndex}`;
-                    allKeys.add(key);
-                    if(subTrack.featured_artists) allFeatures.add(key);
-                });
-            } else {
-                const key = String(pIndex);
-                allKeys.add(key);
-                if(track.featured_artists) allFeatures.add(key);
-            }
+            if (track.sub_tracks?.length) track.sub_tracks.forEach((_, sIndex) => allKeys.add(`${pIndex}-${sIndex}`));
+            else allKeys.add(String(pIndex));
         });
-        setSelectedTracks(prev => ({ ...prev, [releaseId]: allKeys }));
-        if (settings.showFeatures && settings.selectFeaturesByDefault) {
-            setSelectedFeatures(prev => ({ ...prev, [releaseId]: allFeatures }));
-        } else {
-            setSelectedFeatures(prev => ({ ...prev, [releaseId]: new Set() }));
-        }
+        setSelectedTracks(prev => ({ ...prev, [instanceKey]: allKeys }));
     };
 
-    const handleDeselectAll = (releaseId: number) => {
-         setSelectedTracks(prev => ({ ...prev, [releaseId]: new Set() }));
-         setSelectedFeatures(prev => ({ ...prev, [releaseId]: new Set() }));
+    const handleDeselectAll = (instanceKey: string) => {
+        console.log(`[TrackSelection] ACTION: handleDeselectAll for`, { instanceKey });
+         setSelectedTracks(prev => ({ ...prev, [instanceKey]: new Set() }));
     };
 
-    const handleToggleGroup = (releaseId: number, groupKeys: string[], parentKeysInGroup: string[]) => {
+    const handleToggleGroup = (instanceKey: string, groupKeys: string[], parentKeysInGroup: string[]) => {
+        console.log(`[TrackSelection] ACTION: handleToggleGroup for`, { instanceKey });
         if (groupKeys.length === 0) return;
-
-        const newSelectedTracks = new Set(selectedTracks[releaseId] || []);
-        const newSelectedFeatures = new Set(selectedFeatures[releaseId] || []);
+        const newSelectedTracks = new Set(selectedTracks[instanceKey] || []);
         const shouldSelectAll = groupKeys.some(key => !newSelectedTracks.has(key));
 
         if (shouldSelectAll) {
-            parentKeysInGroup.forEach(parentKey => {
-                newSelectedTracks.delete(parentKey);
-                newSelectedFeatures.delete(parentKey);
-            });
+            parentKeysInGroup.forEach(k => newSelectedTracks.delete(k));
             groupKeys.forEach(key => newSelectedTracks.add(key));
-            
-            if (settings.showFeatures && settings.selectFeaturesByDefault) {
-                const item = queue.find(i => i.id === releaseId);
-                groupKeys.forEach(key => {
-                    const ids = key.split('-').map(Number);
-                    const pIndex = ids[0];
-                    const sIndex = ids.length > 1 ? ids[1] : null;
-                    const parentTrack = item?.tracklist?.[pIndex];
-                    const track = sIndex !== null ? parentTrack?.sub_tracks?.[sIndex] : parentTrack;
-                    if(track?.featured_artists) newSelectedFeatures.add(key);
-                });
-            }
-
         } else {
-            groupKeys.forEach(key => {
-                newSelectedTracks.delete(key);
-                newSelectedFeatures.delete(key);
-            });
+            groupKeys.forEach(key => newSelectedTracks.delete(key));
         }
-        setSelectedTracks(prev => ({ ...prev, [releaseId]: newSelectedTracks }));
-        setSelectedFeatures(prev => ({ ...prev, [releaseId]: newSelectedFeatures }));
+        setSelectedTracks(prev => ({ ...prev, [instanceKey]: newSelectedTracks }));
     };
 
     const totalSelectedTracks = useMemo(() => {
-        return Object.values(selectedTracks).reduce((acc, trackSet) => acc + trackSet.size, 0);
+        const total = Object.values(selectedTracks).reduce((acc, trackSet) => acc + trackSet.size, 0);
+        console.log('[TrackSelection] Recalculating totalSelectedTracks:', total);
+        return total;
     }, [selectedTracks]);
 
     return {
         selectedTracks,
         selectedFeatures,
+        artistSelections,
         totalSelectedTracks,
         initializeSelection,
-        clearSelection,
+        clearSelectionForInstance,
         resetSelections,
         handleTrackToggle,
         handleFeatureToggle,
+        handleArtistToggle,
+        handleScrobbleModeToggle,
         handleToggleParent,
         handleSelectParentAsSingle,
         handleSelectAll,

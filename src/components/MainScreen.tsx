@@ -1,17 +1,23 @@
-import React, { useState, useRef, useEffect } from 'react';
+
+
+import React, { useState, useMemo } from 'react';
+import ReactDOM from 'react-dom';
 import type { Credentials, Settings } from '../types';
 import { SortOption } from '../types';
 import CollectionScreen from './collection/CollectionScreen';
+import SettingsSheet from './settings/SettingsSheet';
 import QueueButton from './queue/QueueButton';
 import QueueSheet from './queue/QueueSheet';
-import SettingsSheet from './settings/SettingsSheet';
 import { useAuthHandler } from '../hooks/useAuthHandler';
 import { useDiscogsCollection } from '../hooks/useDiscogsCollection';
 import { useCollectionFilters } from '../hooks/useCollectionFilters';
 import { useQueueHandler } from '../hooks/useQueueHandler';
+import { useAppleMusicMetadata } from '../hooks/useAppleMusicMetadata';
+import { useMetadataFetcher } from '../hooks/useMetadataFetcher';
 import ConnectionButton from './misc/ConnectionButton';
 import { Loader } from './misc/Loader';
-import { SettingsIcon } from './misc/Icons';
+import { SettingsIcon, RefreshIcon } from './misc/Icons';
+import { applyAppleMusicCorrections } from '../hooks/utils/collectionUtils';
 
 interface MainScreenProps {
   credentials: Credentials;
@@ -31,27 +37,52 @@ export default function MainScreen({
   onSettingsChange,
 }: MainScreenProps) {
   const isDiscogsConnected = !!credentials.discogsAccessToken;
-  const isLastfmConnected = !!credentials.lastfmSessionKey;
   
-  // Custom Hooks for Logic and State Management
+  const [sortOption, setSortOption] = useState<SortOption>(SortOption.AddedNewest);
+  const [isSettingsOpen, setIsSettingsOpen] = useState(false);
+  const [isQueueOpen, setIsQueueOpen] = useState(false);
+  const [queueView, setQueueView] = useState<'queue' | 'history'>('queue');
+  const [notification, setNotification] = useState<string | null>(null);
+  
   const { 
     loadingService, 
     error: authError, 
     handleDiscogsConnect,
     handleLastfmConnect,
+// FIX: Corrected typo from `onCredentials-Change` to `onCredentialsChange`.
   } = useAuthHandler(credentials, onCredentialsChange);
   
   const { 
-    collection, 
+    collection: rawCollection, 
     isLoading: isCollectionLoading, 
     isSyncing, 
-    loadingProgress, 
+    hasMore,
+    loadMore,
     error: collectionError,
-  } = useDiscogsCollection(credentials, isDiscogsConnected);
+    forceReload: forceDiscogsReload,
+  } = useDiscogsCollection(credentials, isDiscogsConnected, sortOption);
+
+  const { metadata: appleMusicMetadata, updateMetadata, clearMetadata } = useAppleMusicMetadata();
+  
+  const handleQueueSuccess = (message: string) => {
+    if (!message.startsWith('Scrobbled')) {
+        setIsQueueOpen(false);
+    }
+    setNotification(message);
+    const timeoutId = setTimeout(() => setNotification(null), 5000);
+    return () => clearTimeout(timeoutId);
+  };
+  
+  const queueHandler = useQueueHandler(credentials, settings, handleQueueSuccess, appleMusicMetadata);
+
+  const collection = useMemo(() => {
+    return applyAppleMusicCorrections(rawCollection, appleMusicMetadata, settings);
+  }, [rawCollection, appleMusicMetadata, settings]);
+  
+  useMetadataFetcher(rawCollection, appleMusicMetadata, updateMetadata, settings);
   
   const {
     searchTerm, setSearchTerm,
-    sortOption, setSortOption,
     albumsPerRow, setAlbumsPerRow,
     selectedFormat, setSelectedFormat,
     selectedYear, setSelectedYear,
@@ -59,56 +90,59 @@ export default function MainScreen({
     filteredAndSortedCollection,
     handleResetFilters,
     isFiltered,
-  } = useCollectionFilters(collection);
-
-  const [notification, setNotification] = useState<string | null>(null);
-  const notificationTimeoutRef = useRef<number | null>(null);
-  const [isQueueOpen, setIsQueueOpen] = useState(false);
-  const [isSettingsOpen, setIsSettingsOpen] = useState(false);
-
-  const handleQueueSuccess = (message: string) => {
-    setIsQueueOpen(false);
-    setNotification(message);
-    if (notificationTimeoutRef.current) clearTimeout(notificationTimeoutRef.current);
-    notificationTimeoutRef.current = window.setTimeout(() => setNotification(null), 5000);
-  };
-  
-  const {
-      queue,
-      selectedTracks,
-      selectedFeatures,
-      isScrobbling,
-      scrobbleError,
-      totalSelectedTracks,
-      scrobbleTimestamps,
-      scrobbleTimeOffset,
-      setScrobbleTimeOffset,
-      toggleAlbumInQueue,
-      handleTrackToggle,
-      handleFeatureToggle,
-      handleToggleParent,
-      handleSelectParentAsSingle,
-      handleSelectAll,
-      handleDeselectAll,
-      handleToggleGroup,
-      handleScrobble,
-  } = useQueueHandler(credentials, settings, handleQueueSuccess);
+  } = useCollectionFilters(collection, sortOption, setSortOption);
 
   const error = authError || collectionError;
   
-  useEffect(() => () => { if (notificationTimeoutRef.current) clearTimeout(notificationTimeoutRef.current); }, []);
+  const handleForceReload = () => {
+    if (isSyncing || isCollectionLoading) return;
+    clearMetadata();
+    forceDiscogsReload();
+  };
   
+  const handleOpenQueue = () => {
+    setQueueView('queue');
+    setIsQueueOpen(true);
+  }
+
+  const handleOpenHistory = () => {
+    setQueueView('history');
+    setIsQueueOpen(true);
+  }
+
+  const portalRoot = document.getElementById('portal-root');
+  
+  console.log('[MainScreen] State before render:', {
+    isDiscogsConnected,
+    queueLength: queueHandler.queue.length,
+    totalSelectedTracks: queueHandler.totalSelectedTracks,
+    isCollectionLoading,
+    isSyncing,
+    error,
+  });
+
   return (
     <>
       <div className="p-4 sm:p-6 lg:p-8">
         <header className="flex flex-col sm:flex-row justify-between items-center mb-6 gap-4">
           <div className="flex items-baseline gap-3">
-            <h1 className="text-3xl font-bold">Vinyl Scrobbler</h1>
-            {isSyncing && <div title="Syncing collection..." className="self-center"><Loader /></div>}
+            <h1 className="text-3xl font-bold">Scrobbler for Discogs</h1>
+            {isSyncing && <div title="Syncing..." className="self-center"><Loader /></div>}
           </div>
           <div className="flex items-center gap-2">
             <ConnectionButton service="discogs" isConnected={isDiscogsConnected} username={credentials.discogsUsername} onConnect={handleDiscogsConnect} onDisconnect={onDiscogsLogout} isLoading={loadingService === 'discogs'} isDisabled={!!loadingService}/>
-            <ConnectionButton service="lastfm" isConnected={isLastfmConnected} username={credentials.lastfmUsername} onConnect={handleLastfmConnect} onDisconnect={onLastfmLogout} isLoading={loadingService === 'lastfm'} isDisabled={!!loadingService}/>
+            {isDiscogsConnected && (
+              <button 
+                onClick={handleForceReload}
+                className="p-2 rounded-full hover:bg-gray-700 text-gray-400 hover:text-white disabled:opacity-50 disabled:cursor-wait"
+                aria-label="Reload collection"
+                title="Reload collection from Discogs"
+                disabled={isSyncing || isCollectionLoading}
+              >
+                <RefreshIcon className="w-6 h-6" />
+              </button>
+            )}
+            <ConnectionButton service="lastfm" isConnected={!!credentials.lastfmSessionKey} username={credentials.lastfmUsername} onConnect={handleLastfmConnect} onDisconnect={onLastfmLogout} isLoading={loadingService === 'lastfm'} isDisabled={!!loadingService}/>
              <button onClick={() => setIsSettingsOpen(true)} className="p-2 rounded-full hover:bg-gray-700 text-gray-400 hover:text-white" aria-label="Settings">
               <SettingsIcon className="w-6 h-6" />
             </button>
@@ -136,10 +170,10 @@ export default function MainScreen({
                 <option value={SortOption.AlbumZA}>Album Z-A</option>
                 <option value={SortOption.YearNewest}>Year (Newest)</option>
                 <option value={SortOption.YearOldest}>Year (Oldest)</option>
-                <option value={SortOption.LabelAZ}>Label A-Z</option>
-                <option value={SortOption.LabelZA}>Label Z-A</option>
                 <option value={SortOption.FormatAZ}>Format A-Z</option>
                 <option value={SortOption.FormatZA}>Format Z-A</option>
+                <option value={SortOption.LabelAZ}>Label A-Z</option>
+                <option value={SortOption.LabelZA}>Label Z-A</option>
                 <option value={SortOption.CatNoAZ}>Catalog# A-Z</option>
                 <option value={SortOption.CatNoZA}>Catalog# Z-A</option>
               </select>
@@ -165,26 +199,49 @@ export default function MainScreen({
                 <option value="">All Years ({filterOptions.years.size})</option> {Array.from(filterOptions.years.entries()).map(([name, count]) => <option key={name} value={name}>{name} ({count})</option>)}
               </select>
               {isFiltered && <button onClick={handleResetFilters} className="text-sm bg-gray-700 hover:bg-gray-600 text-white font-bold py-2 px-4 rounded-full transition-colors">Reset</button>}
-              {collection.length > 0 && (
-                <div className="ml-auto text-sm text-gray-400 font-semibold">
-                    Showing {filteredAndSortedCollection.length} of {collection.length} releases
-                </div>
-              )}
+              <div className="ml-auto flex items-center gap-4">
+                {queueHandler.totalScrobbledAlbums > 0 && (
+                  <button 
+                    onClick={handleOpenHistory}
+                    className="relative text-sm bg-gray-700 hover:bg-gray-600 text-white font-bold py-2 px-4 rounded-full transition-colors"
+                  >
+                    History
+                    <div className="absolute -top-1 -right-1 flex items-center">
+                      <span className="z-10 relative inline-flex rounded-full h-5 w-5 bg-blue-600 items-center justify-center text-xs font-bold ring-2 ring-gray-900">
+                          {queueHandler.totalScrobbledAlbums}
+                      </span>
+                      <span className="relative inline-flex rounded-full h-5 w-5 bg-red-500 items-center justify-center text-xs font-bold ring-2 ring-gray-900 -ml-2">
+                          {queueHandler.totalScrobbledTracks}
+                      </span>
+                    </div>
+                  </button>
+                )}
+                {collection.length > 0 && (
+                  <div className="text-sm text-gray-400 font-semibold">
+                      Showing {filteredAndSortedCollection.length} of {collection.length} releases
+                  </div>
+                )}
+              </div>
             </div>
           </div>
         )}
         
         <CollectionScreen
           collection={filteredAndSortedCollection}
-          queue={queue}
+          queue={queueHandler.queue}
           isLoading={isCollectionLoading}
           isSyncing={isSyncing}
+          hasMore={hasMore}
+          onLoadMore={loadMore}
           isFiltered={isFiltered}
           albumsPerRow={albumsPerRow}
-          loadingProgress={loadingProgress}
-          onToggleAlbumInQueue={toggleAlbumInQueue}
+          onAddAlbumToQueue={queueHandler.addAlbumToQueue}
+          onRemoveLastInstanceOfAlbumFromQueue={queueHandler.removeLastInstanceOfAlbumFromQueue}
+          onRemoveAllInstancesOfAlbumFromQueue={queueHandler.removeAllInstancesOfAlbumFromQueue}
           onConnectDiscogs={handleDiscogsConnect}
           isConnectingDiscogs={loadingService === 'discogs'}
+          settings={settings}
+          metadata={appleMusicMetadata}
         />
       </div>
 
@@ -194,38 +251,46 @@ export default function MainScreen({
         settings={settings}
         onSettingsChange={onSettingsChange}
       />
+      
+      <QueueButton
+        queueCount={queueHandler.queue.length}
+        selectedTrackCount={queueHandler.totalSelectedTracks}
+        onClick={handleOpenQueue}
+      />
 
-      {isDiscogsConnected && isLastfmConnected && (
-        <>
-          <QueueButton
-            queueCount={queue.length}
-            selectedTrackCount={totalSelectedTracks}
-            onClick={() => setIsQueueOpen(true)}
-          />
+      {portalRoot && !!credentials.discogsAccessToken && ReactDOM.createPortal(
           <QueueSheet
             isOpen={isQueueOpen}
             onClose={() => setIsQueueOpen(false)}
-            queue={queue}
-            selectedTracks={selectedTracks}
-            selectedFeatures={selectedFeatures}
-            scrobbleTimestamps={scrobbleTimestamps}
-            scrobbleTimeOffset={scrobbleTimeOffset}
-            onScrobbleTimeOffsetChange={setScrobbleTimeOffset}
+            view={queueView}
+            queue={queueHandler.queue}
+            selectedTracks={queueHandler.selectedTracks}
+            selectedFeatures={queueHandler.selectedFeatures}
+            artistSelections={queueHandler.artistSelections}
+            scrobbleTimestamps={queueHandler.scrobbleTimestamps}
+            scrobbleTimeOffset={queueHandler.scrobbleTimeOffset}
+            onScrobbleTimeOffsetChange={queueHandler.setScrobbleTimeOffset}
             settings={settings}
-            onTrackToggle={handleTrackToggle}
-            onFeatureToggle={handleFeatureToggle}
-            onToggleParent={handleToggleParent}
-            onSelectParentAsSingle={handleSelectParentAsSingle}
-            onSelectAll={handleSelectAll}
-            onDeselectAll={handleDeselectAll}
-            onToggleGroup={handleToggleGroup}
-            onScrobble={handleScrobble}
-            isScrobbling={isScrobbling}
-            scrobbleError={scrobbleError}
-            totalSelectedTracks={totalSelectedTracks}
-            onRemoveAlbumFromQueue={toggleAlbumInQueue}
-          />
-        </>
+            metadata={appleMusicMetadata}
+            onTrackToggle={queueHandler.handleTrackToggle}
+            onFeatureToggle={queueHandler.handleFeatureToggle}
+            onArtistToggle={queueHandler.handleArtistToggle}
+            onToggleParent={queueHandler.handleToggleParent}
+            onSelectParentAsSingle={queueHandler.handleSelectParentAsSingle}
+            onSelectAll={queueHandler.handleSelectAll}
+            onDeselectAll={queueHandler.handleDeselectAll}
+            onToggleGroup={queueHandler.handleToggleGroup}
+            onScrobble={queueHandler.handleScrobble}
+            isScrobbling={queueHandler.isScrobbling}
+            scrobbleError={queueHandler.scrobbleError}
+            totalSelectedTracks={queueHandler.totalSelectedTracks}
+            onRemoveAlbumInstanceFromQueue={queueHandler.removeAlbumInstanceFromQueue}
+            onScrobbleModeToggle={queueHandler.handleScrobbleModeToggle}
+            isLastfmConnected={!!credentials.lastfmSessionKey}
+            scrobbledHistory={queueHandler.scrobbledHistory}
+            onScrobbleSingleRelease={queueHandler.handleScrobbleSingleRelease}
+          />,
+        portalRoot
       )}
     </>
   );

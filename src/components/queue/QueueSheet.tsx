@@ -1,6 +1,6 @@
 
 import React, { useState, useMemo, useEffect } from 'react';
-import type { QueueItem as QueueItemType, SelectedTracks, DiscogsRelease, SelectedFeatures, Settings } from '../../types';
+import type { QueueItem as QueueItemType, SelectedTracks, SelectedFeatures, Settings, ArtistSelections, AppleMusicMetadata } from '../../types';
 import { Loader } from '../misc/Loader';
 import { CloseIcon, VinylIcon } from '../misc/Icons';
 import QueueItem from './QueueItem';
@@ -11,39 +11,51 @@ type TimeUnitValue = typeof TimeUnit[keyof typeof TimeUnit];
 interface QueueSheetProps {
   isOpen: boolean;
   onClose: () => void;
+  view: 'queue' | 'history';
   queue: QueueItemType[];
   selectedTracks: SelectedTracks;
   selectedFeatures: SelectedFeatures;
-  scrobbleTimestamps: Record<number, Record<string, number>>;
+  artistSelections: ArtistSelections;
+  scrobbleTimestamps: Record<string, Record<string, number>>;
   scrobbleTimeOffset: number;
   onScrobbleTimeOffsetChange: (offset: number) => void;
   settings: Settings;
-  onTrackToggle: (releaseId: number, trackKey: string) => void;
-  onFeatureToggle: (releaseId: number, trackKey: string) => void;
-  onToggleParent: (releaseId: number, parentIndex: number, subTrackKeys: string[]) => void;
-  onSelectParentAsSingle: (releaseId: number, parentKey: string, subTrackKeys: string[]) => void;
-  onSelectAll: (releaseId: number) => void;
-  onDeselectAll: (releaseId: number) => void;
-  onToggleGroup: (releaseId: number, groupKeys: string[], parentKeysInGroup: string[]) => void;
+  metadata: Record<number, AppleMusicMetadata>;
+  onTrackToggle: (instanceKey: string, trackKey: string) => void;
+  onFeatureToggle: (instanceKey: string, trackKey: string) => void;
+  onArtistToggle: (instanceKey: string, trackKey: string, artistName: string) => void;
+  onToggleParent: (instanceKey: string, parentIndex: number, subTrackKeys: string[]) => void;
+  onSelectParentAsSingle: (instanceKey: string, parentKey: string, subTrackKeys: string[]) => void;
+  onSelectAll: (instanceKey: string) => void;
+  onDeselectAll: (instanceKey: string) => void;
+  onToggleGroup: (instanceKey: string, groupKeys: string[], parentKeysInGroup: string[]) => void;
   onScrobble: () => void;
   isScrobbling: boolean;
   scrobbleError: string | null;
   totalSelectedTracks: number;
-  onRemoveAlbumFromQueue: (release: DiscogsRelease) => void;
+  onRemoveAlbumInstanceFromQueue: (instanceKey: string) => void;
+  onScrobbleModeToggle?: (instanceKey: string, useTrackArtist: boolean) => void;
+  isLastfmConnected: boolean;
+  scrobbledHistory: QueueItemType[];
+  onScrobbleSingleRelease: (instanceKey: string) => void;
 }
 
 export default function QueueSheet({
   isOpen,
   onClose,
+  view,
   queue,
   selectedTracks,
   selectedFeatures,
+  artistSelections,
   scrobbleTimestamps,
   scrobbleTimeOffset,
   onScrobbleTimeOffsetChange,
   settings,
+  metadata,
   onTrackToggle,
   onFeatureToggle,
+  onArtistToggle,
   onToggleParent,
   onSelectParentAsSingle,
   onSelectAll,
@@ -53,12 +65,27 @@ export default function QueueSheet({
   isScrobbling,
   scrobbleError,
   totalSelectedTracks,
-  onRemoveAlbumFromQueue,
+  onRemoveAlbumInstanceFromQueue,
+  onScrobbleModeToggle,
+  isLastfmConnected,
+  scrobbledHistory,
+  onScrobbleSingleRelease
 }: QueueSheetProps) {
   const [isEditingTimeOffset, setIsEditingTimeOffset] = useState(false);
   const decomposed = useMemo(() => decomposeTimeOffset(scrobbleTimeOffset), [scrobbleTimeOffset]);
   const [editedTimeValue, setEditedTimeValue] = useState(decomposed.value);
   const [editedTimeUnit, setEditedTimeUnit] = useState<TimeUnitValue>(decomposed.unit);
+  
+  const itemsToDisplay = view === 'queue' ? queue : scrobbledHistory;
+  
+  const totalScrobbledAlbums = scrobbledHistory.length;
+  const totalScrobbledTracks = useMemo(() => {
+    return scrobbledHistory.reduce((acc, item) => acc + (item.scrobbledTrackCount || 0), 0);
+  }, [scrobbledHistory]);
+
+  const title = view === 'queue' 
+    ? `Scrobble Queue (${queue.length})` 
+    : `Scrobbled History (${totalScrobbledAlbums} Albums, ${totalScrobbledTracks} Tracks)`;
 
   useEffect(() => {
     if (!isEditingTimeOffset) {
@@ -118,7 +145,7 @@ export default function QueueSheet({
         <header className="p-4 border-b border-gray-700 flex justify-between items-center flex-shrink-0">
           <div className="flex items-center gap-3">
             <VinylIcon className="w-6 h-6 text-gray-300"/>
-            <h2 className="text-xl font-bold">Scrobble Queue ({queue.length})</h2>
+            <h2 className="text-xl font-bold">{title}</h2>
           </div>
           <button onClick={onClose} className="p-2 rounded-full hover:bg-gray-700">
             <CloseIcon className="w-6 h-6" />
@@ -126,95 +153,105 @@ export default function QueueSheet({
         </header>
 
         <main className="flex-grow p-4 overflow-y-auto space-y-4">
-          {queue.length > 0 ? (
-            queue.map(item => (
+          {itemsToDisplay.length > 0 ? (
+            itemsToDisplay.map(item => (
               <QueueItem
-                key={item.id}
+                key={item.instanceKey}
                 item={item}
-                selectedTrackKeys={new Set(selectedTracks[item.id] || [])}
-                selectedFeatures={new Set(selectedFeatures[item.id] || [])}
-                scrobbleTimestamps={scrobbleTimestamps[item.id] || {}}
+                selectedTrackKeys={new Set(selectedTracks[item.instanceKey] || [])}
+                selectedFeatures={new Set(selectedFeatures[item.instanceKey] || [])}
+                artistSelections={artistSelections[item.instanceKey] || {}}
+                scrobbleTimestamps={scrobbleTimestamps[item.instanceKey] || {}}
                 settings={settings}
-                onToggle={(trackKey) => onTrackToggle(item.id, trackKey)}
-                onFeatureToggle={(trackKey) => onFeatureToggle(item.id, trackKey)}
-                onToggleParent={(parentIndex, subTrackKeys) => onToggleParent(item.id, parentIndex, subTrackKeys)}
-                onSelectParentAsSingle={(parentKey, subTrackKeys) => onSelectParentAsSingle(item.id, parentKey, subTrackKeys)}
-                onSelectAll={() => onSelectAll(item.id)}
-                onDeselectAll={() => onDeselectAll(item.id)}
-                onToggleGroup={(groupKeys, parentKeys) => onToggleGroup(item.id, groupKeys, parentKeys)}
-                onRemoveAlbumFromQueue={() => onRemoveAlbumFromQueue(item)}
+                metadata={metadata[item.id]}
+                onToggle={(trackKey) => onTrackToggle(item.instanceKey, trackKey)}
+                onFeatureToggle={(trackKey) => onFeatureToggle(item.instanceKey, trackKey)}
+                onArtistToggle={(trackKey, artistName) => onArtistToggle(item.instanceKey, trackKey, artistName)}
+                onToggleParent={(parentIndex, subTrackKeys) => onToggleParent(item.instanceKey, parentIndex, subTrackKeys)}
+                onSelectParentAsSingle={(parentKey, subTrackKeys) => onSelectParentAsSingle(item.instanceKey, parentKey, subTrackKeys)}
+                onSelectAll={() => onSelectAll(item.instanceKey)}
+                onDeselectAll={() => onDeselectAll(item.instanceKey)}
+                onToggleGroup={(groupKeys, parentKeys) => onToggleGroup(item.instanceKey, groupKeys, parentKeys)}
+                onRemoveAlbumInstanceFromQueue={() => onRemoveAlbumInstanceFromQueue(item.instanceKey)}
+                onScrobbleModeToggle={(useTrackArtist) => onScrobbleModeToggle?.(item.instanceKey, useTrackArtist)}
+                isHistoryItem={view === 'history'}
+                onScrobbleSingleRelease={() => onScrobbleSingleRelease(item.instanceKey)}
+                isScrobbling={isScrobbling}
               />
             ))
           ) : (
             <div className="flex flex-col items-center justify-center h-full text-gray-500">
-              <p>Your queue is empty.</p>
+              <p>{view === 'queue' ? 'Your queue is empty.' : 'Your scrobble history for this session is empty.'}</p>
               <p className="text-sm">Select albums from your collection to add them here.</p>
             </div>
           )}
         </main>
 
-        <footer className="p-4 border-t border-gray-700 flex-shrink-0 flex flex-col gap-2">
-            <div className="grid grid-cols-[auto,1fr] items-center gap-4">
-                <span className="font-semibold text-gray-300">When?</span>
-                <input
-                    type="range"
-                    min="0"
-                    max={TIME_OFFSETS.length - 1}
-                    value={sliderIndex}
-                    onChange={handleSliderChange}
-                    className="w-full h-2 bg-gray-700 rounded-lg appearance-none cursor-pointer"
-                />
-            </div>
+        {view === 'queue' && (
+            <footer className="p-4 border-t border-gray-700 flex-shrink-0 flex flex-col gap-2">
+                <div className="grid grid-cols-[auto,1fr] items-center gap-4">
+                    <span className="font-semibold text-gray-300">When?</span>
+                    <input
+                        type="range"
+                        min="0"
+                        max={TIME_OFFSETS.length - 1}
+                        value={sliderIndex}
+                        onChange={handleSliderChange}
+                        className="w-full h-2 bg-gray-700 rounded-lg appearance-none cursor-pointer"
+                    />
+                </div>
 
-            <div className="flex justify-end h-6 items-center">
-                {isEditingTimeOffset ? (
-                    <div
-                        className="flex items-center gap-2"
-                        onBlur={(e) => {
-                            if (!e.currentTarget.contains(e.relatedTarget as Node)) {
-                                handleTimeEditCommit();
-                            }
-                        }}
-                    >
-                        <input
-                            type="number"
-                            value={editedTimeValue}
-                            onChange={(e) => setEditedTimeValue(Number(e.target.value))}
-                            onKeyDown={handleTimeEditKeyDown}
-                            autoFocus
-                            className="bg-gray-700 text-gray-200 text-sm text-right px-2 py-1 rounded-md w-20 focus:outline-none focus:ring-2 focus:ring-blue-500 [appearance:textfield] [&::-webkit-outer-spin-button]:appearance-none [&::-webkit-inner-spin-button]:appearance-none"
-                        />
-                        <select
-                            value={editedTimeUnit}
-                            onChange={(e) => setEditedTimeUnit(e.target.value as TimeUnitValue)}
-                            className="bg-gray-700 text-gray-200 text-sm px-1 py-1 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
+                <div className="flex justify-end h-6 items-center">
+                    {isEditingTimeOffset ? (
+                        <div
+                            className="flex items-center gap-2"
+                            onBlur={(e) => {
+                                if (!e.currentTarget.contains(e.relatedTarget as Node)) {
+                                    handleTimeEditCommit();
+                                }
+                            }}
                         >
-                            <option value={TimeUnit.MINUTE}>minutes</option>
-                            <option value={TimeUnit.HOUR}>hours</option>
-                            <option value={TimeUnit.DAY}>days</option>
-                        </select>
-                    </div>
-                ) : (
-                    <p
-                        onClick={() => setIsEditingTimeOffset(true)}
-                        className="text-sm text-gray-400 cursor-pointer hover:text-white transition-colors"
-                        title="Click to edit precisely"
-                    >
-                        {formatTimeOffset(scrobbleTimeOffset)}
-                    </p>
-                )}
-            </div>
+                            <input
+                                type="number"
+                                value={editedTimeValue}
+                                onChange={(e) => setEditedTimeValue(Number(e.target.value))}
+                                onKeyDown={handleTimeEditKeyDown}
+                                autoFocus
+                                className="bg-gray-700 text-gray-200 text-sm text-right px-2 py-1 rounded-md w-20 focus:outline-none focus:ring-2 focus:ring-blue-500 [appearance:textfield] [&::-webkit-outer-spin-button]:appearance-none [&::-webkit-inner-spin-button]:appearance-none"
+                            />
+                            <select
+                                value={editedTimeUnit}
+                                onChange={(e) => setEditedTimeUnit(e.target.value as TimeUnitValue)}
+                                className="bg-gray-700 text-gray-200 text-sm px-1 py-1 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
+                            >
+                                <option value={TimeUnit.MINUTE}>minutes</option>
+                                <option value={TimeUnit.HOUR}>hours</option>
+                                <option value={TimeUnit.DAY}>days</option>
+                            </select>
+                        </div>
+                    ) : (
+                        <p
+                            onClick={() => setIsEditingTimeOffset(true)}
+                            className="text-sm text-gray-400 cursor-pointer hover:text-white transition-colors"
+                            title="Click to edit precisely"
+                        >
+                            {formatTimeOffset(scrobbleTimeOffset)}
+                        </p>
+                    )}
+                </div>
 
-            {scrobbleError && <p className="text-red-400 text-sm text-center">{scrobbleError}</p>}
-            
-            <button
-                onClick={onScrobble}
-                disabled={isScrobbling || totalSelectedTracks === 0}
-                className="w-full bg-blue-600 hover:bg-blue-700 text-white font-bold py-3 px-4 rounded-full flex items-center justify-center gap-2 transition-colors disabled:bg-gray-600 disabled:cursor-not-allowed"
-            >
-                {isScrobbling ? <Loader /> : `Scrobble ${totalSelectedTracks} ${totalSelectedTracks === 1 ? 'Track' : 'Tracks'}`}
-            </button>
-        </footer>
+                {scrobbleError && <p className="text-red-400 text-sm text-center">{scrobbleError}</p>}
+                
+                <button
+                    onClick={onScrobble}
+                    disabled={!isLastfmConnected || isScrobbling || totalSelectedTracks === 0}
+                    className="w-full bg-brand-lastfm hover:bg-red-700 text-white font-bold py-3 px-4 rounded-full flex items-center justify-center gap-2 transition-colors disabled:bg-brand-lastfm disabled:text-gray-900 disabled:cursor-not-allowed"
+                    title={!isLastfmConnected ? "Connect Last.fm to scrobble" : ""}
+                >
+                    {isScrobbling ? <Loader /> : `Scrobble ${totalSelectedTracks} ${totalSelectedTracks === 1 ? 'Track' : 'Tracks'}`}
+                </button>
+            </footer>
+        )}
       </div>
     </div>
   );

@@ -6,6 +6,8 @@ const initialSettings: Settings = {
     selectSubtracksByDefault: true,
     showFeatures: true,
     selectFeaturesByDefault: false,
+    useAppleMusicArtist: false,
+    useAppleMusicAlbum: false,
 };
 
 export function useSettings() {

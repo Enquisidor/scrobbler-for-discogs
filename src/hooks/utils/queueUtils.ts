@@ -1,145 +1,167 @@
-import type { DiscogsTrack, EnrichedTrack, QueueItem, SelectedTracks, SelectedFeatures, Settings, LastfmTrackScrobble } from '../../types';
-
-const cleanArtistName = (name: string): string => {
-  return name.replace(/\s\(\d+\)$/, '').trim();
-};
-
-const formatArtists = (artists: any[]): string => {
-    return artists.map(a => `${cleanArtistName(a.name)}${a.join || ''}`).join('').trim().replace(/,\s*$/, '');
-};
-
-export function enrichTracklist(tracklist: DiscogsTrack[] | undefined, albumArtistName: string): EnrichedTrack[] {
-    if (!tracklist) return [];
-    
-    return tracklist.map(track => {
-        const display_artist = (albumArtistName.toLowerCase() === 'various' && track.artists)
-            ? formatArtists(track.artists)
-            : albumArtistName;
-        
-        const featured_artists_string = track.extraartists
-            ?.filter(a => a.role.toLowerCase().includes('feat'))
-            .map(a => `${a.join || ''} ${cleanArtistName(a.name)}`)
-            .join('')
-            .trim() ?? '';
-            
-        const enrichedSubtracks = track.sub_tracks ? enrichTracklist(track.sub_tracks, display_artist) : undefined;
-
-        return {
-            ...track,
-            display_artist,
-            featured_artists: featured_artists_string ? `feat. ${featured_artists_string.replace(/^,\s*/, '').trim()}` : '',
-            sub_tracks: enrichedSubtracks,
-        };
-    });
-}
-
-const parseDuration = (durationStr: string): number => {
-    if (!durationStr) return 180; // Default 3 minutes
-    const parts = durationStr.split(':').map(Number);
-    if (parts.length === 2 && !isNaN(parts[0]) && !isNaN(parts[1])) {
-        return parts[0] * 60 + parts[1];
-    }
-    return 180;
-};
 
 
-export function calculateScrobbleTimestamps(
-    queue: QueueItem[], 
-    selectedTracks: SelectedTracks, 
-    currentTime: number,
-    timeOffset: number
-): Record<number, Record<string, number>> {
-    const timestamps: Record<number, Record<string, number>> = {};
+  // FIX: Imported DiscogsArtist type to resolve reference errors.
+  import type { DiscogsTrack, QueueItem, SelectedTracks, ArtistSelections, AppleMusicMetadata, DiscogsRelease, LastfmTrackScrobble, DiscogsArtist } from '../../types';
+  import { formatArtistNames, cleanArtistName } from './formattingUtils';
 
-    const selectedTracksForTimestamping = queue.flatMap(release => {
-        const selectedKeys = selectedTracks[release.id];
-        if (!selectedKeys || selectedKeys.size === 0 || !release.tracklist) return [];
-        
-        const sortedKeys = Array.from(selectedKeys).sort((a, b) => {
-            const aParts = a.split('-').map(Number);
-            const bParts = b.split('-').map(Number);
-            if (aParts[0] !== bParts[0]) return aParts[0] - bParts[0];
-            return (aParts[1] ?? -1) - (bParts[1] ?? -1);
-        });
+  export function isVariousArtist(name: string): boolean {
+      if (!name) return false;
+      const lower = name.toLowerCase().trim();
+      return lower === 'various' || lower === 'various artists';
+  }
 
-        return sortedKeys.map(key => {
-            const ids = key.split('-').map(Number);
-            const parentTrack = release.tracklist![ids[0]];
-            const track = ids.length > 1 ? parentTrack.sub_tracks![ids[1]] : parentTrack;
-            return {
-                releaseId: release.id,
-                trackKey: key,
-                durationInSeconds: parseDuration(track.duration),
-            };
-        });
-    });
+  export function getReleaseDisplayArtist(
+      release: DiscogsRelease | QueueItem,
+      _metadata: AppleMusicMetadata | undefined, // No longer used
+      _settings: any // No longer used
+  ): string {
+      return release.basic_information.artist_display_name;
+  }
 
-    if (selectedTracksForTimestamping.length === 0) return {};
+  export function getReleaseDisplayTitle(
+      release: DiscogsRelease | QueueItem,
+      _metadata: AppleMusicMetadata | undefined, // No longer used
+      _settings: any // No longer used
+  ): string {
+      return release.basic_information.title;
+  }
 
-    const startTime = currentTime + timeOffset;
-    let currentTimestamp = startTime;
+  export function getTrackDisplayArtist(
+      track: DiscogsTrack, 
+      release: DiscogsRelease, 
+      metadata: AppleMusicMetadata | undefined, 
+      _settings: any, 
+      useTrackArtist: boolean = true
+  ): string {
+      const albumArtistName = getReleaseDisplayArtist(release, metadata, _settings);
+      if (!useTrackArtist) return albumArtistName;
+      if (isVariousArtist(albumArtistName) && track.artists?.length) return formatArtistNames(track.artists);
+      return albumArtistName;
+  }
 
-    selectedTracksForTimestamping.forEach(({ releaseId, trackKey, durationInSeconds }) => {
-        if (!timestamps[releaseId]) timestamps[releaseId] = {};
-        timestamps[releaseId][trackKey] = currentTimestamp;
-        currentTimestamp += durationInSeconds;
-    });
+  export function getTrackFeaturedArtists(track: DiscogsTrack): string {
+      if (!track.extraartists) return '';
+      const featArtists = track.extraartists.filter(a => a.role.toLowerCase().includes('feat'));
+      if (featArtists.length === 0) return '';
+      return `feat. ${formatArtistNames(featArtists)}`;
+  }
 
-    return timestamps;
-}
+  export function getTrackCreditsStructured(track: DiscogsTrack): { role: string; artists: DiscogsArtist[] }[] {
+      if (!track.extraartists?.length) return [];
+      const creditArtists = track.extraartists.filter(a => !a.role.toLowerCase().includes('feat'));
+      if (creditArtists.length === 0) return [];
 
-export function prepareTracksForScrobbling(
-    queue: QueueItem[],
-    selectedTracks: SelectedTracks,
-    selectedFeatures: SelectedFeatures,
-    settings: Settings,
-    timeOffset: number,
-): LastfmTrackScrobble[] {
-    const now = Math.floor(Date.now() / 1000);
-    
-    const selectedTracksWithInfo = queue.flatMap(release => {
-        const selectedKeys = selectedTracks[release.id];
-        if (!selectedKeys || !release.tracklist) return [];
-        
-        const sortedKeys = Array.from(selectedKeys).sort((a, b) => {
-            const aParts = a.split('-').map(Number);
-            const bParts = b.split('-').map(Number);
-            if (aParts[0] !== bParts[0]) return aParts[0] - bParts[0];
-            return (aParts[1] ?? -1) - (bParts[1] ?? -1);
-        });
+      const roleMap = new Map<string, DiscogsArtist[]>();
+      creditArtists.forEach(artist => {
+          if (!roleMap.has(artist.role)) roleMap.set(artist.role, []);
+          roleMap.get(artist.role)!.push(artist);
+      });
 
-        return sortedKeys.map(key => {
-            const ids = key.split('-').map(Number);
-            const parentTrack = release.tracklist![ids[0]];
-            const track: EnrichedTrack = ids.length > 1 ? parentTrack.sub_tracks![ids[1]] : parentTrack;
-            
-            let artist = track.display_artist;
-            if (settings.showFeatures && selectedFeatures[release.id]?.has(key) && track.featured_artists) {
-                artist = `${artist} ${track.featured_artists}`;
-            }
-            
-            return {
-                artist: artist,
-                title: track.title,
-                durationInSeconds: parseDuration(track.duration),
-            };
-        });
-    });
+      return Array.from(roleMap.entries()).map(([role, artists]) => ({ role, artists }));
+  }
 
-    if (selectedTracksWithInfo.length === 0) {
-        return [];
-    }
-    
-    const startTime = now + timeOffset;
-    let currentTimestamp = startTime;
+  const parseDuration = (durationStr: string): number => {
+      if (!durationStr) return 180;
+      const parts = durationStr.split(':').map(Number);
+      if (parts.length === 2 && !isNaN(parts[0]) && !isNaN(parts[1])) return parts[0] * 60 + parts[1];
+      return 180;
+  };
 
-    return selectedTracksWithInfo.map(trackInfo => {
-        const timestamp = currentTimestamp;
-        currentTimestamp += trackInfo.durationInSeconds;
-        return {
-            artist: trackInfo.artist,
-            track: trackInfo.title,
-            timestamp: timestamp,
-        };
-    });
-}
+  export function calculateScrobbleTimestamps(
+      queue: QueueItem[], 
+      selectedTracks: SelectedTracks, 
+      currentTime: number,
+      timeOffset: number
+  ): Record<string, Record<string, number>> {
+      const timestamps: Record<string, Record<string, number>> = {};
+
+      const tracksForTimestamping = queue.flatMap(release => {
+          const selectedKeys = selectedTracks[release.instanceKey];
+          if (!selectedKeys?.size || !release.tracklist) return [];
+          
+          const sortedKeys = Array.from(selectedKeys).sort((a, b) => {
+              const [aP, aS] = a.split('-').map(Number);
+              const [bP, bS] = b.split('-').map(Number);
+              if (aP !== bP) return aP - bP;
+              return (aS ?? -1) - (bS ?? -1);
+          });
+
+          return sortedKeys.flatMap(key => {
+              const [pIndex, sIndex] = key.split('-').map(Number);
+              const parentTrack = release.tracklist![pIndex];
+              const track = sIndex >= 0 ? parentTrack?.sub_tracks?.[sIndex] : parentTrack;
+              if (!track) return [];
+              return { instanceKey: release.instanceKey, trackKey: key, durationInSeconds: parseDuration(track.duration) };
+          });
+      });
+
+      if (tracksForTimestamping.length === 0) return {};
+
+      const totalDuration = tracksForTimestamping.reduce((acc, track) => acc + track.durationInSeconds, 0);
+      let currentTimestamp = (currentTime + timeOffset) - totalDuration;
+
+      tracksForTimestamping.forEach(({ instanceKey, trackKey, durationInSeconds }) => {
+          if (!timestamps[instanceKey]) timestamps[instanceKey] = {};
+          timestamps[instanceKey][trackKey] = currentTimestamp;
+          currentTimestamp += durationInSeconds;
+      });
+
+      return timestamps;
+  }
+
+  export function prepareTracksForScrobbling(
+      queue: QueueItem[],
+      selectedTracks: SelectedTracks,
+      artistSelections: ArtistSelections,
+      metadataMap: Record<number, AppleMusicMetadata>,
+      timeOffset: number
+  ): LastfmTrackScrobble[] {
+      const now = Math.floor(Date.now() / 1000);
+      
+      const tracksWithInfo = queue.flatMap(release => {
+          const selectedKeys = selectedTracks[release.instanceKey];
+          if (!selectedKeys?.size || !release.tracklist) return [];
+          
+          const sortedKeys = Array.from(selectedKeys).sort((a, b) => {
+              const [aP, aS] = a.split('-').map(Number);
+              const [bP, bS] = b.split('-').map(Number);
+              if (aP !== bP) return aP - bP;
+              return (aS ?? -1) - (bS ?? -1);
+          });
+          
+          const metadata = metadataMap[release.id];
+
+          return sortedKeys.flatMap(key => {
+              const [pIndex, sIndex] = key.split('-').map(Number);
+              const parentTrack = release.tracklist![pIndex];
+              const track: DiscogsTrack | undefined = sIndex >= 0 ? parentTrack?.sub_tracks?.[sIndex] : parentTrack;
+              if (!track) return [];
+
+              const selectedArtistNames = artistSelections[release.instanceKey]?.[key] || new Set();
+              const allPotentialArtists = [...(track.artists || []), ...(track.extraartists || [])];
+              const finalArtists = allPotentialArtists.filter(a => selectedArtistNames.has(cleanArtistName(a.name)));
+              
+              const artistString = finalArtists.length > 0 
+                  ? formatArtistNames(finalArtists) 
+                  : getReleaseDisplayArtist(release, metadata, {});
+
+              return {
+                  artist: artistString,
+                  track: track.title,
+                  album: getReleaseDisplayTitle(release, metadata, {}),
+                  durationInSeconds: parseDuration(track.duration),
+              };
+          });
+      });
+
+      if (tracksWithInfo.length === 0) return [];
+      
+      const totalDuration = tracksWithInfo.reduce((acc, track) => acc + track.durationInSeconds, 0);
+      let currentTimestamp = (now + timeOffset) - totalDuration;
+      
+      return tracksWithInfo.map(trackInfo => {
+          const timestamp = currentTimestamp;
+          currentTimestamp += trackInfo.durationInSeconds;
+          return { ...trackInfo, timestamp };
+      });
+  }

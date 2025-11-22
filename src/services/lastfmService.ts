@@ -1,3 +1,4 @@
+
 import { createLastfmSignature } from '../hooks/utils/credentialsUtils';
 import type { LastfmTrackScrobble } from '../types';
 
@@ -49,6 +50,9 @@ export const scrobbleTracks = async (
   tracks.forEach((track, index) => {
     params[`artist[${index}]`] = track.artist;
     params[`track[${index}]`] = track.track;
+    if (track.album) {
+        params[`album[${index}]`] = track.album;
+    }
     params[`timestamp[${index}]`] = track.timestamp.toString();
   });
   

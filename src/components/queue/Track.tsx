@@ -1,36 +1,51 @@
 
+
 import React from 'react';
-import type { EnrichedTrack, Settings } from '../../types';
+import type { DiscogsTrack, Settings, DiscogsArtist, AppleMusicMetadata, DiscogsRelease } from '../../types';
 import IndeterminateCheckbox from './IndeterminateCheckbox';
+import { getTrackFeaturedArtists, getTrackCreditsStructured, isVariousArtist } from '../../hooks/utils/queueUtils';
+import { cleanArtistName } from '../../hooks/utils/formattingUtils';
 
 interface TrackProps {
-    track: EnrichedTrack;
+    track: DiscogsTrack;
+    release: DiscogsRelease; // Needed for helper
+    metadata: AppleMusicMetadata | undefined;
     parentIndex: number;
     groupHeading?: string;
     albumArtistName: string;
+    useTrackArtist: boolean;
     selectedTrackKeys: Set<string>;
     selectedFeatures: Set<string>;
+    artistSelections: Record<string, Set<string>>;
     scrobbleTimestamps: Record<string, number>;
     settings: Settings;
     onToggle: (trackKey: string) => void;
     onFeatureToggle: (trackKey: string) => void;
+    onArtistToggle: (trackKey: string, artistName: string) => void;
     onToggleParent: (parentIndex: number, subTrackKeys: string[]) => void;
     onSelectParentAsSingle: (parentKey: string, subTrackKeys: string[]) => void;
+    isHistoryItem?: boolean;
 }
 
 const Track: React.FC<TrackProps> = ({
     track,
+    release,
+    metadata,
     parentIndex,
     groupHeading,
     albumArtistName,
+    useTrackArtist,
     selectedTrackKeys,
     selectedFeatures,
+    artistSelections,
     scrobbleTimestamps,
     settings,
     onToggle,
     onFeatureToggle,
+    onArtistToggle,
     onToggleParent,
     onSelectParentAsSingle,
+    isHistoryItem,
 }) => {
     const hasSubTracks = track.sub_tracks && track.sub_tracks.length > 0;
     const trackKey = String(parentIndex);
@@ -38,6 +53,9 @@ const Track: React.FC<TrackProps> = ({
     let isChecked: boolean;
     let isIndeterminate: boolean;
     let subTrackKeys: string[] = [];
+
+    const featuredArtists = getTrackFeaturedArtists(track);
+    const structuredCredits = getTrackCreditsStructured(track);
 
     if (hasSubTracks) {
         subTrackKeys = track.sub_tracks!.map((_, sIndex) => `${parentIndex}-${sIndex}`);
@@ -64,103 +82,210 @@ const Track: React.FC<TrackProps> = ({
         return pos;
     };
 
-    const renderDuration = (trackKey: string, duration: string) => {
-        const timestamp = scrobbleTimestamps[trackKey];
-        const isSelected = selectedTrackKeys.has(trackKey);
+    const renderDuration = (key: string, duration: string) => {
+        const timestamp = scrobbleTimestamps[key];
+        const isSelected = selectedTrackKeys.has(key);
 
-        if (isSelected && timestamp !== undefined) {
+        if (!isHistoryItem && isSelected && timestamp !== undefined) {
             return (
-                <span className="text-sm text-red-400 font-semibold w-12 text-right flex-shrink-0" title={`Scrobbles at ${new Date(timestamp * 1000).toLocaleString()}`}>
+                <span className="text-sm text-[#228B22] font-semibold w-12 text-right flex-shrink-0" title={`Scrobbles at ${new Date(timestamp * 1000).toLocaleString()}`}>
                     {duration}
                 </span>
             );
         }
-        return <span className="text-sm text-red-400 w-12 text-right flex-shrink-0">{duration}</span>;
+        return <span className="text-sm text-gray-500 w-12 text-right flex-shrink-0">{duration || '--:--'}</span>;
     };
+
+    const renderArtistList = (currentKey: string, artists: DiscogsArtist[] | undefined) => {
+        if (!artists || artists.length === 0) return null;
+        
+        const selectedSet = artistSelections[currentKey] || new Set();
+
+        return (
+            <span className="ml-2 text-sm text-gray-400 truncate">
+                -{' '}
+                {artists.map((artist, index) => {
+                    const cleanName = cleanArtistName(artist.name);
+                    const isSelected = selectedSet.has(cleanName);
+                    const join = artist.join ? artist.join.trim() : '';
+                    const suffix = index < artists.length - 1 ? (join ? ` ${join} ` : ', ') : '';
+                    
+                    return (
+                        <React.Fragment key={index}>
+                            {!isHistoryItem ? (
+                                <label className="inline-flex items-center gap-1 cursor-pointer hover:text-gray-200" onClick={e => e.stopPropagation()}>
+                                    <input 
+                                        type="checkbox" 
+                                        checked={isSelected} 
+                                        onChange={() => onArtistToggle(currentKey, cleanName)}
+                                        className="form-checkbox h-3 w-3 rounded-sm bg-gray-700 border-gray-600 text-blue-500 focus:ring-blue-500"
+                                    />
+                                    <span>{cleanName}</span>
+                                </label>
+                            ) : (
+                                <span>{cleanName}</span>
+                            )}
+                            {suffix}
+                        </React.Fragment>
+                    );
+                })}
+            </span>
+        );
+    };
+
+    const renderCredits = (currentKey: string, credits: { role: string; artists: DiscogsArtist[] }[]) => {
+        if (!credits || credits.length === 0) return null;
+        const selectedSet = artistSelections[currentKey] || new Set();
+
+        return (
+            <div className="text-xs text-gray-500 mt-1 max-h-[80px] overflow-y-auto pr-2 scrollbar-thin scrollbar-thumb-gray-600 scrollbar-track-gray-800">
+                {credits.map((credit, cIndex) => (
+                    <div key={cIndex} className="flex flex-wrap gap-1 items-baseline mb-1">
+                        <span className="font-semibold whitespace-nowrap mr-1">{credit.role}:</span>
+                        {credit.artists.map((artist, aIndex) => {
+                            const cleanName = cleanArtistName(artist.name);
+                            const isSelected = selectedSet.has(cleanName);
+                            const join = artist.join ? artist.join.trim() : '';
+                            const suffix = aIndex < credit.artists.length - 1 ? (join ? ` ${join} ` : ', ') : '';
+                            
+                            return (
+                                <React.Fragment key={aIndex}>
+                                    {!isHistoryItem ? (
+                                        <label className="inline-flex items-center gap-1 cursor-pointer hover:text-gray-400" onClick={e => e.stopPropagation()}>
+                                            <input 
+                                                type="checkbox" 
+                                                checked={isSelected} 
+                                                onChange={() => onArtistToggle(currentKey, cleanName)}
+                                                className="form-checkbox h-3 w-3 rounded-sm bg-gray-700 border-gray-600 text-gray-500 focus:ring-gray-500"
+                                            />
+                                            <span>{cleanName}</span>
+                                        </label>
+                                    ) : (
+                                        <span>{cleanName}</span>
+                                    )}
+                                    {suffix}
+                                </React.Fragment>
+                            )
+                        })}
+                        {cIndex < credits.length - 1 && <span className="mr-2">; </span>}
+                    </div>
+                ))}
+            </div>
+        );
+    }
 
 
     return (
         <div key={parentIndex}>
             <div className="flex items-center gap-3 p-2 rounded-md hover:bg-gray-700/50">
-                <IndeterminateCheckbox
-                    checked={isChecked}
-                    indeterminate={isIndeterminate}
-                    onChange={hasSubTracks ? () => onToggleParent(parentIndex, subTrackKeys) : () => onToggle(trackKey)}
-                    title={hasSubTracks ? "Select/Deselect all subtracks" : ""}
-                    className="form-checkbox h-5 w-5 rounded bg-gray-700 border-gray-600 text-blue-600 focus:ring-blue-500 focus:ring-offset-gray-800 flex-shrink-0"
-                />
+                {!isHistoryItem ? (
+                    <IndeterminateCheckbox
+                        checked={isChecked}
+                        indeterminate={isIndeterminate}
+                        onChange={hasSubTracks ? () => onToggleParent(parentIndex, subTrackKeys) : () => onToggle(trackKey)}
+                        title={hasSubTracks ? "Select/Deselect all subtracks" : ""}
+                        className="form-checkbox h-5 w-5 rounded bg-gray-700 border-gray-600 text-blue-600 focus:ring-blue-500 focus:ring-offset-gray-800 flex-shrink-0"
+                    />
+                ) : (
+                    <div className="w-5 h-5 flex-shrink-0" />
+                )}
+
                 <span className="text-sm text-gray-400 font-mono w-10 text-right flex-shrink-0">{scrubbedPosition(track.position)}</span>
-                <div className="flex-grow flex flex-col sm:flex-row sm:items-baseline gap-x-2 min-w-0">
-                    <div className="flex items-baseline min-w-0">
-                        <span className="font-semibold truncate" title={track.title}>{track.title}</span>
-                         {albumArtistName.toLowerCase() === 'various' && !hasSubTracks && (
-                            <span className="text-sm text-gray-400 truncate ml-2" title={track.display_artist}> - {track.display_artist}</span>
-                        )}
+                
+                <div className="flex-grow flex flex-col min-w-0">
+                    <div className="flex flex-col sm:flex-row sm:items-baseline gap-x-2 min-w-0">
+                        <div className="flex flex-wrap items-baseline min-w-0">
+                            <span className="font-semibold truncate mr-1" title={track.title}>{track.title}</span>
+                            
+                            {/* Main Artist Display */}
+                            {(!hasSubTracks && (isVariousArtist(albumArtistName) || (track.artists && track.artists.length > 0))) && 
+                                renderArtistList(trackKey, track.artists)
+                            }
+                        </div>
+                        
+                        <div className="flex items-center gap-2">
+                            {!isHistoryItem && settings.showFeatures && featuredArtists && !hasSubTracks && (
+                                <label className="text-xs italic text-gray-500 flex-shrink-0 flex items-center gap-1 cursor-pointer" onClick={e=>e.stopPropagation()}>
+                                    <input
+                                        type="checkbox"
+                                        checked={selectedFeatures.has(trackKey)}
+                                        onChange={() => onFeatureToggle(trackKey)}
+                                        className="form-checkbox h-3 w-3 rounded-sm bg-gray-700 border-gray-600 text-blue-600 focus:ring-blue-500 focus:ring-offset-gray-800"
+                                        title={`Include featured artists in scrobble`}
+                                    />
+                                    {featuredArtists}
+                                </label>
+                            )}
+                            {!isHistoryItem && hasSubTracks && (
+                                <span 
+                                    className="text-xs italic text-blue-400 hover:text-blue-300 cursor-pointer flex-shrink-0"
+                                    onClick={(e) => {
+                                        e.stopPropagation();
+                                        onSelectParentAsSingle(trackKey, subTrackKeys);
+                                    }}
+                                >
+                                    (Scrobble as 1 track)
+                                </span>
+                            )}
+                        </div>
                     </div>
-                    <div className="flex items-center gap-2">
-                        {settings.showFeatures && track.featured_artists && !hasSubTracks && (
-                            <label className="text-xs italic text-gray-500 flex-shrink-0 flex items-center gap-1 cursor-pointer" onClick={e=>e.stopPropagation()}>
-                                <input
-                                    type="checkbox"
-                                    checked={selectedFeatures.has(trackKey)}
-                                    onChange={() => onFeatureToggle(trackKey)}
-                                    className="form-checkbox h-3 w-3 rounded-sm bg-gray-700 border-gray-600 text-blue-600 focus:ring-blue-500 focus:ring-offset-gray-800"
-                                    title={`Include featured artists in scrobble`}
-                                />
-                                {track.featured_artists}
-                            </label>
-                        )}
-                        {hasSubTracks && (
-                            <span 
-                                className="text-xs italic text-blue-400 hover:text-blue-300 cursor-pointer flex-shrink-0"
-                                onClick={(e) => {
-                                    e.stopPropagation();
-                                    onSelectParentAsSingle(trackKey, subTrackKeys);
-                                }}
-                            >
-                                (Scrobble as 1 track)
-                            </span>
-                        )}
-                    </div>
+                    
+                    {!hasSubTracks && renderCredits(trackKey, structuredCredits)}
+
                 </div>
                 {renderDuration(trackKey, track.duration)}
             </div>
             
             {hasSubTracks && (
                 <div className="ml-8 space-y-1 mt-1 pl-4 border-l-2 border-gray-700">
-                    {track.sub_tracks!.map((subTrack, sIndex) => {
+                    {track.sub_tracks?.map((subTrack, sIndex) => {
                         const subTrackKey = `${parentIndex}-${sIndex}`;
+                        const subFeaturedArtists = getTrackFeaturedArtists(subTrack);
+                        const subStructuredCredits = getTrackCreditsStructured(subTrack);
+                        
                         return (
-                        <label key={sIndex} className="flex items-center gap-3 p-2 rounded-md hover:bg-gray-700/50 cursor-pointer">
-                            <input
-                                type="checkbox"
-                                checked={selectedTrackKeys.has(subTrackKey)}
-                                onChange={() => onToggle(subTrackKey)}
-                                className="form-checkbox h-5 w-5 rounded bg-gray-700 border-gray-600 text-blue-600 focus:ring-blue-500 focus:ring-offset-gray-800 flex-shrink-0"
-                            />
-                             <span className="text-sm text-gray-400 font-mono w-10 text-right flex-shrink-0">{scrubbedPosition(subTrack.position)}</span>
-                            <div className="flex-grow flex flex-col sm:flex-row sm:items-baseline gap-x-2 min-w-0">
-                                <div className="flex items-baseline min-w-0">
-                                    <span className="truncate" title={subTrack.title}>{subTrack.title}</span>
-                                    {albumArtistName.toLowerCase() === 'various' && (
-                                        <span className="text-sm text-gray-400 truncate ml-2" title={subTrack.display_artist}> - {subTrack.display_artist}</span>
-                                    )}
-                                </div>
-                                {settings.showFeatures && subTrack.featured_artists && (
-                                <label className="text-xs italic text-gray-500 flex-shrink-0 flex items-center gap-1 cursor-pointer" onClick={e=>e.stopPropagation()}>
+                        <div key={sIndex} className={`flex items-center gap-3 p-2 rounded-md ${!isHistoryItem ? 'hover:bg-gray-700/50' : ''}`}>
+                            {!isHistoryItem ? (
+                                <label className="flex items-center gap-3 cursor-pointer flex-grow">
                                     <input
                                         type="checkbox"
-                                        checked={selectedFeatures.has(subTrackKey)}
-                                        onChange={() => onFeatureToggle(subTrackKey)}
-                                        className="form-checkbox h-3 w-3 rounded-sm bg-gray-700 border-gray-600 text-blue-600 focus:ring-blue-500 focus:ring-offset-gray-800"
-                                        title={`Include featured artists in scrobble`}
+                                        checked={selectedTrackKeys.has(subTrackKey)}
+                                        onChange={() => onToggle(subTrackKey)}
+                                        className="form-checkbox h-5 w-5 rounded bg-gray-700 border-gray-600 text-blue-600 focus:ring-blue-500 focus:ring-offset-gray-800 flex-shrink-0"
                                     />
-                                    {subTrack.featured_artists}
+                                    <span className="text-sm text-gray-400 font-mono w-10 text-right flex-shrink-0">{scrubbedPosition(subTrack.position)}</span>
                                 </label>
+                            ) : (
+                                <>
+                                    <div className="w-5 h-5 flex-shrink-0" />
+                                    <span className="text-sm text-gray-400 font-mono w-10 text-right flex-shrink-0">{scrubbedPosition(subTrack.position)}</span>
+                                </>
                             )}
+                            <div className="flex-grow flex flex-col min-w-0">
+                                <div className="flex flex-col sm:flex-row sm:items-baseline gap-x-2 min-w-0">
+                                    <div className="flex flex-wrap items-baseline min-w-0">
+                                        <span className="truncate mr-1" title={subTrack.title}>{subTrack.title}</span>
+                                         {(isVariousArtist(albumArtistName) || (subTrack.artists && subTrack.artists.length > 0)) && 
+                                            renderArtistList(subTrackKey, subTrack.artists)
+                                         }
+                                    </div>
+                                    {!isHistoryItem && settings.showFeatures && subFeaturedArtists && (
+                                    <label className="text-xs italic text-gray-500 flex-shrink-0 flex items-center gap-1 cursor-pointer" onClick={e=>e.stopPropagation()}>
+                                        <input
+                                            type="checkbox"
+                                            checked={selectedFeatures.has(subTrackKey)}
+                                            onChange={() => onFeatureToggle(subTrackKey)}
+                                            className="form-checkbox h-3 w-3 rounded-sm bg-gray-700 border-gray-600 text-blue-600 focus:ring-blue-500 focus:ring-offset-gray-800"
+                                            title={`Include featured artists in scrobble`}
+                                        />
+                                        {subFeaturedArtists}
+                                    </label>
+                                )}
+                                </div>
+                                {renderCredits(subTrackKey, subStructuredCredits)}
                             </div>
                             {renderDuration(subTrackKey, subTrack.duration)}
-                        </label>
+                        </div>
                     )})}
                 </div>
             )}

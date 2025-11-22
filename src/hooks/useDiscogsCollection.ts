@@ -1,142 +1,216 @@
 
-import { useState, useEffect, useRef } from 'react';
-import { fetchDiscogsCollection } from '../services/discogsService';
-import { fetchOfficialArtistName } from '../services/musicbrainzService';
-import type { Credentials, DiscogsRelease } from '../types';
 
-export function useDiscogsCollection(credentials: Credentials, isConnected: boolean) {
+import { useState, useEffect, useCallback, useRef } from 'react';
+import { fetchDiscogsPage } from '../services/discogsService';
+import type { Credentials, DiscogsRelease } from '../types';
+import { SortOption } from '../types';
+import { formatArtistNames } from './utils/formattingUtils';
+import { mergePageIntoCollection } from './utils/collectionSyncUtils';
+
+const getApiSortParams = (option: SortOption): { sort: string, sortOrder: 'asc' | 'desc' } => {
+  switch (option) {
+    case SortOption.ArtistAZ: return { sort: 'artist', sortOrder: 'asc' };
+    case SortOption.ArtistZA: return { sort: 'artist', sortOrder: 'desc' };
+    case SortOption.AlbumAZ: return { sort: 'title', sortOrder: 'asc' };
+    case SortOption.AlbumZA: return { sort: 'title', sortOrder: 'desc' };
+    case SortOption.YearNewest: return { sort: 'year', sortOrder: 'desc' };
+    case SortOption.YearOldest: return { sort: 'year', sortOrder: 'asc' };
+    case SortOption.AddedNewest: return { sort: 'added', sortOrder: 'desc' };
+    case SortOption.AddedOldest: return { sort: 'added', sortOrder: 'asc' };
+    case SortOption.FormatAZ: return { sort: 'format', sortOrder: 'asc' };
+    case SortOption.FormatZA: return { sort: 'format', sortOrder: 'desc' };
+    default: return { sort: 'added', sortOrder: 'desc' };
+  }
+};
+
+export function useDiscogsCollection(
+    credentials: Credentials, 
+    isConnected: boolean,
+    sortOption: SortOption
+) {
   const [collection, setCollection] = useState<DiscogsRelease[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   const [isSyncing, setIsSyncing] = useState(false);
-  const [loadingProgress, setLoadingProgress] = useState({ current: 0, total: 0 });
   const [error, setError] = useState<string | null>(null);
-  const isFetchingMbNames = useRef(false);
+  
+  const [nextPage, setNextPage] = useState(1);
+  const [totalPages, setTotalPages] = useState(1);
+  const hasMore = nextPage <= totalPages;
+  const [reloadTrigger, setReloadTrigger] = useState(0);
+  
+  const isFetchingRef = useRef(false);
+  const mountedRef = useRef(true);
+
+  const cacheKey = `vinyl-scrobbler-collection-${credentials.discogsUsername}`;
+
+  const fetchInitialPages = async (sort: string, sortOrder: 'asc' | 'desc', ignoreCache: boolean = false) => {
+      if (isFetchingRef.current) return;
+      isFetchingRef.current = true;
+      if (mountedRef.current) setIsSyncing(true);
+
+      try {
+          if (!ignoreCache && sort === 'added' && sortOrder === 'desc') {
+              try {
+                  const cachedDataRaw = localStorage.getItem(cacheKey);
+                  if (cachedDataRaw) {
+                      const parsedReleases: DiscogsRelease[] = JSON.parse(cachedDataRaw);
+                      const formattedCached = parsedReleases.map(release => {
+                          if (release.basic_information?.artists) {
+                              const displayName = formatArtistNames(release.basic_information.artists) || 'Unknown Artist';
+                              if (displayName !== release.basic_information.artist_display_name) {
+                                  return { ...release, basic_information: { ...release.basic_information, artist_display_name: displayName } };
+                              }
+                          }
+                          return release;
+                      });
+                      if (mountedRef.current) setCollection(formattedCached);
+                  }
+              } catch (e) { console.error("Failed to read cache.", e); } 
+              finally { if (mountedRef.current) setIsLoading(false); }
+          } else {
+               if (mountedRef.current && collection.length === 0) setIsLoading(true); 
+          }
+
+          const p1 = await fetchDiscogsPage(credentials.discogsUsername, credentials.discogsAccessToken, credentials.discogsAccessTokenSecret, 1, sort, sortOrder);
+          if (!mountedRef.current) return;
+          
+          setTotalPages(p1.pagination.pages);
+          
+          setCollection(prev => {
+              const { merged, hasChanges } = mergePageIntoCollection(prev, p1.releases);
+              if (hasChanges && sort === 'added' && sortOrder === 'desc') {
+                  localStorage.setItem(cacheKey, JSON.stringify(merged));
+              }
+              return merged;
+          });
+
+          if (mountedRef.current) setIsLoading(false);
+
+          let currentNextPage = 2;
+
+          if (p1.pagination.pages >= 2) {
+              const p2 = await fetchDiscogsPage(credentials.discogsUsername, credentials.discogsAccessToken, credentials.discogsAccessTokenSecret, 2, sort, sortOrder);
+              if (mountedRef.current) {
+                  setCollection(prev => {
+                      const { merged, hasChanges } = mergePageIntoCollection(prev, p2.releases);
+                      if (hasChanges && sort === 'added' && sortOrder === 'desc') localStorage.setItem(cacheKey, JSON.stringify(merged));
+                      return merged;
+                  });
+                  currentNextPage = 3;
+              }
+          }
+
+          if (p1.pagination.pages >= 3) {
+              const p3 = await fetchDiscogsPage(credentials.discogsUsername, credentials.discogsAccessToken, credentials.discogsAccessTokenSecret, 3, sort, sortOrder);
+              if (mountedRef.current) {
+                  setCollection(prev => {
+                      const { merged, hasChanges } = mergePageIntoCollection(prev, p3.releases);
+                      if (hasChanges && sort === 'added' && sortOrder === 'desc') localStorage.setItem(cacheKey, JSON.stringify(merged));
+                      return merged;
+                  });
+                  currentNextPage = 4;
+              }
+          }
+
+          if (mountedRef.current) setNextPage(currentNextPage);
+
+      } catch (err) {
+          console.error(err);
+          if (mountedRef.current) setError(err instanceof Error ? err.message : 'An error occurred while fetching collection.');
+      } finally {
+          isFetchingRef.current = false;
+          if (mountedRef.current) {
+              setIsSyncing(false);
+              setIsLoading(false);
+          }
+      }
+  };
 
   useEffect(() => {
+    mountedRef.current = true;
     if (!isConnected) {
       setIsLoading(false);
       setCollection([]);
       return;
     }
+    
+    const { sort, sortOrder } = getApiSortParams(sortOption);
+    
+    if (sortOption !== SortOption.AddedNewest || reloadTrigger > 0) {
+         setNextPage(1);
+    } 
 
-    const fetchAndCacheMbNames = async (releases: DiscogsRelease[]) => {
-      if (isFetchingMbNames.current || !releases || releases.length === 0) return;
-      isFetchingMbNames.current = true;
+    const ignoreCache = sortOption !== SortOption.AddedNewest || reloadTrigger > 0;
+    
+    fetchInitialPages(sort, sortOrder, ignoreCache);
+    
+    return () => { mountedRef.current = false; };
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [isConnected, credentials.discogsUsername, sortOption, reloadTrigger]);
+
+
+  const fetchNextPage = useCallback(async () => {
+      if (isFetchingRef.current || !hasMore) return;
       
-      const mbCacheKeyPrefix = `mb-artist-`;
-      
-      for (const release of releases) {
-        const cacheKey = `${mbCacheKeyPrefix}${release.id}`;
-        const cachedName = localStorage.getItem(cacheKey);
-
-        let officialName: string | null;
-
-        if (cachedName !== null) {
-          officialName = cachedName === 'null' ? null : cachedName;
-        } else {
-          const discogsArtistName = release.basic_information.artist_display_name;
-          officialName = await fetchOfficialArtistName(release.basic_information.title, discogsArtistName);
-          localStorage.setItem(cacheKey, officialName === null ? 'null' : (officialName || 'null'));
-        }
-
-        if (officialName) {
-          setCollection(prev => prev.map(r => r.id === release.id ? {
-              ...r,
-              basic_information: {
-                  ...r.basic_information,
-                  artist_display_name: officialName as string,
-              }
-          } : r));
-        }
-      }
-      
-      setCollection(currentCollection => {
-        const mainCacheKey = `vinyl-scrobbler-collection-${credentials.discogsUsername}`;
-        const existingDataRaw = localStorage.getItem(mainCacheKey);
-        if (existingDataRaw) {
-            const existingData = JSON.parse(existingDataRaw);
-            if (existingData.length === currentCollection.length) {
-                 localStorage.setItem(mainCacheKey, JSON.stringify(currentCollection));
-            }
-        }
-        return currentCollection;
-      });
-
-      isFetchingMbNames.current = false;
-    };
-
-    const loadCollection = async () => {
-      setError(null);
-      const cacheKey = `vinyl-scrobbler-collection-${credentials.discogsUsername}`;
-      let definitiveCollection: DiscogsRelease[] | null = null;
-      let cachedReleases: DiscogsRelease[] | null = null;
-
-      // 1. Load from cache for initial display
       try {
-        const cachedDataRaw = localStorage.getItem(cacheKey);
-        if (cachedDataRaw) {
-          let releases: DiscogsRelease[] = JSON.parse(cachedDataRaw);
-          releases = releases.map(release => {
-            if (release.basic_information && typeof release.basic_information.artist_display_name !== 'string') {
-              const displayName = release.basic_information.artists?.map(a => a.name.replace(/\s\(\d+\)$/, '').trim()).join(', ') || 'Unknown Artist';
-              return { ...release, basic_information: { ...release.basic_information, artist_display_name: displayName }};
-            }
-            return release;
-          });
-          cachedReleases = releases;
-          setCollection(cachedReleases);
-        }
-      } catch (e) {
-        console.error("Failed to read cache.", e);
-        localStorage.removeItem(cacheKey);
-      } finally {
-        setIsLoading(false);
-      }
-      
-      // 2. Sync with Discogs
-      try {
-        if (!cachedReleases) setIsLoading(true); else setIsSyncing(true);
+        isFetchingRef.current = true;
+        setIsSyncing(true);
+        
+        const { sort, sortOrder } = getApiSortParams(sortOption);
 
-        const onProgress = (current: number, total: number) => {
-          if (!cachedReleases) setLoadingProgress({ current, total });
-        };
-
-        const freshReleases = await fetchDiscogsCollection(
+        const { releases: freshReleases, pagination } = await fetchDiscogsPage(
           credentials.discogsUsername,
           credentials.discogsAccessToken,
           credentials.discogsAccessTokenSecret,
-          onProgress
+          nextPage,
+          sort,
+          sortOrder
         );
         
-        // 3. Compare and set definitive collection
-        const needsUpdate = !cachedReleases || freshReleases.length !== cachedReleases.length || 
-                          freshReleases.map(r => r.instance_id).sort().join(',') !== 
-                          cachedReleases.map(r => r.instance_id).sort().join(',');
+        if (!mountedRef.current) return;
 
-        if (needsUpdate) {
-          setCollection(freshReleases);
-          localStorage.setItem(cacheKey, JSON.stringify(freshReleases));
-          definitiveCollection = freshReleases;
-        } else {
-          definitiveCollection = cachedReleases;
-        }
+        setTotalPages(pagination.pages);
+        setNextPage(prev => prev + 1);
+
+        setCollection(prevCollection => {
+            const { merged, hasChanges } = mergePageIntoCollection(prevCollection, freshReleases);
+            if (hasChanges && sort === 'added' && sortOrder === 'desc') {
+                localStorage.setItem(cacheKey, JSON.stringify(merged));
+            }
+            return merged;
+        });
+
       } catch (err) {
-        setError(err instanceof Error ? err.message : 'An unknown error occurred while syncing.');
-        definitiveCollection = cachedReleases || [];
+        console.error(err);
+        setError(err instanceof Error ? err.message : 'An error occurred while fetching collection.');
       } finally {
-        setIsLoading(false);
-        setIsSyncing(false);
+        isFetchingRef.current = false;
+        if (mountedRef.current) setIsSyncing(false);
       }
+  }, [credentials, nextPage, hasMore, cacheKey, sortOption]);
 
-      // 4. Fetch MB names on definitive collection
-      if (definitiveCollection && definitiveCollection.length > 0) {
-        await fetchAndCacheMbNames(definitiveCollection);
-      }
-    };
+  const forceReload = useCallback(() => {
+    if (!isConnected) return;
+    
+    sessionStorage.setItem('force-metadata-fetch', 'true');
 
-    loadCollection();
-  // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [isConnected, credentials.discogsUsername, credentials.discogsAccessToken, credentials.discogsAccessTokenSecret]);
+    setCollection([]);
+    setNextPage(1);
+    setTotalPages(1);
+    setError(null);
+    localStorage.removeItem(cacheKey);
 
-  return { collection, isLoading, isSyncing, loadingProgress, error, setError };
-}
+    setReloadTrigger(c => c + 1);
+  }, [isConnected, cacheKey]);
+
+  return { 
+      collection, 
+      isLoading, 
+      isSyncing, 
+      hasMore, 
+      loadMore: fetchNextPage,
+      error, 
+      setError,
+      forceReload,
+  };
+} 

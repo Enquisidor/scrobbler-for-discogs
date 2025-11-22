@@ -1,5 +1,6 @@
-import React from 'react';
-import type { DiscogsRelease, QueueItem } from '../../types';
+
+import React, { useEffect, useRef, useMemo } from 'react';
+import type { DiscogsRelease, QueueItem, Settings, AppleMusicMetadata } from '../../types';
 import AlbumCard from './AlbumCard';
 import { Loader } from '../misc/Loader';
 import { DiscogsIcon } from '../misc/Icons';
@@ -9,12 +10,17 @@ interface CollectionScreenProps {
   queue: QueueItem[];
   isLoading: boolean;
   isSyncing: boolean;
+  hasMore: boolean;
+  onLoadMore: () => void;
   isFiltered: boolean;
   albumsPerRow: number;
-  loadingProgress: { current: number; total: number };
-  onToggleAlbumInQueue: (release: DiscogsRelease) => void;
+  onAddAlbumToQueue: (release: DiscogsRelease) => void;
+  onRemoveLastInstanceOfAlbumFromQueue: (releaseId: number) => void;
+  onRemoveAllInstancesOfAlbumFromQueue: (releaseId: number) => void;
   onConnectDiscogs: () => void;
   isConnectingDiscogs: boolean;
+  settings: Settings;
+  metadata: Record<number, AppleMusicMetadata>;
 }
 
 export default function CollectionScreen({
@@ -22,15 +28,50 @@ export default function CollectionScreen({
   queue,
   isLoading,
   isSyncing,
+  hasMore,
+  onLoadMore,
   isFiltered,
   albumsPerRow,
-  loadingProgress,
-  onToggleAlbumInQueue,
+  onAddAlbumToQueue,
+  onRemoveLastInstanceOfAlbumFromQueue,
+  onRemoveAllInstancesOfAlbumFromQueue,
   onConnectDiscogs,
   isConnectingDiscogs,
+  settings,
+  metadata
 }: CollectionScreenProps) {
   const isDiscogsConnected = collection.length > 0 || isSyncing || isLoading;
-  const queuedReleaseIds = new Set((queue || []).map(item => item.id));
+  
+  const queueCounts = useMemo(() => {
+    const counts = new Map<number, number>();
+    for (const item of queue) {
+      counts.set(item.id, (counts.get(item.id) || 0) + 1);
+    }
+    return counts;
+  }, [queue]);
+
+  // Intersection Observer for Infinite Scroll
+  const loadMoreRef = useRef<HTMLDivElement>(null);
+
+  useEffect(() => {
+    const observer = new IntersectionObserver(
+      (entries) => {
+        if (entries[0].isIntersecting && hasMore && !isSyncing) {
+          onLoadMore();
+        }
+      },
+      {
+          threshold: 0.1,
+          rootMargin: '1200px'
+      }
+    );
+
+    if (loadMoreRef.current) {
+      observer.observe(loadMoreRef.current);
+    }
+
+    return () => observer.disconnect();
+  }, [hasMore, isSyncing, onLoadMore]);
 
   return (
     <main>
@@ -40,25 +81,33 @@ export default function CollectionScreen({
             <div className="flex flex-col items-center justify-center text-center py-20">
               <Loader />
               <p className="mt-4 text-lg text-gray-300">Loading your collection...</p>
-              {loadingProgress.total > 1 && (
-                <p className="text-sm text-gray-500">
-                  Fetching page {loadingProgress.current} of {loadingProgress.total}
-                </p>
-              )}
             </div>
           ) : collection.length > 0 ? (
-            <div 
-              className="grid gap-4" 
-              style={{ gridTemplateColumns: `repeat(${albumsPerRow}, minmax(0, 1fr))` }}
-            >
-              {collection.map(release => (
-                <AlbumCard
-                  key={release.instance_id}
-                  release={release}
-                  onClick={() => onToggleAlbumInQueue(release)}
-                  isSelected={queuedReleaseIds.has(release.id)}
-                />
-              ))}
+            <div className="flex flex-col gap-4">
+                <div 
+                className="grid gap-4" 
+                style={{ gridTemplateColumns: `repeat(${albumsPerRow}, minmax(0, 1fr))` }}
+                >
+                {collection.map(release => (
+                    <AlbumCard
+                      key={release.instance_id}
+                      release={release}
+                      scrobbleCount={queueCounts.get(release.id) || 0}
+                      onAddInstance={() => onAddAlbumToQueue(release)}
+                      onRemoveLastInstance={() => onRemoveLastInstanceOfAlbumFromQueue(release.id)}
+                      onRemoveAllInstances={() => onRemoveAllInstancesOfAlbumFromQueue(release.id)}
+                      settings={settings}
+                      metadata={metadata[release.id]}
+                    />
+                ))}
+                </div>
+                
+                {/* Infinite Scroll Sentinel / Loader */}
+                {!isFiltered && (
+                    <div ref={loadMoreRef} className="flex justify-center py-8">
+                        {(isSyncing || hasMore) && <Loader />}
+                    </div>
+                )}
             </div>
           ) : (
             <div className="text-center col-span-full py-20">
@@ -73,7 +122,7 @@ export default function CollectionScreen({
           <DiscogsIcon className="w-16 h-16 mb-4 text-gray-500" />
           <h2 className="text-2xl font-bold text-white">View Your Collection</h2>
           <p className="text-gray-400 mt-2 mb-6 max-w-md">
-            To get started, connect your Discogs account. This will allow Vinyl Scrobbler to load and display your
+            To get started, connect your Discogs account. This will allow this scrobbler to load and display your
             record collection.
           </p>
           <button

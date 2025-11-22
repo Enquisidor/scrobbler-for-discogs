@@ -1,4 +1,6 @@
-import type { Credentials, DiscogsRelease, QueueItem } from '../types';
+
+import type { Credentials, DiscogsRelease, QueueItem, DiscogsArtist } from '../types';
+import { cleanArtistName, formatArtistNames } from '../hooks/utils/formattingUtils';
 
 // This file assumes CryptoJS is loaded globally from a CDN in index.html
 declare const CryptoJS: any;
@@ -11,11 +13,6 @@ const API_BASE = 'https://api.discogs.com';
 // For a real-world app, an intermediary server would be used to protect the secret.
 const CONSUMER_KEY = 'GwlBnzIstBUPmTsYjtgN';
 const CONSUMER_SECRET = 'pfoWbAvyoguwrrhaSyCfGBPQAPpHNJVU';
-
-const cleanArtistName = (name: string): string => {
-  // Removes "(n)" from artist names, e.g., "Artist (2)" -> "Artist"
-  return name.replace(/\s\(\d+\)$/, '').trim();
-};
 
 interface CollectionResponse {
   pagination: {
@@ -53,7 +50,7 @@ function generateOauthParams(
 ): Record<string, string> {
   const oauthParams: Record<string, string> = {
     oauth_consumer_key: CONSUMER_KEY,
-    oauth_nonce: Math.random().toString(36).substring(2),
+    oauth_nonce: `${Date.now()}${Math.random().toString(36).substring(2)}`,
     oauth_signature_method: 'HMAC-SHA1',
     oauth_timestamp: String(Math.floor(Date.now() / 1000)),
     oauth_version: '1.0',
@@ -110,9 +107,6 @@ async function discogsFetch(
 // --- OAuth Flow Functions ---
 
 export const getRequestToken = async (): Promise<{ requestToken: string; requestTokenSecret: string; authorizeUrl: string }> => {
-  if (CONSUMER_KEY === 'REPLACE_WITH_YOUR_DISCOGS_CONSUMER_KEY' || CONSUMER_SECRET === 'REPLACE_WITH_YOUR_DISCOGS_CONSUMER_SECRET') {
-    throw new Error('Discogs API keys not configured. Please edit services/discogsService.ts and replace the placeholder keys with your own from your Discogs developer settings.');
-  }
   const url = `${API_BASE}/oauth/request_token`;
   const bodyParams = { oauth_callback: window.location.href.split('?')[0] };
   const oauthParams = generateOauthParams('POST', url, bodyParams);
@@ -188,18 +182,16 @@ export const getDiscogsIdentity = async (accessToken: string, accessTokenSecret:
 };
 
 
-export const fetchDiscogsCollection = async (
+export const fetchDiscogsPage = async (
   username: string,
   accessToken: string,
   accessTokenSecret: string,
-  onProgress: (progress: number, total: number) => void
-): Promise<DiscogsRelease[]> => {
-  let allReleases: DiscogsRelease[] = [];
-  let currentPage = 1;
-  let totalPages = 1;
-
-  do {
-    const endpoint = `/users/${username}/collection/folders/0/releases?page=${currentPage}&per_page=100`;
+  page: number = 1,
+  sort: string = 'added',
+  sortOrder: 'asc' | 'desc' = 'desc',
+  perPage: number = 50 // Discogs max is 100, but 50 is good for smooth loading
+): Promise<{ releases: DiscogsRelease[]; pagination: CollectionResponse['pagination'] }> => {
+    const endpoint = `/users/${username}/collection/folders/0/releases?page=${page}&per_page=${perPage}&sort=${sort}&sort_order=${sortOrder}`;
     const data: CollectionResponse = await discogsFetch(endpoint, accessToken, accessTokenSecret);
     
     const cleanedReleases = data.releases.map(release => {
@@ -223,18 +215,15 @@ export const fetchDiscogsCollection = async (
         basic_information: {
           ...release.basic_information,
           artists: cleanedArtists,
-          artist_display_name: cleanedArtists.map(a => a.name).join(', '),
+          artist_display_name: formatArtistNames(cleanedArtists) || 'Unknown Artist',
         }
       };
     });
 
-    allReleases = allReleases.concat(cleanedReleases);
-    totalPages = data.pagination.pages;
-    onProgress(currentPage, totalPages);
-    currentPage++;
-  } while (currentPage <= totalPages);
-
-  return allReleases;
+    return {
+        releases: cleanedReleases,
+        pagination: data.pagination
+    };
 };
 
 export const fetchReleaseTracklist = async (releaseId: number, accessToken: string, accessTokenSecret: string): Promise<QueueItem> => {

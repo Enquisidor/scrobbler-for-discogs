@@ -1,5 +1,7 @@
+
 import type { DiscogsRelease, SortOption } from '../../types';
 import { SortOption as SortOptionEnum } from '../../types'; // Enum import for use in switch
+import { calculateFuzzyScore } from './fuzzyUtils';
 
 export function sortCollection(collection: DiscogsRelease[], sortOption: SortOption, searchTerm: string = ''): DiscogsRelease[] {
   const sorted = [...collection]; // Create a shallow copy to avoid mutating the original array
@@ -9,8 +11,20 @@ export function sortCollection(collection: DiscogsRelease[], sortOption: SortOpt
     const getScore = (release: DiscogsRelease): number => {
       let score = 0;
       const info = release.basic_information;
-      if (info.title.toLowerCase().includes(term)) score += 2;
-      if (info.artist_display_name.toLowerCase().includes(term)) score += 1;
+      const title = info.title.toLowerCase();
+      const artist = info.artist_display_name.toLowerCase();
+
+      // Exact match bonus
+      if (title.includes(term)) score += 1.0;
+      if (artist.includes(term)) score += 0.8;
+      
+      // Fuzzy Score
+      const fuzzyTitle = calculateFuzzyScore(term, title);
+      const fuzzyArtist = calculateFuzzyScore(term, artist);
+      
+      // Add fuzzy score (0 to 1) to total
+      score += Math.max(fuzzyTitle, fuzzyArtist);
+
       return score;
     };
     sorted.sort((a, b) => getScore(b) - getScore(a));

@@ -1,4 +1,5 @@
-import { useState, useEffect } from 'react';
+
+import { useState, useEffect, useRef } from 'react';
 import { getAccessToken, getDiscogsIdentity, getRequestToken } from '../services/discogsService';
 import { getLastfmSession } from '../services/lastfmService';
 import type { Credentials } from '../types';
@@ -13,10 +14,13 @@ export function useAuthHandler(
 ) {
   const [loadingService, setLoadingService] = useState<'discogs' | 'lastfm' | null>(null);
   const [error, setError] = useState<string | null>(null);
+  const effectRan = useRef(false);
 
   const isLastfmConnected = !!credentials.lastfmSessionKey;
 
   useEffect(() => {
+    if (effectRan.current) return;
+
     const urlParams = new URLSearchParams(window.location.search);
     const discogsOauthToken = urlParams.get('oauth_token');
     const discogsOauthVerifier = urlParams.get('oauth_verifier');
@@ -43,6 +47,7 @@ export function useAuthHandler(
           discogsAccessTokenSecret: accessTokenSecret,
         });
       } catch (err) {
+        console.error(err);
         setError(err instanceof Error ? err.message : 'Failed to finalize Discogs connection.');
       } finally {
         sessionStorage.removeItem(discogsRequestTokenSecretKey);
@@ -68,6 +73,7 @@ export function useAuthHandler(
           lastfmUsername: session.name 
         });
       } catch (err) {
+        console.error(err);
         setError(err instanceof Error ? err.message : 'An unknown error occurred.');
       } finally {
         window.history.replaceState({}, document.title, window.location.pathname);
@@ -76,8 +82,10 @@ export function useAuthHandler(
     };
     
     if (discogsOauthToken && discogsOauthVerifier) {
+      effectRan.current = true;
       completeDiscogsAuth(discogsOauthToken, discogsOauthVerifier);
     } else if (lastfmToken) {
+      effectRan.current = true;
       completeLastfmAuth(lastfmToken);
     }
   // eslint-disable-next-line react-hooks/exhaustive-deps
