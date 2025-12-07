@@ -1,59 +1,46 @@
-
-
 import React, { useState, useMemo } from 'react';
-import type { QueueItem as QueueItemType, Settings, ArtistSelections, AppleMusicMetadata, DiscogsTrack } from '../../types';
+import type { QueueItem as QueueItemType, DiscogsTrack } from '../../types';
 import { Loader } from '../misc/Loader';
 import { ChevronDownIcon, CloseIcon, CheckCircleIcon } from '../misc/Icons';
 import IndeterminateCheckbox from './IndeterminateCheckbox';
-import Track from './Track';
+import Track, { TrackPassthroughProps } from './Track';
 import { assignGroups } from './utils/trackGroupUtils';
 import { isVariousArtist, getReleaseDisplayArtist, getReleaseDisplayTitle } from '../../hooks/utils/queueUtils';
 
-interface QueueItemProps {
+// QueueItemProps now extends the shared props interface, ensuring consistency
+interface QueueItemProps extends TrackPassthroughProps {
     item: QueueItemType;
-    selectedTrackKeys: Set<string>;
-    selectedFeatures: Set<string>;
-    artistSelections: Record<string, Set<string>>;
-    scrobbleTimestamps: Record<string, number>;
-    settings: Settings;
-    metadata?: AppleMusicMetadata;
-    onToggle: (trackKey: string) => void;
-    onFeatureToggle: (trackKey: string) => void;
-    onArtistToggle: (trackKey: string, artistName: string) => void;
-    onToggleParent: (parentIndex: number, subTrackKeys: string[]) => void;
-    onSelectParentAsSingle: (parentKey: string, subTrackKeys: string[]) => void;
     onSelectAll: () => void;
     onDeselectAll: () => void;
     onToggleGroup: (groupKeys: string[], parentKeysInGroup: string[]) => void;
     onRemoveAlbumInstanceFromQueue: () => void;
     onScrobbleModeToggle: (useTrackArtist: boolean) => void;
     onScrobbleSingleRelease: () => void;
-    isHistoryItem?: boolean;
     isScrobbling: boolean;
 }
 
 const QueueItem: React.FC<QueueItemProps> = ({ 
     item, 
-    selectedTrackKeys,
-    selectedFeatures,
-    artistSelections,
-    scrobbleTimestamps,
-    settings,
-    metadata,
-    onToggle,
-    onFeatureToggle,
-    onArtistToggle,
-    onToggleParent, 
-    onSelectParentAsSingle, 
     onSelectAll, 
     onDeselectAll, 
     onToggleGroup,
     onRemoveAlbumInstanceFromQueue,
     onScrobbleModeToggle,
     onScrobbleSingleRelease,
-    isHistoryItem = false,
-    isScrobbling
+    isScrobbling,
+    // Gather all props intended for Track via rest parameter
+    ...trackPassthroughProps
 }) => {
+    // We destructured props needed by QueueItem from the rest parameter
+    const { 
+        selectedTrackKeys, 
+        settings, 
+        metadata, 
+        onToggle, 
+        onToggleParent, 
+        isHistoryItem 
+    } = trackPassthroughProps;
+
     const [isExpanded, setIsExpanded] = useState(false);
     
     const artistName = getReleaseDisplayArtist(item, metadata, settings);
@@ -125,7 +112,6 @@ const QueueItem: React.FC<QueueItemProps> = ({
 
     const numSelected = selectedTrackKeys.size;
     const allTracksSelected = allSelectableKeys.length > 0 && numSelected === allSelectableKeys.length;
-    const someTracksSelected = numSelected > 0 && numSelected < allSelectableKeys.length;
 
     const handleToggleAll = () => allTracksSelected ? onDeselectAll() : onSelectAll();
 
@@ -197,7 +183,7 @@ const QueueItem: React.FC<QueueItemProps> = ({
                             <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2 px-2 py-1">
                                 {!isHistoryItem && (
                                     <label className="flex items-center gap-2 text-xs text-blue-400 hover:text-blue-300 cursor-pointer">
-                                        <IndeterminateCheckbox disabled={isHistoryItem} checked={allTracksSelected} indeterminate={someTracksSelected} onChange={handleToggleAll} className="form-checkbox h-4 w-4 rounded bg-gray-700 border-gray-600 text-blue-600 focus:ring-blue-500 focus:ring-offset-gray-800"/>
+                                        <IndeterminateCheckbox disabled={isHistoryItem} checked={allTracksSelected} indeterminate={false} onChange={handleToggleAll} className="form-checkbox h-4 w-4 rounded bg-gray-700 border-gray-600 text-blue-600 focus:ring-blue-500 focus:ring-offset-gray-800"/>
                                         {allTracksSelected ? 'Deselect All Sides' : 'Select All Sides'}
                                     </label>
                                 )}
@@ -251,22 +237,11 @@ const QueueItem: React.FC<QueueItemProps> = ({
                                                 key={originalIndex}
                                                 track={track}
                                                 release={item}
-                                                metadata={metadata}
                                                 parentIndex={originalIndex}
                                                 groupHeading={group.heading}
                                                 albumArtistName={artistName}
                                                 useTrackArtist={item.useTrackArtist}
-                                                selectedTrackKeys={selectedTrackKeys}
-                                                selectedFeatures={selectedFeatures}
-                                                artistSelections={artistSelections}
-                                                scrobbleTimestamps={scrobbleTimestamps}
-                                                settings={settings}
-                                                onToggle={onToggle}
-                                                onFeatureToggle={onFeatureToggle}
-                                                onArtistToggle={onArtistToggle}
-                                                onToggleParent={onToggleParent}
-                                                onSelectParentAsSingle={onSelectParentAsSingle}
-                                                isHistoryItem={isHistoryItem}
+                                                {...trackPassthroughProps}
                                             />
                                         ))}
                                     </div>

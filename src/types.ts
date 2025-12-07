@@ -1,3 +1,4 @@
+
 // --- Shared Enums ---
 export enum SortOption {
   AddedNewest = 'added_newest',
@@ -21,6 +22,7 @@ export enum SortOption {
 export interface DiscogsArtist {
   id: number;
   name: string;
+  anv?: string; // Artist Name Variation
   join?: string;
   resource_url?: string;
 }
@@ -28,6 +30,7 @@ export interface DiscogsArtist {
 export interface DiscogsExtraArtist {
   id: number;
   name: string;
+  anv?: string;
   role: string;
   join: string;
 }

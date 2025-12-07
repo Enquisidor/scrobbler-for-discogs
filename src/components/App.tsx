@@ -2,7 +2,7 @@
 import React from 'react';
 import MainScreen from './MainScreen';
 import ErrorBoundary from './misc/ErrorBoundary';
-import { useCredentials } from '../hooks/useCredentials';
+import { useCredentials } from '../hooks/useAuth/useCredentials';
 import { useSettings } from '../hooks/useSettings';
 
 export default function App() {

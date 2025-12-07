@@ -1,24 +1,17 @@
-
-
 import React from 'react';
 import type { DiscogsTrack, Settings, DiscogsArtist, AppleMusicMetadata, DiscogsRelease } from '../../types';
 import IndeterminateCheckbox from './IndeterminateCheckbox';
 import { getTrackFeaturedArtists, getTrackCreditsStructured, isVariousArtist } from '../../hooks/utils/queueUtils';
-import { cleanArtistName } from '../../hooks/utils/formattingUtils';
+import { getDisplayArtistName, getArtistJoiner } from '../../hooks/utils/formattingUtils';
 
-interface TrackProps {
-    track: DiscogsTrack;
-    release: DiscogsRelease; // Needed for helper
-    metadata: AppleMusicMetadata | undefined;
-    parentIndex: number;
-    groupHeading?: string;
-    albumArtistName: string;
-    useTrackArtist: boolean;
+// Exported for use in QueueItem to allow polymorphic prop passing
+export interface TrackPassthroughProps {
     selectedTrackKeys: Set<string>;
     selectedFeatures: Set<string>;
     artistSelections: Record<string, Set<string>>;
     scrobbleTimestamps: Record<string, number>;
     settings: Settings;
+    metadata: AppleMusicMetadata | undefined;
     onToggle: (trackKey: string) => void;
     onFeatureToggle: (trackKey: string) => void;
     onArtistToggle: (trackKey: string, artistName: string) => void;
@@ -27,26 +20,40 @@ interface TrackProps {
     isHistoryItem?: boolean;
 }
 
+export interface TrackProps extends TrackPassthroughProps {
+    track: DiscogsTrack;
+    release: DiscogsRelease; // Needed for helper
+    parentIndex: number;
+    groupHeading?: string;
+    albumArtistName: string;
+    useTrackArtist: boolean;
+}
+
 const Track: React.FC<TrackProps> = ({
     track,
     release,
-    metadata,
     parentIndex,
     groupHeading,
     albumArtistName,
     useTrackArtist,
-    selectedTrackKeys,
-    selectedFeatures,
-    artistSelections,
-    scrobbleTimestamps,
-    settings,
-    onToggle,
-    onFeatureToggle,
-    onArtistToggle,
-    onToggleParent,
-    onSelectParentAsSingle,
-    isHistoryItem,
+    ...passthroughProps
 }) => {
+    // Destructure the passthrough props needed locally
+    const {
+        selectedTrackKeys,
+        selectedFeatures,
+        artistSelections,
+        scrobbleTimestamps,
+        settings,
+        metadata,
+        onToggle,
+        onFeatureToggle,
+        onArtistToggle,
+        onToggleParent,
+        onSelectParentAsSingle,
+        isHistoryItem,
+    } = passthroughProps;
+
     const hasSubTracks = track.sub_tracks && track.sub_tracks.length > 0;
     const trackKey = String(parentIndex);
     
@@ -103,29 +110,28 @@ const Track: React.FC<TrackProps> = ({
 
         return (
             <span className="ml-2 text-sm text-gray-400 truncate">
-                -{' '}
+                - 
                 {artists.map((artist, index) => {
-                    const cleanName = cleanArtistName(artist.name);
-                    const isSelected = selectedSet.has(cleanName);
-                    const join = artist.join ? artist.join.trim() : '';
-                    const suffix = index < artists.length - 1 ? (join ? ` ${join} ` : ', ') : '';
+                    const displayName = getDisplayArtistName(artist.name);
+                    const isSelected = selectedSet.has(displayName);
+                    const joiner = index > 0 ? getArtistJoiner(artists[index - 1].join) : '';
                     
                     return (
                         <React.Fragment key={index}>
+                            {joiner}
                             {!isHistoryItem ? (
                                 <label className="inline-flex items-center gap-1 cursor-pointer hover:text-gray-200" onClick={e => e.stopPropagation()}>
                                     <input 
                                         type="checkbox" 
                                         checked={isSelected} 
-                                        onChange={() => onArtistToggle(currentKey, cleanName)}
+                                        onChange={() => onArtistToggle(currentKey, displayName)}
                                         className="form-checkbox h-3 w-3 rounded-sm bg-gray-700 border-gray-600 text-blue-500 focus:ring-blue-500"
                                     />
-                                    <span>{cleanName}</span>
+                                    <span>{displayName}</span>
                                 </label>
                             ) : (
-                                <span>{cleanName}</span>
+                                <span>{displayName}</span>
                             )}
-                            {suffix}
                         </React.Fragment>
                     );
                 })}
@@ -143,27 +149,26 @@ const Track: React.FC<TrackProps> = ({
                     <div key={cIndex} className="flex flex-wrap gap-1 items-baseline mb-1">
                         <span className="font-semibold whitespace-nowrap mr-1">{credit.role}:</span>
                         {credit.artists.map((artist, aIndex) => {
-                            const cleanName = cleanArtistName(artist.name);
-                            const isSelected = selectedSet.has(cleanName);
-                            const join = artist.join ? artist.join.trim() : '';
-                            const suffix = aIndex < credit.artists.length - 1 ? (join ? ` ${join} ` : ', ') : '';
+                            const displayName = getDisplayArtistName(artist.name);
+                            const isSelected = selectedSet.has(displayName);
+                            const joiner = aIndex > 0 ? getArtistJoiner(credit.artists[aIndex - 1].join) : '';
                             
                             return (
                                 <React.Fragment key={aIndex}>
+                                    {joiner}
                                     {!isHistoryItem ? (
                                         <label className="inline-flex items-center gap-1 cursor-pointer hover:text-gray-400" onClick={e => e.stopPropagation()}>
                                             <input 
                                                 type="checkbox" 
                                                 checked={isSelected} 
-                                                onChange={() => onArtistToggle(currentKey, cleanName)}
+                                                onChange={() => onArtistToggle(currentKey, displayName)}
                                                 className="form-checkbox h-3 w-3 rounded-sm bg-gray-700 border-gray-600 text-gray-500 focus:ring-gray-500"
                                             />
-                                            <span>{cleanName}</span>
+                                            <span>{displayName}</span>
                                         </label>
                                     ) : (
-                                        <span>{cleanName}</span>
+                                        <span>{displayName}</span>
                                     )}
-                                    {suffix}
                                 </React.Fragment>
                             )
                         })}

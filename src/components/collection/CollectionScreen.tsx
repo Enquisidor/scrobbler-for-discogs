@@ -1,4 +1,5 @@
 
+
 import React, { useEffect, useRef, useMemo } from 'react';
 import type { DiscogsRelease, QueueItem, Settings, AppleMusicMetadata } from '../../types';
 import AlbumCard from './AlbumCard';
@@ -56,7 +57,7 @@ export default function CollectionScreen({
   useEffect(() => {
     const observer = new IntersectionObserver(
       (entries) => {
-        if (entries[0].isIntersecting && hasMore && !isSyncing) {
+        if (entries[0].isIntersecting && hasMore) {
           onLoadMore();
         }
       },
@@ -66,12 +67,17 @@ export default function CollectionScreen({
       }
     );
 
-    if (loadMoreRef.current) {
-      observer.observe(loadMoreRef.current);
+    const currentRef = loadMoreRef.current;
+    if (currentRef) {
+      observer.observe(currentRef);
     }
 
-    return () => observer.disconnect();
-  }, [hasMore, isSyncing, onLoadMore]);
+    return () => {
+      if (currentRef) {
+        observer.unobserve(currentRef);
+      }
+    };
+  }, [hasMore, onLoadMore]);
 
   return (
     <main>
@@ -83,7 +89,7 @@ export default function CollectionScreen({
               <p className="mt-4 text-lg text-gray-300">Loading your collection...</p>
             </div>
           ) : collection.length > 0 ? (
-            <div className="flex flex-col gap-4">
+            <div className="flex flex-col">
                 <div 
                 className="grid gap-4" 
                 style={{ gridTemplateColumns: `repeat(${albumsPerRow}, minmax(0, 1fr))` }}
@@ -103,11 +109,9 @@ export default function CollectionScreen({
                 </div>
                 
                 {/* Infinite Scroll Sentinel / Loader */}
-                {!isFiltered && (
-                    <div ref={loadMoreRef} className="flex justify-center py-8">
-                        {(isSyncing || hasMore) && <Loader />}
-                    </div>
-                )}
+                <div ref={loadMoreRef} className="flex justify-center py-8">
+                    {hasMore && <Loader />}
+                </div>
             </div>
           ) : (
             <div className="text-center col-span-full py-20">

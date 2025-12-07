@@ -1,10 +1,27 @@
 
 import type { Credentials, DiscogsRelease, QueueItem, DiscogsArtist } from '../types';
-import { cleanArtistName, formatArtistNames } from '../hooks/utils/formattingUtils';
+import { getDisplayArtistName, formatArtistNames } from '../hooks/utils/formattingUtils';
 
 // This file assumes CryptoJS is loaded globally from a CDN in index.html
 declare const CryptoJS: any;
 
+// Custom Error types for specific API responses
+export class DiscogsAuthError extends Error {
+  constructor(message: string) {
+    super(message);
+    this.name = 'DiscogsAuthError';
+  }
+}
+
+export class DiscogsRateLimitError extends Error {
+  constructor(message: string) {
+    super(message);
+    this.name = 'DiscogsRateLimitError';
+  }
+}
+
+
+// Direct API Base URL - No Proxy
 const API_BASE = 'https://api.discogs.com';
 
 // IMPORTANT: Replace with your actual Discogs application credentials.
@@ -72,6 +89,12 @@ function generateOauthParams(
   return oauthParams;
 }
 
+// Helper utility for delays
+const wait = (ms: number) => new Promise(resolve => setTimeout(resolve, ms));
+
+const MAX_RETRIES = 3;
+const BASE_DELAY = 1000; // 1 second
+
 async function discogsFetch(
   endpoint: string,
   accessToken: string,
@@ -90,18 +113,66 @@ async function discogsFetch(
     const finalParams = new URLSearchParams({ ...paramsObject, ...oauthParams });
     const finalUrl = `${url}?${finalParams.toString()}`;
 
-    const response = await fetch(finalUrl, {
-        method: 'GET',
-        headers: {
-            'User-Agent': 'VinylScrobbler/1.0',
-        },
-    });
+    let attempt = 0;
+    while (attempt < MAX_RETRIES) {
+        try {
+            // Direct fetch to Discogs API
+            const response = await fetch(finalUrl, {
+                method: 'GET',
+                headers: {
+                    'User-Agent': 'VinylScrobbler/1.0',
+                    'Accept': 'application/json',
+                    'Content-Type': 'application/json'
+                },
+            });
 
-    if (!response.ok) {
-        const errorData = await response.json().catch(() => ({ message: 'Unknown error' }));
-        throw new Error(`Discogs API Error: ${errorData.message} (Status: ${response.status})`);
+            if (response.ok) {
+                return await response.json();
+            }
+
+            // Specific handling for Auth errors (don't retry)
+            if (response.status === 401) {
+                throw new DiscogsAuthError('Authentication failed. Please reconnect Discogs.');
+            }
+
+            // Retry on Rate Limits (429) or Server Errors (5xx)
+            if (response.status === 429 || response.status >= 500) {
+                 const isRateLimit = response.status === 429;
+                 const errorMessage = isRateLimit ? 'Rate limit exceeded' : `Server error ${response.status}`;
+                 
+                 attempt++;
+                 if (attempt < MAX_RETRIES) {
+                     const delay = BASE_DELAY * Math.pow(2, attempt - 1); // Exponential backoff: 1s, 2s, 4s...
+                     console.warn(`[Discogs API] ${errorMessage}. Retrying in ${delay}ms... (Attempt ${attempt}/${MAX_RETRIES})`);
+                     await wait(delay);
+                     continue;
+                 } else {
+                     if (isRateLimit) throw new DiscogsRateLimitError('Discogs API rate limit exceeded after retries.');
+                     // Fall through to generic error
+                 }
+            }
+
+            const errorData = await response.json().catch(() => ({ message: 'Unknown error' }));
+            throw new Error(`Discogs API Error: ${errorData.message} (Status: ${response.status})`);
+
+        } catch (error) {
+            // Rethrow explicit Auth/RateLimit errors immediately
+            if (error instanceof DiscogsAuthError || error instanceof DiscogsRateLimitError) {
+                throw error;
+            }
+            
+            // If it's the last attempt, throw
+            if (attempt === MAX_RETRIES - 1) {
+                throw error;
+            }
+
+            // If it's a network error (fetch failed completely), retry
+            attempt++;
+            const delay = BASE_DELAY * Math.pow(2, attempt - 1);
+            console.warn(`[Discogs API] Network error. Retrying in ${delay}ms... (Attempt ${attempt}/${MAX_RETRIES})`, error);
+            await wait(delay);
+        }
     }
-    return response.json();
 }
 
 // --- OAuth Flow Functions ---
@@ -111,17 +182,20 @@ export const getRequestToken = async (): Promise<{ requestToken: string; request
   const bodyParams = { oauth_callback: window.location.href.split('?')[0] };
   const oauthParams = generateOauthParams('POST', url, bodyParams);
   const allParams = { ...bodyParams, ...oauthParams };
+  
+  const targetUrl = `${url}?${new URLSearchParams(allParams).toString()}`;
 
-  const response = await fetch(url, {
+  // Direct fetch for request token
+  const response = await fetch(targetUrl, {
     method: 'POST',
     headers: {
       'Content-Type': 'application/x-www-form-urlencoded',
       'User-Agent': 'VinylScrobbler/1.0',
+      'Accept': 'application/x-www-form-urlencoded'
     },
-    body: new URLSearchParams(allParams).toString()
   });
 
-  if (!response.ok) throw new Error('Failed to get Discogs request token.');
+  if (!response.ok) throw new Error('Failed to get Discogs request token. (Check CORS/Network)');
   
   const responseText = await response.text();
   const responseParams = new URLSearchParams(responseText);
@@ -150,13 +224,15 @@ export const getAccessToken = async (
   const oauthParams = generateOauthParams('POST', url, bodyParams, requestToken, requestTokenSecret);
   const allParams = { ...bodyParams, ...oauthParams };
 
-  const response = await fetch(url, {
+  const targetUrl = `${url}?${new URLSearchParams(allParams).toString()}`;
+
+  // Direct fetch for access token
+  const response = await fetch(targetUrl, {
     method: 'POST',
     headers: {
       'Content-Type': 'application/x-www-form-urlencoded',
       'User-Agent': 'VinylScrobbler/1.0',
     },
-    body: new URLSearchParams(allParams).toString()
   });
 
   if (!response.ok) throw new Error('Failed to get Discogs access token.');
@@ -194,28 +270,17 @@ export const fetchDiscogsPage = async (
     const endpoint = `/users/${username}/collection/folders/0/releases?page=${page}&per_page=${perPage}&sort=${sort}&sort_order=${sortOrder}`;
     const data: CollectionResponse = await discogsFetch(endpoint, accessToken, accessTokenSecret);
     
+    // The artist_display_name is now generated here from raw artist data.
     const cleanedReleases = data.releases.map(release => {
-      if (!release.basic_information?.artists) {
-        return {
-          ...release,
-          basic_information: {
-            ...release.basic_information,
-            artist_display_name: 'Unknown Artist',
-          }
-        };
-      }
-      
-      const cleanedArtists = release.basic_information.artists.map(artist => ({
-        ...artist,
-        name: cleanArtistName(artist.name)
-      }));
+      const artists = release.basic_information?.artists;
+      const artistDisplayName = artists ? formatArtistNames(artists) : 'Unknown Artist';
 
       return {
         ...release,
         basic_information: {
           ...release.basic_information,
-          artists: cleanedArtists,
-          artist_display_name: formatArtistNames(cleanedArtists) || 'Unknown Artist',
+          // We pass the raw artists array but replace the display name.
+          artist_display_name: artistDisplayName,
         }
       };
     });
@@ -229,13 +294,6 @@ export const fetchDiscogsPage = async (
 export const fetchReleaseTracklist = async (releaseId: number, accessToken: string, accessTokenSecret: string): Promise<QueueItem> => {
     const endpoint = `/releases/${releaseId}`;
     const releaseData = await discogsFetch(endpoint, accessToken, accessTokenSecret);
-
-    if (releaseData.artists) {
-        releaseData.artists = releaseData.artists.map((artist: any) => ({
-            ...artist,
-            name: cleanArtistName(artist.name)
-        }));
-    }
-
+    // No longer pre-cleaning artist names here. The raw data is passed through.
     return releaseData;
 }

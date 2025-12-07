@@ -2,7 +2,7 @@
 
   // FIX: Imported DiscogsArtist type to resolve reference errors.
   import type { DiscogsTrack, QueueItem, SelectedTracks, ArtistSelections, AppleMusicMetadata, DiscogsRelease, LastfmTrackScrobble, DiscogsArtist } from '../../types';
-  import { formatArtistNames, cleanArtistName } from './formattingUtils';
+  import { formatArtistNames, getDisplayArtistName } from './formattingUtils';
 
   export function isVariousArtist(name: string): boolean {
       if (!name) return false;
@@ -15,7 +15,7 @@
       _metadata: AppleMusicMetadata | undefined, // No longer used
       _settings: any // No longer used
   ): string {
-      return release.basic_information.artist_display_name;
+      return formatArtistNames(release.basic_information.artists);
   }
 
   export function getReleaseDisplayTitle(
@@ -34,6 +34,7 @@
       useTrackArtist: boolean = true
   ): string {
       const albumArtistName = getReleaseDisplayArtist(release, metadata, _settings);
+      console.log(albumArtistName)
       if (!useTrackArtist) return albumArtistName;
       if (isVariousArtist(albumArtistName) && track.artists?.length) return formatArtistNames(track.artists);
       return albumArtistName;
@@ -139,7 +140,7 @@
 
               const selectedArtistNames = artistSelections[release.instanceKey]?.[key] || new Set();
               const allPotentialArtists = [...(track.artists || []), ...(track.extraartists || [])];
-              const finalArtists = allPotentialArtists.filter(a => selectedArtistNames.has(cleanArtistName(a.name)));
+              const finalArtists = allPotentialArtists.filter(a => selectedArtistNames.has(getDisplayArtistName(a.name)));
               
               const artistString = finalArtists.length > 0 
                   ? formatArtistNames(finalArtists) 
