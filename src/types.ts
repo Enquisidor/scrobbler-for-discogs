@@ -1,4 +1,3 @@
-
 // --- Shared Enums ---
 export enum SortOption {
   AddedNewest = 'added_newest',
@@ -16,6 +15,12 @@ export enum SortOption {
   CatNoAZ = 'catno_az',
   CatNoZA = 'catno_za',
   SearchRelevance = 'search_relevance',
+}
+
+export enum MetadataSourceType {
+  Discogs = 'discogs',
+  Apple = 'apple',
+  MusicBrainz = 'musicbrainz',
 }
 
 // --- Discogs API Types ---
@@ -107,6 +112,34 @@ export interface ITunesResponse {
     results: ITunesResult[];
 }
 
+// MusicBrainz Types
+export interface MusicBrainzArtistCredit {
+    name: string;
+    artist: {
+        id: string;
+        name: string;
+        'sort-name': string;
+    };
+    joinphrase?: string;
+}
+
+export interface MusicBrainzRelease {
+    id: string;
+    title: string;
+    date?: string;
+    country?: string;
+    'artist-credit'?: MusicBrainzArtistCredit[];
+    score?: number; // Search score (0-100)
+    barcode?: string;
+}
+
+export interface MusicBrainzSearchResponse {
+    created: string;
+    count: number;
+    offset: number;
+    releases: MusicBrainzRelease[];
+}
+
 export enum AppleSearchStrategyType {
     ARTIST_PLUS_YEAR = 'ARTIST_PLUS_YEAR', // Search by Artist+Year to correct/find Album
     ALBUM_PLUS_YEAR = 'ALBUM_PLUS_YEAR',   // Search by Album+Year to correct/find Artist
@@ -140,16 +173,18 @@ export interface Credentials {
   lastfmUsername: string;
 }
 
+export type MetadataSource = 'discogs' | 'apple' | 'musicbrainz';
+
 export interface Settings {
   selectAllTracksPerRelease: boolean;
   selectSubtracksByDefault: boolean;
   showFeatures: boolean;
   selectFeaturesByDefault: boolean;
-  useAppleMusicArtist: boolean;
-  useAppleMusicAlbum: boolean;
+  artistSource: MetadataSource;
+  albumSource: MetadataSource;
 }
 
-export interface AppleMusicMetadata {
+export interface ServiceMetadata {
     artist?: string;
     album?: string;
     lastChecked?: number;
@@ -157,9 +192,24 @@ export interface AppleMusicMetadata {
     copyright?: string;
     country?: string;
     explicit?: boolean;
-    // Fields for cascading logic
     score?: number;
-    rawItunesResult?: ITunesResult;
+    rawResult?: any; // Can hold ITunesResult or MusicBrainzRelease
+}
+
+export interface AppleMusicMetadata {
+    artist: string;
+    album?: string;
+    primaryGenreName?: string;
+    copyright?: string;
+    country?: string;
+    explicit?: boolean;
+    score?: number;
+    rawItunesResult?: ITunesResult | null;
+}
+
+export interface CombinedMetadata {
+    apple?: ServiceMetadata;
+    musicbrainz?: ServiceMetadata;
 }
 
 export interface QueueItem extends DiscogsRelease {

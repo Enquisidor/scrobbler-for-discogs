@@ -1,7 +1,5 @@
-
-
 import React, { useEffect, useRef, useMemo } from 'react';
-import type { DiscogsRelease, QueueItem, Settings, AppleMusicMetadata } from '../../types';
+import type { DiscogsRelease, QueueItem, Settings, CombinedMetadata } from '../../types';
 import AlbumCard from './AlbumCard';
 import { Loader } from '../misc/Loader';
 import { DiscogsIcon } from '../misc/Icons';
@@ -21,7 +19,7 @@ interface CollectionScreenProps {
   onConnectDiscogs: () => void;
   isConnectingDiscogs: boolean;
   settings: Settings;
-  metadata: Record<number, AppleMusicMetadata>;
+  metadata: Record<number, CombinedMetadata>;
 }
 
 export default function CollectionScreen({

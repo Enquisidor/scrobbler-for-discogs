@@ -1,5 +1,5 @@
 import React from 'react';
-import type { DiscogsTrack, Settings, DiscogsArtist, AppleMusicMetadata, DiscogsRelease } from '../../types';
+import type { DiscogsTrack, Settings, DiscogsArtist, CombinedMetadata, DiscogsRelease } from '../../types';
 import IndeterminateCheckbox from './IndeterminateCheckbox';
 import { getTrackFeaturedArtists, getTrackCreditsStructured, isVariousArtist } from '../../hooks/utils/queueUtils';
 import { getDisplayArtistName, getArtistJoiner } from '../../hooks/utils/formattingUtils';
@@ -11,7 +11,7 @@ export interface TrackPassthroughProps {
     artistSelections: Record<string, Set<string>>;
     scrobbleTimestamps: Record<string, number>;
     settings: Settings;
-    metadata: AppleMusicMetadata | undefined;
+    metadata: CombinedMetadata | undefined;
     onToggle: (trackKey: string) => void;
     onFeatureToggle: (trackKey: string) => void;
     onArtistToggle: (trackKey: string, artistName: string) => void;
@@ -65,7 +65,8 @@ const Track: React.FC<TrackProps> = ({
     const structuredCredits = getTrackCreditsStructured(track);
 
     if (hasSubTracks) {
-        subTrackKeys = track.sub_tracks!.map((_, sIndex) => `${parentIndex}-${sIndex}`);
+        // Defensive check: ensure sub_tracks exists before mapping
+        subTrackKeys = track.sub_tracks?.map((_, sIndex) => `${parentIndex}-${sIndex}`) || [];
         const numSelectedSubtracks = subTrackKeys.filter(key => selectedTrackKeys.has(key)).length;
         
         const isParentSelectedAsSingleTrack = selectedTrackKeys.has(trackKey) && numSelectedSubtracks === 0;
@@ -110,7 +111,7 @@ const Track: React.FC<TrackProps> = ({
 
         return (
             <span className="ml-2 text-sm text-gray-400 truncate">
-                - 
+                by 
                 {artists.map((artist, index) => {
                     const displayName = getDisplayArtistName(artist.name);
                     const isSelected = selectedSet.has(displayName);
@@ -150,25 +151,12 @@ const Track: React.FC<TrackProps> = ({
                         <span className="font-semibold whitespace-nowrap mr-1">{credit.role}:</span>
                         {credit.artists.map((artist, aIndex) => {
                             const displayName = getDisplayArtistName(artist.name);
-                            const isSelected = selectedSet.has(displayName);
                             const joiner = aIndex > 0 ? getArtistJoiner(credit.artists[aIndex - 1].join) : '';
                             
                             return (
                                 <React.Fragment key={aIndex}>
                                     {joiner}
-                                    {!isHistoryItem ? (
-                                        <label className="inline-flex items-center gap-1 cursor-pointer hover:text-gray-400" onClick={e => e.stopPropagation()}>
-                                            <input 
-                                                type="checkbox" 
-                                                checked={isSelected} 
-                                                onChange={() => onArtistToggle(currentKey, displayName)}
-                                                className="form-checkbox h-3 w-3 rounded-sm bg-gray-700 border-gray-600 text-gray-500 focus:ring-gray-500"
-                                            />
-                                            <span>{displayName}</span>
-                                        </label>
-                                    ) : (
-                                        <span>{displayName}</span>
-                                    )}
+                                    {<span>{displayName}</span>}
                                 </React.Fragment>
                             )
                         })}

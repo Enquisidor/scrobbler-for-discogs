@@ -101,7 +101,8 @@ const QueueItem: React.FC<QueueItemProps> = ({
         const keys: string[] = [];
         item.tracklist?.forEach((track, pIndex) => {
             if (track.type_ === 'heading') return;
-            if (track.sub_tracks && track.sub_tracks.length > 0) {
+            // Safe access using optional chaining
+            if (track.sub_tracks?.length) {
                  track.sub_tracks.forEach((_, sIndex) => keys.push(`${pIndex}-${sIndex}`));
             } else {
                 keys.push(String(pIndex));
@@ -206,6 +207,7 @@ const QueueItem: React.FC<QueueItemProps> = ({
                             
                             {trackGroups.map((group, groupIndex) => {
                                 const selectableGroupKeys = group.tracks.flatMap(({ track, originalIndex: pIndex }) => {
+                                     // Safe access using optional chaining
                                      if (track.sub_tracks?.length) return track.sub_tracks.map((_, sIndex) => `${pIndex}-${sIndex}`);
                                      if (track.type_ !== 'heading') return [String(pIndex)];
                                      return [];

@@ -1,5 +1,6 @@
 import React from 'react';
-import type { Settings } from '../../types';
+import type { Settings, MetadataSource } from '../../types';
+import { MetadataSourceType } from '../../types';
 import { CloseIcon, SettingsIcon } from '../misc/Icons';
 
 interface SettingsSheetProps {
@@ -38,6 +39,31 @@ const SettingsToggle: React.FC<SettingsToggleProps> = ({ label, description, che
                 className={`${checked ? 'translate-x-5' : 'translate-x-0'} pointer-events-none inline-block h-5 w-5 transform rounded-full bg-white shadow ring-0 transition duration-200 ease-in-out`}
             />
         </button>
+    </div>
+);
+
+interface SourceSelectProps {
+    label: string;
+    description: string;
+    value: MetadataSource;
+    onChange: (value: MetadataSource) => void;
+}
+
+const SourceSelect: React.FC<SourceSelectProps> = ({ label, description, value, onChange }) => (
+    <div className="flex justify-between items-center py-3">
+        <div className="pr-4">
+            <label className="font-semibold text-gray-200">{label}</label>
+            <p className="text-sm text-gray-400">{description}</p>
+        </div>
+        <select
+            value={value}
+            onChange={(e) => onChange(e.target.value as MetadataSource)}
+            className="bg-gray-700 text-white text-sm rounded-md border-gray-600 focus:ring-blue-500 focus:border-blue-500 p-2.5 cursor-pointer outline-none"
+        >
+            <option value={MetadataSourceType.Discogs}>Discogs (Default)</option>
+            <option value={MetadataSourceType.Apple}>Apple Music</option>
+            <option value={MetadataSourceType.MusicBrainz}>MusicBrainz</option>
+        </select>
     </div>
 );
 
@@ -112,19 +138,21 @@ export default function SettingsSheet({ isOpen, onClose, settings, onSettingsCha
                 />
             </div>
             <div className="pt-4">
-                <h3 className="text-xs font-bold uppercase text-gray-500 tracking-wider mb-2">Metadata Source</h3>
-                <p className="text-xs text-gray-400 mb-3">This scrobbler can attempt to match your albums with Apple Music to provide cleaner artist and album names. When enabled, matched metadata will override Discogs data.</p>
-                <SettingsToggle
-                    label="Use Apple Music for Artist Names"
-                    description="Use standardized artist names from Apple Music (if available)."
-                    checked={settings.useAppleMusicArtist}
-                    onChange={(checked) => onSettingsChange({ ...settings, useAppleMusicArtist: checked })}
+                <h3 className="text-xs font-bold uppercase text-gray-500 tracking-wider mb-2">Metadata Sources</h3>
+                <p className="text-xs text-gray-400 mb-3">Choose where to fetch improved metadata. External sources can provide cleaner names and fix formatting issues.</p>
+                
+                <SourceSelect
+                    label="Artist Name Source"
+                    description="Source for artist names."
+                    value={settings.artistSource}
+                    onChange={(val) => onSettingsChange({ ...settings, artistSource: val })}
                 />
-                 <SettingsToggle
-                    label="Use Apple Music for Album Names"
-                    description="Use standardized album titles from Apple Music (if available)."
-                    checked={settings.useAppleMusicAlbum}
-                    onChange={(checked) => onSettingsChange({ ...settings, useAppleMusicAlbum: checked })}
+                
+                <SourceSelect
+                    label="Album Title Source"
+                    description="Source for album titles."
+                    value={settings.albumSource}
+                    onChange={(val) => onSettingsChange({ ...settings, albumSource: val })}
                 />
             </div>
             <div className="pt-4 mt-4 border-t border-gray-700">

@@ -1,5 +1,5 @@
 import React, { useMemo } from 'react';
-import type { QueueItem as QueueItemType, SelectedTracks, SelectedFeatures, Settings, ArtistSelections, AppleMusicMetadata } from '../../types';
+import type { QueueItem as QueueItemType, SelectedTracks, SelectedFeatures, Settings, ArtistSelections, CombinedMetadata } from '../../types';
 import { CloseIcon, VinylIcon } from '../misc/Icons';
 import QueueItem from './QueueItem';
 import QueueScrobbler from './QueueScrobbler';
@@ -22,21 +22,13 @@ interface QueueSelectionProps {
   onScrobbleModeToggle?: (instanceKey: string, useTrackArtist: boolean) => void;
   onRemoveAlbumInstanceFromQueue: (instanceKey: string) => void;
   onScrobbleSingleRelease: (instanceKey: string) => void;
-}
-
-// Domain: Data for displaying metadata
-interface QueueMetadataProps {
-  metadata: Record<number, AppleMusicMetadata>;
+  metadata: Record<number, CombinedMetadata>;
   scrobbleTimestamps: Record<string, Record<string, number>>;
-}
-
-// Domain: App-level settings that affect rendering
-interface QueueSettingsProps {
   settings: Settings;
 }
 
 // Composite type for all props that are passed through QueueSheet to QueueList
-interface QueueListPassthroughProps extends QueueSelectionProps, QueueMetadataProps, QueueSettingsProps {}
+interface QueueListPassthroughProps extends QueueSelectionProps {}
 
 interface QueueListProps extends QueueListPassthroughProps {
   view: 'queue' | 'history';

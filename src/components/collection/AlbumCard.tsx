@@ -1,5 +1,5 @@
 import React, { useRef } from 'react';
-import type { DiscogsRelease, Settings, AppleMusicMetadata } from '../../types';
+import type { DiscogsRelease, Settings, CombinedMetadata } from '../../types';
 import { VinylIcon } from '../misc/Icons';
 import { getReleaseDisplayArtist, getReleaseDisplayTitle } from '../../hooks/utils/queueUtils';
 
@@ -10,7 +10,7 @@ interface AlbumCardProps {
   onRemoveAllInstances: () => void;
   scrobbleCount: number;
   settings: Settings;
-  metadata?: AppleMusicMetadata;
+  metadata?: CombinedMetadata;
 }
 
 const AlbumCard: React.FC<AlbumCardProps> = ({ 

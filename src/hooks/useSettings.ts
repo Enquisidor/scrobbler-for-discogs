@@ -1,3 +1,4 @@
+
 import { useLocalStorage } from './useLocalStorage';
 import type { Settings } from '../types';
 
@@ -6,8 +7,8 @@ const initialSettings: Settings = {
     selectSubtracksByDefault: true,
     showFeatures: true,
     selectFeaturesByDefault: false,
-    useAppleMusicArtist: false,
-    useAppleMusicAlbum: false,
+    artistSource: 'discogs',
+    albumSource: 'discogs',
 };
 
 export function useSettings() {

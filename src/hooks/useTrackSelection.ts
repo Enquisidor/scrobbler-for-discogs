@@ -1,71 +1,84 @@
-import { useReducer, useMemo, useCallback, useEffect } from 'react';
+import { useMemo, useCallback, useEffect } from 'react';
+import { useDispatch, useSelector } from 'react-redux';
 import type { QueueItem, Settings } from '../types';
-import { trackSelectionReducer, initialState } from '../store/trackSelectionSlice';
+import type { RootState } from '../store/index';
+import { 
+  autoUpdateFeatures, 
+  initializeSelection, 
+  clearSelectionForInstance, 
+  resetSelections, 
+  toggleTrack, 
+  toggleFeature, 
+  toggleArtist, 
+  toggleScrobbleMode, 
+  toggleParent, 
+  selectParentAsSingle, 
+  selectAll, 
+  deselectAll, 
+  toggleGroup 
+} from '../store/trackSelectionSlice';
 
 export function useTrackSelection(queue: QueueItem[], settings: Settings) {
-    const [state, dispatch] = useReducer(trackSelectionReducer, initialState);
-    const { selectedTracks, selectedFeatures, artistSelections } = state;
+    const dispatch = useDispatch();
+    const { selectedTracks, selectedFeatures, artistSelections } = useSelector((state: RootState) => state.trackSelection);
 
     useEffect(() => {
-        dispatch({
-            type: 'AUTO_UPDATE_FEATURES',
-            payload: { queue, settings, selectedTracks }
-        });
-    }, [settings.selectFeaturesByDefault, settings.showFeatures, queue, selectedTracks]);
+        dispatch(autoUpdateFeatures({ queue, settings, selectedTracks }));
+    }, [settings.selectFeaturesByDefault, settings.showFeatures, queue, selectedTracks, dispatch]);
 
-    const initializeSelection = useCallback((item: QueueItem) => {
-        dispatch({ type: 'INITIALIZE_SELECTION', payload: { item, settings } });
-    }, [settings]);
+    const handleInitializeSelection = useCallback((item: QueueItem) => {
+        dispatch(initializeSelection({ item, settings }));
+    }, [settings, dispatch]);
 
-    const clearSelectionForInstance = useCallback((instanceKey: string) => {
-        dispatch({ type: 'CLEAR_SELECTION_FOR_INSTANCE', payload: { instanceKey } });
-    }, []);
+    const handleClearSelectionForInstance = useCallback((instanceKey: string) => {
+        dispatch(clearSelectionForInstance({ instanceKey }));
+    }, [dispatch]);
     
-    const resetSelections = useCallback(() => {
-        dispatch({ type: 'RESET_SELECTIONS' });
-    }, []);
+    const handleResetSelections = useCallback(() => {
+        dispatch(resetSelections());
+    }, [dispatch]);
 
     const handleTrackToggle = useCallback((instanceKey: string, trackKey: string) => {
-        dispatch({ type: 'TOGGLE_TRACK', payload: { instanceKey, trackKey } });
-    }, []);
+        dispatch(toggleTrack({ instanceKey, trackKey }));
+    }, [dispatch]);
     
     const handleFeatureToggle = useCallback((instanceKey: string, trackKey: string) => {
-        dispatch({ type: 'TOGGLE_FEATURE', payload: { instanceKey, trackKey } });
-    }, []);
+        dispatch(toggleFeature({ instanceKey, trackKey }));
+    }, [dispatch]);
 
     const handleArtistToggle = useCallback((instanceKey: string, trackKey: string, artistName: string) => {
-        dispatch({ type: 'TOGGLE_ARTIST', payload: { instanceKey, trackKey, artistName } });
-    }, []);
+        dispatch(toggleArtist({ instanceKey, trackKey, artistName }));
+    }, [dispatch]);
 
     const handleScrobbleModeToggle = useCallback((instanceKey: string, useTrackArtist: boolean) => {
         const item = queue.find(i => i.instanceKey === instanceKey);
         if (item) {
-            dispatch({ type: 'TOGGLE_SCROBBLE_MODE', payload: { instanceKey, useTrackArtist, item } });
+            dispatch(toggleScrobbleMode({ instanceKey, useTrackArtist, item }));
         }
-    }, [queue]);
+    }, [queue, dispatch]);
 
     const handleToggleParent = useCallback((instanceKey: string, parentIndex: number, subTrackKeys: string[]) => {
-        dispatch({ type: 'TOGGLE_PARENT', payload: { instanceKey, subTrackKeys, parentKey: String(parentIndex) } });
-    }, []);
+        dispatch(toggleParent({ instanceKey, subTrackKeys, parentKey: String(parentIndex) }));
+    }, [dispatch]);
 
     const handleSelectParentAsSingle = useCallback((instanceKey: string, parentKey: string, subTrackKeys: string[]) => {
-        dispatch({ type: 'SELECT_PARENT_AS_SINGLE', payload: { instanceKey, parentKey, subTrackKeys } });
-    }, []);
+        dispatch(selectParentAsSingle({ instanceKey, parentKey, subTrackKeys }));
+    }, [dispatch]);
     
     const handleSelectAll = useCallback((instanceKey: string) => {
         const item = queue.find(i => i.instanceKey === instanceKey);
         if (item) {
-            dispatch({ type: 'SELECT_ALL', payload: { instanceKey, item } });
+            dispatch(selectAll({ instanceKey, item }));
         }
-    }, [queue]);
+    }, [queue, dispatch]);
 
     const handleDeselectAll = useCallback((instanceKey: string) => {
-         dispatch({ type: 'DESELECT_ALL', payload: { instanceKey } });
-    }, []);
+         dispatch(deselectAll({ instanceKey }));
+    }, [dispatch]);
 
     const handleToggleGroup = useCallback((instanceKey: string, groupKeys: string[], parentKeysInGroup: string[]) => {
-        dispatch({ type: 'TOGGLE_GROUP', payload: { instanceKey, groupKeys, parentKeysInGroup } });
-    }, []);
+        dispatch(toggleGroup({ instanceKey, groupKeys, parentKeysInGroup }));
+    }, [dispatch]);
 
     const totalSelectedTracks = useMemo(() => {
         return Object.values(selectedTracks).reduce((acc, trackSet) => acc + trackSet.size, 0);
@@ -76,9 +89,9 @@ export function useTrackSelection(queue: QueueItem[], settings: Settings) {
         selectedFeatures,
         artistSelections,
         totalSelectedTracks,
-        initializeSelection,
-        clearSelectionForInstance,
-        resetSelections,
+        initializeSelection: handleInitializeSelection,
+        clearSelectionForInstance: handleClearSelectionForInstance,
+        resetSelections: handleResetSelections,
         handleTrackToggle,
         handleFeatureToggle,
         handleArtistToggle,

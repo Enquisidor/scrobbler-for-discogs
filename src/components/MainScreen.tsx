@@ -1,7 +1,9 @@
 
 import React, { useState, useMemo, useCallback, useEffect } from 'react';
 import ReactDOM from 'react-dom';
+import { useDispatch, useSelector } from 'react-redux';
 import type { Credentials, Settings } from '../types';
+import type { RootState } from '../store/index';
 import { SortOption } from '../types';
 import CollectionScreen from './collection/CollectionScreen';
 import SettingsSheet from './settings/SettingsSheet';
@@ -13,9 +15,9 @@ import { useAuthHandler } from '../hooks/useAuth/useAuthHandler';
 import { useDiscogsCollection } from '../hooks/useCollection/useDiscogsCollection';
 import { useCollectionFilters } from '../hooks/useCollection/useCollectionFilters';
 import { useQueue } from '../hooks/useQueue';
-import { useAppleMusicMetadata } from '../hooks/useMetadata/useAppleMusicMetadata';
 import { useMetadataFetcher } from '../hooks/useMetadata/useMetadataFetcher';
-import { applyAppleMusicCorrections } from '../hooks/utils/collectionUtils';
+import { clearMetadata } from '../store/metadataSlice';
+import { applyMetadataCorrections } from '../hooks/utils/collectionUtils';
 
 interface MainScreenProps {
   credentials: Credentials;
@@ -38,6 +40,7 @@ export default function MainScreen({
   settings,
   onSettingsChange,
 }: MainScreenProps) {
+  const dispatch = useDispatch();
   const isDiscogsConnected = !!credentials.discogsAccessToken;
   
   const [sortOption, setSortOption] = useState<SortOption>(SortOption.AddedNewest);
@@ -69,7 +72,7 @@ export default function MainScreen({
     }
   }, [isDiscogsAuthError, onDiscogsLogout]);
 
-  const { metadata: appleMusicMetadata, updateMetadata, clearMetadata } = useAppleMusicMetadata();
+  const metadata = useSelector((state: RootState) => state.metadata.data);
   
   const handleQueueSuccess = (message: string) => {
     if (!message.startsWith('Scrobbled')) {
@@ -80,13 +83,13 @@ export default function MainScreen({
     return () => clearTimeout(timeoutId);
   };
   
-  const queueHandler = useQueue(credentials, settings, handleQueueSuccess, appleMusicMetadata);
+  const queueHandler = useQueue(credentials, settings, handleQueueSuccess);
 
   const collectionWithCorrections = useMemo(() => {
-    return applyAppleMusicCorrections(fullCollection, appleMusicMetadata, settings);
-  }, [fullCollection, appleMusicMetadata, settings]);
+    return applyMetadataCorrections(fullCollection, metadata, settings);
+  }, [fullCollection, metadata, settings]);
   
-  useMetadataFetcher(fullCollection, appleMusicMetadata, updateMetadata, settings);
+  useMetadataFetcher(fullCollection, settings);
   
   const {
     searchTerm, setSearchTerm,
@@ -99,18 +102,13 @@ export default function MainScreen({
     isFiltered,
   } = useCollectionFilters(collectionWithCorrections, sortOption, setSortOption);
 
-  // --- Client-side Infinite Scroll Logic ---
   const [displayedCount, setDisplayedCount] = useState(CLIENT_PAGE_SIZE);
 
-  // When filters or sort order change, reset the view to the first page and scroll to top.
-  // CRITICAL FIX: Dependencies restricted to filter params only.
-  // We do NOT include filteredAndSortedCollection here, because that updates during background sync.
   useEffect(() => {
     setDisplayedCount(CLIENT_PAGE_SIZE);
     window.scrollTo(0, 0);
   }, [searchTerm, sortOption, selectedFormat, selectedYear]);
 
-  // The collection that is actually rendered to the DOM.
   const displayedCollection = useMemo(() => {
     return filteredAndSortedCollection.slice(0, displayedCount);
   }, [filteredAndSortedCollection, displayedCount]);
@@ -125,7 +123,7 @@ export default function MainScreen({
   
   const handleForceReload = () => {
     if (isSyncing || isCollectionLoading) return;
-    clearMetadata();
+    dispatch(clearMetadata());
     forceDiscogsReload();
   };
   
@@ -206,7 +204,7 @@ export default function MainScreen({
           onConnectDiscogs={handleDiscogsConnect}
           isConnectingDiscogs={loadingService === 'discogs'}
           settings={settings}
-          metadata={appleMusicMetadata}
+          metadata={metadata}
         />
       </div>
 
@@ -236,7 +234,7 @@ export default function MainScreen({
             scrobbleTimeOffset={queueHandler.scrobbleTimeOffset}
             onScrobbleTimeOffsetChange={queueHandler.setScrobbleTimeOffset}
             settings={settings}
-            metadata={appleMusicMetadata}
+            metadata={metadata}
             onTrackToggle={queueHandler.handleTrackToggle}
             onFeatureToggle={queueHandler.handleFeatureToggle}
             onArtistToggle={queueHandler.handleArtistToggle}
