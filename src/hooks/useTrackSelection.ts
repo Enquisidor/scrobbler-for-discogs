@@ -1,6 +1,6 @@
 import { useMemo, useCallback, useEffect } from 'react';
 import { useDispatch, useSelector } from 'react-redux';
-import type { QueueItem, Settings } from '../types';
+import type { QueueItem, Settings } from 'scrobbler-for-discogs-libs';
 import type { RootState } from '../store/index';
 import { 
   autoUpdateFeatures, 

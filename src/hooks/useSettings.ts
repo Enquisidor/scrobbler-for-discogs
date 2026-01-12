@@ -1,6 +1,6 @@
 
 import { useLocalStorage } from './useLocalStorage';
-import type { Settings } from '../types';
+import type { Settings } from 'scrobbler-for-discogs-libs';
 
 const initialSettings: Settings = {
     selectAllTracksPerRelease: true,

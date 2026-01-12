@@ -1,8 +1,22 @@
 
-import { createLastfmSignature } from '../hooks/utils/credentialsUtils';
-import type { LastfmTrackScrobble } from '../types';
+import type { LastfmTrackScrobble } from 'scrobbler-for-discogs-libs';
+
+// CryptoJS is loaded globally from CDN in index.html
+declare const CryptoJS: any;
 
 const API_BASE = 'https://ws.audioscrobbler.com/2.0/';
+
+const createLastfmSignature = (params: Record<string, string>, secret: string): string => {
+  const sortedKeys = Object.keys(params).sort();
+  let sigString = '';
+  sortedKeys.forEach(key => {
+    if (key !== 'format' && key !== 'callback') {
+      sigString += key + params[key];
+    }
+  });
+  sigString += secret;
+  return CryptoJS.MD5(sigString).toString();
+};
 
 const apiCall = async (params: Record<string, string>, secret?: string, method: 'GET' | 'POST' = 'GET') => {
   const allParams: Record<string, string> = { ...params, format: 'json' };

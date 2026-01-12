@@ -2,9 +2,9 @@
 import React, { useState, useMemo, useCallback, useEffect } from 'react';
 import ReactDOM from 'react-dom';
 import { useDispatch, useSelector } from 'react-redux';
-import type { Credentials, Settings } from '../types';
+import type { Credentials, Settings } from 'scrobbler-for-discogs-libs';
 import type { RootState } from '../store/index';
-import { SortOption } from '../types';
+import { SortOption } from 'scrobbler-for-discogs-libs';
 import CollectionScreen from './collection/CollectionScreen';
 import SettingsSheet from './settings/SettingsSheet';
 import QueueButton from './queue/QueueButton';
@@ -17,7 +17,7 @@ import { useCollectionFilters } from '../hooks/useCollection/useCollectionFilter
 import { useQueue } from '../hooks/useQueue';
 import { useMetadataFetcher } from '../hooks/useMetadata/useMetadataFetcher';
 import { clearMetadata } from '../store/metadataSlice';
-import { applyMetadataCorrections } from '../hooks/utils/collectionUtils';
+import { applyMetadataCorrections } from 'scrobbler-for-discogs-libs';
 
 interface MainScreenProps {
   credentials: Credentials;

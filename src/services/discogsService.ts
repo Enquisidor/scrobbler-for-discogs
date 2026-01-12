@@ -1,6 +1,5 @@
 
-import type { Credentials, DiscogsRelease, QueueItem, DiscogsArtist } from '../types';
-import { getDisplayArtistName, formatArtistNames } from '../hooks/utils/formattingUtils';
+import type { Credentials, DiscogsRelease, QueueItem, DiscogsArtist } from 'scrobbler-for-discogs-libs';
 
 // This file assumes CryptoJS is loaded globally from a CDN in index.html
 declare const CryptoJS: any;
@@ -25,9 +24,6 @@ export class DiscogsRateLimitError extends Error {
 const API_BASE = 'https://api.discogs.com';
 
 // IMPORTANT: Replace with your actual Discogs application credentials.
-// You can get these from your Discogs developer settings: https://www.discogs.com/settings/developers
-// These are exposed on the client-side, which is not ideal for production.
-// For a real-world app, an intermediary server would be used to protect the secret.
 const CONSUMER_KEY = 'GwlBnzIstBUPmTsYjtgN';
 const CONSUMER_SECRET = 'pfoWbAvyoguwrrhaSyCfGBPQAPpHNJVU';
 
@@ -119,6 +115,7 @@ async function discogsFetch(
             // Direct fetch to Discogs API
             const response = await fetch(finalUrl, {
                 method: 'GET',
+                mode: 'cors',
                 headers: {
                     'User-Agent': 'VinylScrobbler/1.0',
                     'Accept': 'application/json',
@@ -130,25 +127,22 @@ async function discogsFetch(
                 return await response.json();
             }
 
-            // Specific handling for Auth errors (don't retry)
             if (response.status === 401) {
                 throw new DiscogsAuthError('Authentication failed. Please reconnect Discogs.');
             }
 
-            // Retry on Rate Limits (429) or Server Errors (5xx)
             if (response.status === 429 || response.status >= 500) {
                  const isRateLimit = response.status === 429;
                  const errorMessage = isRateLimit ? 'Rate limit exceeded' : `Server error ${response.status}`;
                  
                  attempt++;
                  if (attempt < MAX_RETRIES) {
-                     const delay = BASE_DELAY * Math.pow(2, attempt - 1); // Exponential backoff: 1s, 2s, 4s...
+                     const delay = BASE_DELAY * Math.pow(2, attempt - 1); 
                      console.warn(`[Discogs API] ${errorMessage}. Retrying in ${delay}ms... (Attempt ${attempt}/${MAX_RETRIES})`);
                      await wait(delay);
                      continue;
                  } else {
                      if (isRateLimit) throw new DiscogsRateLimitError('Discogs API rate limit exceeded after retries.');
-                     // Fall through to generic error
                  }
             }
 
@@ -156,17 +150,12 @@ async function discogsFetch(
             throw new Error(`Discogs API Error: ${errorData.message} (Status: ${response.status})`);
 
         } catch (error) {
-            // Rethrow explicit Auth/RateLimit errors immediately
             if (error instanceof DiscogsAuthError || error instanceof DiscogsRateLimitError) {
                 throw error;
             }
-            
-            // If it's the last attempt, throw
             if (attempt === MAX_RETRIES - 1) {
                 throw error;
             }
-
-            // If it's a network error (fetch failed completely), retry
             attempt++;
             const delay = BASE_DELAY * Math.pow(2, attempt - 1);
             console.warn(`[Discogs API] Network error. Retrying in ${delay}ms... (Attempt ${attempt}/${MAX_RETRIES})`, error);
@@ -185,9 +174,9 @@ export const getRequestToken = async (): Promise<{ requestToken: string; request
   
   const targetUrl = `${url}?${new URLSearchParams(allParams).toString()}`;
 
-  // Direct fetch for request token
   const response = await fetch(targetUrl, {
     method: 'POST',
+    mode: 'cors',
     headers: {
       'Content-Type': 'application/x-www-form-urlencoded',
       'User-Agent': 'VinylScrobbler/1.0',
@@ -226,9 +215,9 @@ export const getAccessToken = async (
 
   const targetUrl = `${url}?${new URLSearchParams(allParams).toString()}`;
 
-  // Direct fetch for access token
   const response = await fetch(targetUrl, {
     method: 'POST',
+    mode: 'cors',
     headers: {
       'Content-Type': 'application/x-www-form-urlencoded',
       'User-Agent': 'VinylScrobbler/1.0',
@@ -250,13 +239,11 @@ export const getAccessToken = async (
   return { accessToken, accessTokenSecret };
 };
 
-
 // --- API Functions ---
 
 export const getDiscogsIdentity = async (accessToken: string, accessTokenSecret: string): Promise<DiscogsIdentity> => {
   return discogsFetch('/oauth/identity', accessToken, accessTokenSecret);
 };
-
 
 export const fetchDiscogsPage = async (
   username: string,
@@ -265,28 +252,14 @@ export const fetchDiscogsPage = async (
   page: number = 1,
   sort: string = 'added',
   sortOrder: 'asc' | 'desc' = 'desc',
-  perPage: number = 50 // Discogs max is 100, but 50 is good for smooth loading
+  perPage: number = 50 
 ): Promise<{ releases: DiscogsRelease[]; pagination: CollectionResponse['pagination'] }> => {
     const endpoint = `/users/${username}/collection/folders/0/releases?page=${page}&per_page=${perPage}&sort=${sort}&sort_order=${sortOrder}`;
     const data: CollectionResponse = await discogsFetch(endpoint, accessToken, accessTokenSecret);
     
-    // The artist_display_name is now generated here from raw artist data.
-    const cleanedReleases = data.releases.map(release => {
-      const artists = release.basic_information?.artists;
-      const artistDisplayName = artists ? formatArtistNames(artists) : 'Unknown Artist';
-
-      return {
-        ...release,
-        basic_information: {
-          ...release.basic_information,
-          // We pass the raw artists array but replace the display name.
-          artist_display_name: artistDisplayName,
-        }
-      };
-    });
-
+    // Return raw data so reducer can handle formatting
     return {
-        releases: cleanedReleases,
+        releases: data.releases,
         pagination: data.pagination
     };
 };
@@ -294,6 +267,5 @@ export const fetchDiscogsPage = async (
 export const fetchReleaseTracklist = async (releaseId: number, accessToken: string, accessTokenSecret: string): Promise<QueueItem> => {
     const endpoint = `/releases/${releaseId}`;
     const releaseData = await discogsFetch(endpoint, accessToken, accessTokenSecret);
-    // No longer pre-cleaning artist names here. The raw data is passed through.
     return releaseData;
 }
