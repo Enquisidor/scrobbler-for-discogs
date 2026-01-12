@@ -12,7 +12,7 @@
     "@reduxjs/toolkit": "^2.11.0",
     "react": "^19.2.0",
     "react-dom": "^19.2.0",
-    "scrobbler-for-discogs-libs": "file:../scrobbler-for-discogs-libs"
+    "scrobbler-for-discogs-libs": "^1.0.0"
   },
   "devDependencies": {
     "@types/node": "^22.14.0",
