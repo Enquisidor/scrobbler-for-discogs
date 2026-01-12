@@ -1,8 +1,8 @@
 import React from 'react';
-import type { DiscogsTrack, Settings, DiscogsArtist, CombinedMetadata, DiscogsRelease } from '../../types';
+import type { DiscogsTrack, Settings, DiscogsArtist, CombinedMetadata, DiscogsRelease } from 'scrobbler-for-discogs-libs';
 import IndeterminateCheckbox from './IndeterminateCheckbox';
-import { getTrackFeaturedArtists, getTrackCreditsStructured, isVariousArtist } from '../../hooks/utils/queueUtils';
-import { getDisplayArtistName, getArtistJoiner } from '../../hooks/utils/formattingUtils';
+import { getTrackFeaturedArtists, getTrackCreditsStructured, isVariousArtist } from 'scrobbler-for-discogs-libs';
+import { getDisplayArtistName, getArtistJoiner } from 'scrobbler-for-discogs-libs';
 
 // Exported for use in QueueItem to allow polymorphic prop passing
 export interface TrackPassthroughProps {
