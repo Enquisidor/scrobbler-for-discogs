@@ -1,7 +1,7 @@
 import { useEffect, useRef } from 'react';
 import { useDispatch, useSelector } from 'react-redux';
-import type { DiscogsRelease, Settings } from '../../types';
-import { MetadataSourceType } from '../../types';
+import type { DiscogsRelease, Settings } from 'scrobbler-from-discogs-libs';
+import { MetadataSourceType } from 'scrobbler-from-discogs-libs';
 import type { RootState } from '../../store/index';
 import { fetchAppleMusicMetadata } from '../../services/appleMusic/appleMusicService';
 import { fetchMusicBrainzMetadata } from '../../services/musicbrainz/musicBrainzService';
