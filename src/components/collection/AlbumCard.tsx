@@ -1,6 +1,6 @@
 import React, { useRef } from 'react';
-import type { DiscogsRelease, Settings, CombinedMetadata } from 'scrobbler-for-discogs';
-import { getReleaseDisplayArtist, getReleaseDisplayTitle } from 'scrobbler-for-discogs';
+import type { DiscogsRelease, Settings, CombinedMetadata } from 'scrobbler-for-discogs-libs';
+import { getReleaseDisplayArtist, getReleaseDisplayTitle } from 'scrobbler-for-discogs-libs';
 import { VinylIcon } from '../misc/Icons';
 
 interface AlbumCardProps {
