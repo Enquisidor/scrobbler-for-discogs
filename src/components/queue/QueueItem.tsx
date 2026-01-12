@@ -1,11 +1,11 @@
 import React, { useState, useMemo } from 'react';
-import type { QueueItem as QueueItemType, DiscogsTrack } from '../../types';
+import type { QueueItem as QueueItemType, DiscogsTrack } from 'scrobbler-for-discogs-libs';
 import { Loader } from '../misc/Loader';
 import { ChevronDownIcon, CloseIcon, CheckCircleIcon } from '../misc/Icons';
 import IndeterminateCheckbox from './IndeterminateCheckbox';
 import Track, { TrackPassthroughProps } from './Track';
 import { assignGroups } from './utils/trackGroupUtils';
-import { isVariousArtist, getReleaseDisplayArtist, getReleaseDisplayTitle } from '../../hooks/utils/queueUtils';
+import { isVariousArtist, getReleaseDisplayArtist, getReleaseDisplayTitle } from 'scrobbler-for-discogs-libs';
 
 // QueueItemProps now extends the shared props interface, ensuring consistency
 interface QueueItemProps extends TrackPassthroughProps {
