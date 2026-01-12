@@ -2,8 +2,7 @@
 import { useState, useMemo, useEffect } from 'react';
 import type { DiscogsRelease } from 'scrobbler-for-discogs-libs';
 import { SortOption } from 'scrobbler-for-discogs-libs';
-import { sortCollection } from '../utils/sortCollection';
-import { calculateFuzzyScore } from '../utils/fuzzyUtils';
+import { sortCollection, calculateFuzzyScore } from 'scrobbler-for-discogs-libs';
 
 export function useCollectionFilters(
     collection: DiscogsRelease[], 
