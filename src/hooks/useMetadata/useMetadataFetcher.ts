@@ -1,10 +1,8 @@
 import { useEffect, useRef } from 'react';
 import { useDispatch, useSelector } from 'react-redux';
 import type { DiscogsRelease, Settings } from 'scrobbler-for-discogs-libs';
-import { MetadataSourceType } from 'scrobbler-for-discogs-libs';
+import { MetadataSourceType, fetchAppleMusicMetadata, fetchMusicBrainzMetadata } from 'scrobbler-for-discogs-libs';
 import type { RootState } from '../../store/index';
-import { fetchAppleMusicMetadata } from '../../services/appleMusic/appleMusicService';
-import { fetchMusicBrainzMetadata } from '../../services/musicbrainz/musicBrainzService';
 import { updateMetadataItem } from '../../store/metadataSlice';
 
 const RECHECK_INTERVAL_MS = 30 * 24 * 60 * 60 * 1000; // 30 days
