@@ -1,7 +1,7 @@
 
 import { useState, useMemo, useEffect } from 'react';
-import type { DiscogsRelease } from '../../types';
-import { SortOption } from '../../types';
+import type { DiscogsRelease } from 'scrobbler-for-discogs-libs';
+import { SortOption } from 'scrobbler-for-discogs-libs';
 import { sortCollection } from '../utils/sortCollection';
 import { calculateFuzzyScore } from '../utils/fuzzyUtils';
 
