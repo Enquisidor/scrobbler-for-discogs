@@ -1,0 +1,16 @@
+# Dependencies
+node_modules/
+
+# Testing
+/coverage
+
+# Vite
+.vite
+
+# TypeScript
+*.tsbuildinfo
+next-env.d.ts
+
+# OS Files
+Thumbs.db
+.DS_Store

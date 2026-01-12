@@ -1,0 +1,84 @@
+name: Build and Test
+
+on:
+  push:
+    branches: [ main, develop ]
+  pull_request:
+    branches: [ main, develop ]
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+
+    strategy:
+      matrix:
+        node-version: [20.x, 22.x]
+
+    steps:
+    - name: Checkout web app
+      uses: actions/checkout@v4
+      with:
+        path: web
+
+    - name: Checkout shared library
+      uses: actions/checkout@v4
+      with:
+        repository: ${{ github.repository_owner }}/scrobbler-for-discogs-libs
+        path: libs
+        # If the libs repo is private, you'll need to use a PAT
+        # token: ${{ secrets.LIBS_REPO_TOKEN }}
+
+    - name: Setup Node.js ${{ matrix.node-version }}
+      uses: actions/setup-node@v4
+      with:
+        node-version: ${{ matrix.node-version }}
+        cache: 'npm'
+        cache-dependency-path: |
+          web/package-lock.json
+          libs/package-lock.json
+
+    - name: Install and build shared library
+      working-directory: libs
+      run: |
+        npm ci
+        npm run build
+
+    - name: Install web app dependencies
+      working-directory: web
+      run: |
+        # Install deps including the local libs package
+        npm ci
+        # Re-link the local libs (since it's not in the original package-lock)
+        npm install ../libs
+
+    - name: Build web app
+      working-directory: web
+      run: npm run build
+
+    - name: Check build output
+      working-directory: web
+      run: |
+        if [ -d "dist" ]; then
+          echo "✓ Build output found in dist/"
+          ls -lh dist/
+        else
+          echo "✗ Build output not found"
+          exit 1
+        fi
+
+    - name: Lint (if configured)
+      working-directory: web
+      run: |
+        if [ -f "package.json" ] && grep -q '"lint"' package.json; then
+          npm run lint
+        else
+          echo "No lint script found, skipping"
+        fi
+
+    - name: Upload build artifacts
+      uses: actions/upload-artifact@v4
+      if: matrix.node-version == '22.x'
+      with:
+        name: dist
+        path: web/dist/
+        retention-days: 7
