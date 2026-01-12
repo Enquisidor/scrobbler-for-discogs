@@ -1,6 +1,6 @@
 import React from 'react';
-import type { Settings, MetadataSource } from '../../types';
-import { MetadataSourceType } from '../../types';
+import type { Settings, MetadataSource } from 'scrobbler-for-discogs-libs';
+import { MetadataSourceType } from 'scrobbler-for-discogs-libs';
 import { CloseIcon, SettingsIcon } from '../misc/Icons';
 
 interface SettingsSheetProps {
