@@ -1,7 +1,7 @@
 
 
 import React from 'react';
-import { SortOption } from '../../scrobbler-for-discogs-libs';
+import { SortOption } from 'scrobbler-for-discogs-libs/types';
 
 interface CollectionFiltersProps {
   searchTerm: string;
