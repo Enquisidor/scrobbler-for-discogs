@@ -3,7 +3,7 @@ Built using Google AI Studio
 ## Run Locally
 1. Install dependencies:
    `npm install`
-2. Set the `GEMINI_API_KEY` in [.env.local](.env.local) to your Gemini API key
+2. Set the `[LASTMFM/DISCOGS]_API_KEY`s to your own generated keys
 3. Run the app:
    `npm run dev`
 
