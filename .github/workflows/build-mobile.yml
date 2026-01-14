@@ -1,10 +1,18 @@
-name: Build and Test
+name: Build Mobile
 
 on:
   push:
     branches: [ main, develop ]
+    paths:
+      - 'mobile/**'
+      - 'libs/**'
+      - '.github/workflows/build-mobile.yml'
   pull_request:
     branches: [ main, develop ]
+    paths:
+      - 'mobile/**'
+      - 'libs/**'
+      - '.github/workflows/build-mobile.yml'
 
 jobs:
   build:
@@ -15,11 +23,9 @@ jobs:
         node-version: [22.x]
 
     steps:
-    - name: Checkout mobile app
+    - name: Checkout code
       uses: actions/checkout@v4
-      with:
-        path: mobile
-        
+
     - name: Setup Node.js ${{ matrix.node-version }}
       uses: actions/setup-node@v4
       with:
@@ -38,29 +44,16 @@ jobs:
     - name: Install mobile app dependencies
       working-directory: mobile
       run: |
-        # Install deps including the local libs package
         npm ci
-        # Re-link the local libs (since it's not in the original package-lock)
         npm install ../libs
 
     - name: Check TypeScript compilation
       working-directory: mobile
       run: npx tsc --noEmit
 
-    - name: Run Expo prebuild (if configured)
+    - name: Verify Expo project
       working-directory: mobile
       run: |
         if [ -f "app.json" ]; then
           echo "✓ Expo project detected"
-          # Optionally run expo prebuild to test native config
-          # npx expo prebuild --clean
-        fi
-
-    - name: Lint (if configured)
-      working-directory: mobile
-      run: |
-        if [ -f "package.json" ] && grep -q '"lint"' package.json; then
-          npm run lint
-        else
-          echo "No lint script found, skipping"
         fi

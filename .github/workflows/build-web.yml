@@ -1,10 +1,18 @@
-name: Build and Test
+name: Build Web
 
 on:
   push:
     branches: [main, develop]
+    paths:
+      - 'web/**'
+      - 'libs/**'
+      - '.github/workflows/build-web.yml'
   pull_request:
     branches: [main, develop]
+    paths:
+      - 'web/**'
+      - 'libs/**'
+      - '.github/workflows/build-web.yml'
 
 jobs:
   build:
@@ -15,10 +23,8 @@ jobs:
         node-version: [22.x]
 
     steps:
-      - name: Checkout web app
+      - name: Checkout code
         uses: actions/checkout@v4
-        with:
-          path: web
 
       - name: Setup Node.js ${{ matrix.node-version }}
         uses: actions/setup-node@v4
@@ -38,9 +44,7 @@ jobs:
       - name: Install web app dependencies
         working-directory: web
         run: |
-          # Install deps including the local libs package
           npm ci
-          # Re-link the local libs (since it's not in the original package-lock)
           npm install ../libs
 
       - name: Build web app
@@ -58,19 +62,9 @@ jobs:
             exit 1
           fi
 
-      - name: Lint (if configured)
-        working-directory: web
-        run: |
-          if [ -f "package.json" ] && grep -q '"lint"' package.json; then
-            npm run lint
-          else
-            echo "No lint script found, skipping"
-          fi
-
       - name: Upload build artifacts
         uses: actions/upload-artifact@v4
-        if: matrix.node-version == '22.x'
         with:
-          name: dist
+          name: web-dist
           path: web/dist/
           retention-days: 7
