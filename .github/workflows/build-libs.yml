@@ -1,10 +1,16 @@
-name: Build and Test
+name: Build Libs
 
 on:
   push:
     branches: [ main, develop ]
+    paths:
+      - 'libs/**'
+      - '.github/workflows/build-libs.yml'
   pull_request:
     branches: [ main, develop ]
+    paths:
+      - 'libs/**'
+      - '.github/workflows/build-libs.yml'
 
 jobs:
   build:
@@ -17,22 +23,24 @@ jobs:
     steps:
     - name: Checkout code
       uses: actions/checkout@v4
-      with: 
-        path: libs
 
     - name: Setup Node.js ${{ matrix.node-version }}
       uses: actions/setup-node@v4
       with:
         node-version: ${{ matrix.node-version }}
         cache: 'npm'
+        cache-dependency-path: libs/package-lock.json
 
     - name: Install dependencies
+      working-directory: libs
       run: npm ci
 
     - name: Build library
+      working-directory: libs
       run: npm run build
 
     - name: Check for build artifacts
+      working-directory: libs
       run: |
         test -d dist || (echo "dist directory not found" && exit 1)
         test -f dist/index.js || (echo "dist/index.js not found" && exit 1)
@@ -41,8 +49,7 @@ jobs:
 
     - name: Upload build artifacts
       uses: actions/upload-artifact@v4
-      if: matrix.node-version == '22.x'
       with:
-        name: dist
-        path: dist/
+        name: libs-dist
+        path: libs/dist/
         retention-days: 7
