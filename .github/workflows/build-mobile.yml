@@ -15,9 +15,6 @@ jobs:
         node-version: [22.x]
 
     steps:
-    - name: Navigate to libs
-      run: cd mobile
-
     - name: Checkout mobile app
       uses: actions/checkout@v4
       with:
