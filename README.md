@@ -1,14 +1,19 @@
 ## WEB
-~~~~
+~~~~~~
+~~~~~~
 
 ### Main Screen
-<img width="1440" alt="Main collection view" src="https://github.com/user-attachments/assets/2eb15416-f282-4a31-87d4-f461bda48a17" />
+
+<img width="1440" height="755" alt="Screenshot 2025-11-18 at 9 23 00 PM" src="https://github.com/user-attachments/assets/0b3e88fe-568e-4ece-9b2f-07ee413a255c" />
 
 ### Scrobbling Queue
-<img width="1440" alt="Queue management" src="https://github.com/user-attachments/assets/bcf0b7fd-afd2-4c8d-b1ae-db620a821ce1" />
+
+<img width="1440" height="733" alt="Screenshot 2025-11-18 at 9 22 31 PM" src="https://github.com/user-attachments/assets/f1145871-f30d-4049-bae4-2f65100ac1b1" />
 
 ### Subtracks & Features
-<img width="1440" alt="Advanced track selection" src="https://github.com/user-attachments/assets/482d8bc4-0da8-47b8-8bcb-447c1ae098fc" />
+
+<img width="1440" height="702" alt="Screenshot 2025-11-18 at 9 20 24 PM" src="https://github.com/user-attachments/assets/9accba1e-d902-4dd3-a935-73924fd78ff8" />
 
 ### Settings
-<img width="667" height="667" alt="Screenshot 2026-01-15 at 11 35 07 AM" src="https://github.com/user-attachments/assets/01a4f396-14d9-4295-9acb-304967558095" />
+
+<img width="667" height="667" alt="Screenshot 2026-01-15 at 11 35 07 AM" src="https://github.com/user-attachments/assets/a5c2b990-bacc-4003-b4eb-00399fe9518e" />
