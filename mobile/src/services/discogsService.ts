@@ -1,6 +1,6 @@
 
 import type { Credentials, DiscogsRelease, QueueItem, DiscogsArtist } from '../../libs';
-import { hmacSha1Base64, rfc3986encode as encode } from '../adapters/crypto';
+import { hmacSha1Base64, rfc3986encode as encode } from '../adapters/cryptoAdapter';
 
 // Custom Error types for specific API responses
 export class DiscogsAuthError extends Error {
