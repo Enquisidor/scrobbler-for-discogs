@@ -11,6 +11,7 @@ import {
 } from 'react-native';
 import type { DiscogsRelease, QueueItem, Settings, CombinedMetadata } from '../../libs';
 import { AlbumCard } from './AlbumCard';
+import { STRINGS } from '../../strings';
 
 interface CollectionScreenProps {
   collection: DiscogsRelease[];
@@ -122,8 +123,8 @@ export const CollectionScreen: React.FC<CollectionScreenProps> = ({
       <View style={styles.emptyContainer}>
         <Text style={styles.emptyText}>
           {isFiltered
-            ? 'No albums match your filters.'
-            : 'Your collection appears to be empty.'}
+            ? STRINGS.EMPTY_STATES.NO_FILTERED_ALBUMS
+            : STRINGS.EMPTY_STATES.EMPTY_COLLECTION}
         </Text>
       </View>
     );
@@ -133,10 +134,9 @@ export const CollectionScreen: React.FC<CollectionScreenProps> = ({
   if (!isDiscogsConnected) {
     return (
       <View style={styles.notConnectedContainer} testID={testID}>
-        <Text style={styles.notConnectedTitle}>View Your Collection</Text>
+        <Text style={styles.notConnectedTitle}>{STRINGS.HEADERS.VIEW_COLLECTION}</Text>
         <Text style={styles.notConnectedText}>
-          To get started, connect your Discogs account. This will allow this
-          scrobbler to load and display your record collection.
+          {STRINGS.STATUS.CONNECT_COLLECTION_INFO}
         </Text>
         <Pressable
           style={[styles.connectButton, isConnectingDiscogs && styles.connectButtonDisabled]}
@@ -147,7 +147,7 @@ export const CollectionScreen: React.FC<CollectionScreenProps> = ({
           {isConnectingDiscogs ? (
             <ActivityIndicator size="small" color="#ffffff" />
           ) : (
-            <Text style={styles.connectButtonText}>Connect Discogs</Text>
+            <Text style={styles.connectButtonText}>{STRINGS.BUTTONS.CONNECT_DISCOGS}</Text>
           )}
         </Pressable>
       </View>
@@ -159,7 +159,7 @@ export const CollectionScreen: React.FC<CollectionScreenProps> = ({
     return (
       <View style={styles.loadingContainer} testID={testID}>
         <ActivityIndicator size="large" color="#3b82f6" />
-        <Text style={styles.loadingText}>Loading your collection...</Text>
+        <Text style={styles.loadingText}>{STRINGS.STATUS.LOADING_COLLECTION}</Text>
       </View>
     );
   }

@@ -1,6 +1,7 @@
 import React from 'react';
 import { View, Text, Pressable, ActivityIndicator, StyleSheet } from 'react-native';
 import type { Credentials } from '../../libs';
+import { STRINGS } from '../../strings';
 
 interface HeaderProps {
   isSyncing: boolean;
@@ -33,7 +34,7 @@ export const Header: React.FC<HeaderProps> = ({
   return (
     <View style={styles.container}>
       <View style={styles.titleRow}>
-        <Text style={styles.title}>Vinyl Scrobbler</Text>
+        <Text style={styles.title}>{STRINGS.APP_NAME}</Text>
         {isSyncing && <ActivityIndicator size="small" color="#9CA3AF" />}
       </View>
 
@@ -51,7 +52,7 @@ export const Header: React.FC<HeaderProps> = ({
             <ActivityIndicator size="small" color="#fff" />
           ) : (
             <Text style={styles.buttonText}>
-              {isDiscogsConnected ? credentials.discogsUsername : 'Discogs'}
+              {isDiscogsConnected ? credentials.discogsUsername : STRINGS.BUTTONS.DISCOGS}
             </Text>
           )}
         </Pressable>
@@ -80,7 +81,7 @@ export const Header: React.FC<HeaderProps> = ({
             <ActivityIndicator size="small" color="#fff" />
           ) : (
             <Text style={styles.buttonText}>
-              {isLastfmConnected ? credentials.lastfmUsername : 'Last.fm'}
+              {isLastfmConnected ? credentials.lastfmUsername : STRINGS.BUTTONS.LASTFM}
             </Text>
           )}
         </Pressable>
