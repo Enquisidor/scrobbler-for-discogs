@@ -1,5 +1,4 @@
 ## Web Preview
---
 
 ### Main Screen
 
