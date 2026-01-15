@@ -3,7 +3,7 @@
 
 ### Main Screen
 
-<img width="1440" height="755" alt="Screenshot 2025-11-18 at 9 23 00 PM" src="https://github.com/user-attachments/assets/0b3e88fe-568e-4ece-9b2f-07ee413a255c" />
+<img width="885" height="660" alt="Screenshot 2026-01-15 at 11 40 55 AM" src="https://github.com/user-attachments/assets/2bb94ce5-f7c6-4250-81a6-e9ebd0201505" />
 
 ### Scrobbling Queue
 
