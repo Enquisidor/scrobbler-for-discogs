@@ -1,5 +1,5 @@
 import { createSlice, PayloadAction } from '@reduxjs/toolkit';
-import type { CombinedMetadata, ServiceMetadata } from '../../libs';
+import type { CombinedMetadata, ServiceMetadata } from '../libs';
 
 export interface MetadataState {
   data: Record<number, CombinedMetadata>;

@@ -1,8 +1,8 @@
 
 import { createSlice, PayloadAction } from '@reduxjs/toolkit';
-import type { DiscogsRelease } from '../../libs';
-import { mergePageIntoCollection } from '../../libs';
-import { formatArtistNames } from '../../libs';
+import type { DiscogsRelease } from '../libs';
+import { mergePageIntoCollection } from '../libs';
+import { formatArtistNames } from '../libs';
 
 export interface CollectionState {
   collection: DiscogsRelease[];

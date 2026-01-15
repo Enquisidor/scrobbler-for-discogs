@@ -1,17 +1,17 @@
-import './global.css';
+import React from 'react';
 import { StatusBar } from 'expo-status-bar';
-import { Text, View } from 'react-native';
+import { Provider } from 'react-redux';
+import { SafeAreaProvider } from 'react-native-safe-area-context';
+import { store } from './src/store';
+import { MainScreen } from './src/components/MainScreen';
 
 export default function App() {
   return (
-    <View className="flex-1 bg-gray-900 items-center justify-center">
-      <Text className="text-gray-100 text-xl font-semibold">
-        Scrobbler for Discogs Mobile
-      </Text>
-      <Text className="text-gray-400 mt-2">
-        Phase 1 Setup Complete! 🎵
-      </Text>
-      <StatusBar style="light" />
-    </View>
+    <Provider store={store}>
+      <SafeAreaProvider>
+        <MainScreen />
+        <StatusBar style="light" />
+      </SafeAreaProvider>
+    </Provider>
   );
 }

@@ -11,7 +11,7 @@
 import { renderHook, act, waitFor } from '@testing-library/react-native';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { useSettings } from '../useSettings';
-import type { Settings } from '../../libs';
+import type { Settings } from '../../../libs';
 
 // Cast mocks for TypeScript
 const mockGetItem = AsyncStorage.getItem as jest.Mock;

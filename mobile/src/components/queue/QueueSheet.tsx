@@ -6,40 +6,45 @@ import {
   Pressable,
   StyleSheet,
   ScrollView,
-  SafeAreaView,
 } from 'react-native';
+import { SafeAreaView } from 'react-native-safe-area-context';
 import type { QueueItem as QueueItemType, Settings, CombinedMetadata } from '../../libs';
 import { QueueItem } from './QueueItem';
 
 interface QueueSheetProps {
-  visible: boolean;
+  isOpen: boolean;
   onClose: () => void;
+  view: 'queue' | 'history';
   queue: QueueItemType[];
   scrobbledHistory: QueueItemType[];
   settings: Settings;
-  metadata: Record<number, CombinedMetadata>;
-  selectedTrackKeys: Map<string, Set<string>>;
-  onRemoveItem: (instanceKey: string) => void;
-  onScrobbleItem: (instanceKey: string) => void;
-  onScrobbleAll: () => void;
-  onClearQueue: () => void;
-  isScrobbling: boolean;
+  isLastfmConnected: boolean;
+  // Optional props for full functionality (to be wired up later)
+  metadata?: Record<number, CombinedMetadata>;
+  selectedTrackKeys?: Map<string, Set<string>>;
+  onRemoveItem?: (instanceKey: string) => void;
+  onScrobbleItem?: (instanceKey: string) => void;
+  onScrobbleAll?: () => void;
+  onClearQueue?: () => void;
+  isScrobbling?: boolean;
   testID?: string;
 }
 
 export const QueueSheet: React.FC<QueueSheetProps> = ({
-  visible,
+  isOpen,
   onClose,
+  view,
   queue,
   scrobbledHistory,
   settings,
-  metadata,
-  selectedTrackKeys,
-  onRemoveItem,
-  onScrobbleItem,
-  onScrobbleAll,
-  onClearQueue,
-  isScrobbling,
+  isLastfmConnected,
+  metadata = {},
+  selectedTrackKeys = new Map(),
+  onRemoveItem = () => {},
+  onScrobbleItem = () => {},
+  onScrobbleAll = () => {},
+  onClearQueue = () => {},
+  isScrobbling = false,
   testID,
 }) => {
   const totalSelectedTracks = Array.from(selectedTrackKeys.values())
@@ -50,15 +55,15 @@ export const QueueSheet: React.FC<QueueSheetProps> = ({
 
   return (
     <Modal
-      visible={visible}
+      visible={isOpen}
       animationType="slide"
       presentationStyle="pageSheet"
       onRequestClose={onClose}
     >
-      <SafeAreaView style={styles.container} testID={testID}>
+      <SafeAreaView style={styles.container} testID={testID} edges={['top']}>
         {/* Header */}
         <View style={styles.header}>
-          <Text style={styles.headerTitle}>Queue</Text>
+          <Text style={styles.headerTitle}>{view === 'history' ? 'History' : 'Queue'}</Text>
           <Pressable
             testID={testID ? `${testID}-close` : undefined}
             style={styles.closeButton}
@@ -86,11 +91,13 @@ export const QueueSheet: React.FC<QueueSheetProps> = ({
               </Pressable>
               <Pressable
                 testID={testID ? `${testID}-scrobble-all` : undefined}
-                style={[styles.scrobbleAllButton, isScrobbling && styles.buttonDisabled]}
+                style={[styles.scrobbleAllButton, (isScrobbling || !isLastfmConnected) && styles.buttonDisabled]}
                 onPress={onScrobbleAll}
-                disabled={isScrobbling || totalSelectedTracks === 0}
+                disabled={isScrobbling || totalSelectedTracks === 0 || !isLastfmConnected}
               >
-                <Text style={styles.scrobbleAllButtonText}>Scrobble All</Text>
+                <Text style={styles.scrobbleAllButtonText}>
+                  {isLastfmConnected ? 'Scrobble All' : 'Connect Last.fm'}
+                </Text>
               </Pressable>
             </View>
           </View>

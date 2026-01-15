@@ -1,7 +1,7 @@
 import { createSlice, PayloadAction } from '@reduxjs/toolkit';
-import type { QueueItem, SelectedTracks, SelectedFeatures, ArtistSelections, Settings, DiscogsTrack } from '../../libs';
-import { getTrackFeaturedArtists } from '../../libs';
-import { getDisplayArtistName } from '../../libs';
+import type { QueueItem, SelectedTracks, SelectedFeatures, ArtistSelections, Settings, DiscogsTrack } from '../libs';
+import { getTrackFeaturedArtists } from '../libs';
+import { getDisplayArtistName } from '../libs';
 
 export interface TrackSelectionState {
   selectedTracks: SelectedTracks;
