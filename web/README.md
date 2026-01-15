@@ -109,7 +109,7 @@ src/
 <img width="1440" alt="Advanced track selection" src="https://github.com/user-attachments/assets/482d8bc4-0da8-47b8-8bcb-447c1ae098fc" />
 
 ### Settings
-<img width="670" alt="Settings panel" src="https://github.com/user-attachments/assets/f2941d4a-3bde-4f31-948c-6f57d6e3b49a" />
+<img width="667" height="667" alt="Screenshot 2026-01-15 at 11 35 07 AM" src="https://github.com/user-attachments/assets/01a4f396-14d9-4295-9acb-304967558095" />
 
 ## CI/CD
 
