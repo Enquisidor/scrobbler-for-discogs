@@ -1,7 +1,7 @@
 import React from 'react';
 import { Modal, View, Text, Pressable, Switch, ScrollView, StyleSheet } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
-import type { Settings } from '../../libs';
+import type { Settings, MetadataSource } from '../../libs';
 
 interface SettingsSheetProps {
   isOpen: boolean;
@@ -10,17 +10,33 @@ interface SettingsSheetProps {
   onSettingsChange: (settings: Settings) => void;
 }
 
+type BooleanSettingKey = 'selectAllTracksPerRelease' | 'selectSubtracksByDefault' | 'showFeatures' | 'selectFeaturesByDefault';
+
 export const SettingsSheet: React.FC<SettingsSheetProps> = ({
   isOpen,
   onClose,
   settings,
   onSettingsChange,
 }) => {
-  const handleToggle = (key: keyof Settings) => {
+  const handleToggle = (key: BooleanSettingKey) => {
     onSettingsChange({
       ...settings,
       [key]: !settings[key],
     });
+  };
+
+  const handleSourceChange = (key: 'artistSource' | 'albumSource', value: MetadataSource) => {
+    onSettingsChange({
+      ...settings,
+      [key]: value,
+    });
+  };
+
+  const metadataSources: MetadataSource[] = ['discogs', 'apple', 'musicbrainz'];
+  const sourceLabels: Record<MetadataSource, string> = {
+    discogs: 'Discogs',
+    apple: 'Apple Music',
+    musicbrainz: 'MusicBrainz',
   };
 
   return (
@@ -105,36 +121,68 @@ export const SettingsSheet: React.FC<SettingsSheetProps> = ({
             </View>
           </View>
 
-          {/* Metadata */}
+          {/* Metadata Sources */}
           <View style={styles.section}>
-            <Text style={styles.sectionTitle}>Metadata</Text>
+            <Text style={styles.sectionTitle}>Metadata Sources</Text>
 
             <View style={styles.settingRow}>
               <View style={styles.settingInfo}>
-                <Text style={styles.settingLabel}>Use Apple Music</Text>
+                <Text style={styles.settingLabel}>Artist Source</Text>
                 <Text style={styles.settingDescription}>
-                  Fetch metadata from Apple Music
+                  Preferred source for artist names
                 </Text>
               </View>
-              <Switch
-                value={settings.useAppleMusicMetadata}
-                onValueChange={() => handleToggle('useAppleMusicMetadata')}
-                trackColor={{ true: '#1DB954', false: '#374151' }}
-              />
+              <View style={styles.sourceSelector}>
+                {metadataSources.map((source) => (
+                  <Pressable
+                    key={source}
+                    style={[
+                      styles.sourceOption,
+                      settings.artistSource === source && styles.sourceOptionSelected,
+                    ]}
+                    onPress={() => handleSourceChange('artistSource', source)}
+                  >
+                    <Text
+                      style={[
+                        styles.sourceOptionText,
+                        settings.artistSource === source && styles.sourceOptionTextSelected,
+                      ]}
+                    >
+                      {sourceLabels[source]}
+                    </Text>
+                  </Pressable>
+                ))}
+              </View>
             </View>
 
             <View style={styles.settingRow}>
               <View style={styles.settingInfo}>
-                <Text style={styles.settingLabel}>Use MusicBrainz</Text>
+                <Text style={styles.settingLabel}>Album Source</Text>
                 <Text style={styles.settingDescription}>
-                  Fetch metadata from MusicBrainz
+                  Preferred source for album names
                 </Text>
               </View>
-              <Switch
-                value={settings.useMusicBrainzMetadata}
-                onValueChange={() => handleToggle('useMusicBrainzMetadata')}
-                trackColor={{ true: '#1DB954', false: '#374151' }}
-              />
+              <View style={styles.sourceSelector}>
+                {metadataSources.map((source) => (
+                  <Pressable
+                    key={source}
+                    style={[
+                      styles.sourceOption,
+                      settings.albumSource === source && styles.sourceOptionSelected,
+                    ]}
+                    onPress={() => handleSourceChange('albumSource', source)}
+                  >
+                    <Text
+                      style={[
+                        styles.sourceOptionText,
+                        settings.albumSource === source && styles.sourceOptionTextSelected,
+                      ]}
+                    >
+                      {sourceLabels[source]}
+                    </Text>
+                  </Pressable>
+                ))}
+              </View>
             </View>
           </View>
         </ScrollView>
@@ -208,5 +256,27 @@ const styles = StyleSheet.create({
     fontSize: 13,
     color: '#9CA3AF',
     marginTop: 4,
+  },
+  sourceSelector: {
+    flexDirection: 'row',
+    flexWrap: 'wrap',
+    gap: 6,
+  },
+  sourceOption: {
+    paddingHorizontal: 10,
+    paddingVertical: 6,
+    borderRadius: 16,
+    backgroundColor: '#374151',
+  },
+  sourceOptionSelected: {
+    backgroundColor: '#1DB954',
+  },
+  sourceOptionText: {
+    fontSize: 12,
+    color: '#9CA3AF',
+  },
+  sourceOptionTextSelected: {
+    color: '#fff',
+    fontWeight: '600',
   },
 });

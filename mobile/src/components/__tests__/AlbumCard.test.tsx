@@ -6,7 +6,7 @@
 import React from 'react';
 import { render, fireEvent, act } from '@testing-library/react-native';
 import { AlbumCard } from '../collection/AlbumCard';
-import type { DiscogsRelease, Settings } from '../../../../libs';
+import type { DiscogsRelease, Settings } from '../../libs';
 
 // Mock the libs functions
 jest.mock('scrobbler-for-discogs-libs', () => ({
@@ -18,21 +18,15 @@ const mockRelease: DiscogsRelease = {
   id: 123,
   instance_id: 456,
   date_added: '2024-01-01',
-  rating: 0,
   basic_information: {
-    id: 123,
-    master_id: 789,
-    master_url: 'https://api.discogs.com/masters/789',
     title: 'Test Album',
     year: 2024,
-    resource_url: 'https://api.discogs.com/releases/123',
     thumb: 'https://example.com/thumb.jpg',
     cover_image: 'https://example.com/cover.jpg',
     formats: [{ name: 'Vinyl', qty: '1', descriptions: ['LP'] }],
-    labels: [{ name: 'Test Label', catno: 'TL001', resource_url: '', entity_type: '', id: 1 }],
-    artists: [{ name: 'Test Artist', anv: '', join: '', role: '', tracks: '', id: 1, resource_url: '' }],
-    genres: ['Rock'],
-    styles: ['Alternative'],
+    labels: [{ name: 'Test Label', catno: 'TL001', id: 1 }],
+    artists: [{ name: 'Test Artist', id: 1 }],
+    artist_display_name: 'Test Artist',
   },
 };
 

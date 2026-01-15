@@ -6,7 +6,7 @@
 import React from 'react';
 import { render, fireEvent } from '@testing-library/react-native';
 import { CollectionScreen } from '../collection/CollectionScreen';
-import type { DiscogsRelease, Settings, QueueItem } from '../../../libs';
+import type { DiscogsRelease, Settings, QueueItem } from '../../libs';
 
 // Mock the libs functions
 jest.mock('scrobbler-for-discogs-libs', () => ({
@@ -20,21 +20,15 @@ const generateMockReleases = (count: number): DiscogsRelease[] => {
     id: i + 1,
     instance_id: i + 1000,
     date_added: '2024-01-01',
-    rating: 0,
     basic_information: {
-      id: i + 1,
-      master_id: i + 2000,
-      master_url: `https://api.discogs.com/masters/${i + 2000}`,
       title: `Album ${i + 1}`,
       year: 2020 + (i % 5),
-      resource_url: `https://api.discogs.com/releases/${i + 1}`,
       thumb: `https://example.com/thumb${i + 1}.jpg`,
       cover_image: `https://example.com/cover${i + 1}.jpg`,
       formats: [{ name: 'Vinyl', qty: '1', descriptions: ['LP'] }],
-      labels: [{ name: 'Test Label', catno: `TL${i + 1}`, resource_url: '', entity_type: '', id: 1 }],
-      artists: [{ name: `Artist ${i + 1}`, anv: '', join: '', role: '', tracks: '', id: 1, resource_url: '' }],
-      genres: ['Rock'],
-      styles: ['Alternative'],
+      labels: [{ name: 'Test Label', catno: `TL${i + 1}`, id: 1 }],
+      artists: [{ name: `Artist ${i + 1}`, id: 1 }],
+      artist_display_name: `Artist ${i + 1}`,
     },
   }));
 };
