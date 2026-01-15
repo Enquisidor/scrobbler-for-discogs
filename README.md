@@ -7,7 +7,7 @@
 
 ### Scrobbling Queue
 
-<img width="1440" height="733" alt="Screenshot 2025-11-18 at 9 22 31 PM" src="https://github.com/user-attachments/assets/f1145871-f30d-4049-bae4-2f65100ac1b1" />
+<img width="884" height="672" alt="Screenshot 2026-01-15 at 11 39 28 AM" src="https://github.com/user-attachments/assets/7dd18f3c-8764-4f35-878c-62217d8f7d3a" />
 
 ### Subtracks & Features
 
