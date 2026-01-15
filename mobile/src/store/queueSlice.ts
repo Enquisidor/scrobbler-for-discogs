@@ -1,5 +1,5 @@
 import { createSlice, PayloadAction } from '@reduxjs/toolkit';
-import type { QueueItem } from 'scrobbler-for-discogs-libs';
+import type { QueueItem } from '../../libs';
 
 export interface QueueState {
   queue: QueueItem[];

@@ -1,12 +1,12 @@
 import { useEffect, useRef } from 'react';
 import { useDispatch, useSelector } from 'react-redux';
-import type { DiscogsRelease, Settings } from 'scrobbler-for-discogs-libs';
-import { MetadataSourceType, fetchAppleMusicMetadata, fetchMusicBrainzMetadata } from 'scrobbler-for-discogs-libs';
+import type { DiscogsRelease, Settings } from '../../libs';
+import { MetadataSourceType, fetchAppleMusicMetadata, fetchMusicBrainzMetadata } from '../../libs';
 import type { RootState } from '../../store/index';
 import { updateMetadataItem } from '../../store/metadataSlice';
 
 const RECHECK_INTERVAL_MS = 30 * 24 * 60 * 60 * 1000; // 30 days
-const MAX_SESSION_QUERIES = 200; 
+const MAX_SESSION_QUERIES = 200;
 const MAX_CONCURRENCY = 5;
 const DISPATCH_INTERVAL_MS = 500;
 const RATE_LIMIT_COUNT = 18;
@@ -27,7 +27,7 @@ export function useMetadataFetcher(
     const sessionQueryCountRef = useRef(0);
     const mountedRef = useRef(true);
     const prevSettingsRef = useRef(settings);
-    
+
     const abortControllerRef = useRef<AbortController>(new AbortController());
     const dispatcherIntervalRef = useRef<number | null>(null);
     const requestTimestampsRef = useRef<number[]>([]);
@@ -44,8 +44,8 @@ export function useMetadataFetcher(
 
     useEffect(() => {
         mountedRef.current = true;
-        return () => { 
-            mountedRef.current = false; 
+        return () => {
+            mountedRef.current = false;
             abortControllerRef.current.abort();
             if (dispatcherIntervalRef.current) {
                 clearInterval(dispatcherIntervalRef.current);
@@ -76,7 +76,7 @@ export function useMetadataFetcher(
         requestTimestampsRef.current = requestTimestampsRef.current.filter(
             timestamp => now - timestamp < RATE_LIMIT_WINDOW_MS
         );
-        
+
         const recentRequests = requestTimestampsRef.current.length;
         if (recentRequests >= RATE_LIMIT_COUNT) {
             return;
@@ -96,7 +96,7 @@ export function useMetadataFetcher(
             const releaseId = queueRef.current.shift()!;
             queuedSetRef.current.delete(releaseId);
             activeSetRef.current.add(releaseId);
-            
+
             const release = collectionRef.current.find(r => r.id === releaseId);
             if (!release) {
                 activeSetRef.current.delete(releaseId);
@@ -160,7 +160,7 @@ export function useMetadataFetcher(
             console.log('[MetadataFetcher] Force fetch detected.');
             abortControllerRef.current.abort();
             abortControllerRef.current = new AbortController();
-            
+
             queueRef.current = [];
             queuedSetRef.current.clear();
             activeSetRef.current.clear();
@@ -168,7 +168,7 @@ export function useMetadataFetcher(
             sessionQueryCountRef.current = 0;
             activeCountRef.current = 0;
             requestTimestampsRef.current = [];
-            
+
             if (dispatcherIntervalRef.current) {
                 clearInterval(dispatcherIntervalRef.current);
                 dispatcherIntervalRef.current = null;
@@ -179,14 +179,14 @@ export function useMetadataFetcher(
         const currentSettings = settingsRef.current;
         const prevSettings = prevSettingsRef.current;
 
-        const settingsChanged = 
+        const settingsChanged =
             currentSettings.artistSource !== prevSettings.artistSource ||
             currentSettings.albumSource !== prevSettings.albumSource;
 
         prevSettingsRef.current = currentSettings;
 
-        const needsAny = 
-            currentSettings.artistSource !== MetadataSourceType.Discogs || 
+        const needsAny =
+            currentSettings.artistSource !== MetadataSourceType.Discogs ||
             currentSettings.albumSource !== MetadataSourceType.Discogs;
 
         if (!needsAny) {
@@ -214,13 +214,13 @@ export function useMetadataFetcher(
 
         collection.forEach(release => {
             const releaseId = release.id;
-            
+
             if (queuedSetRef.current.has(releaseId)) return;
             if (activeSetRef.current.has(releaseId)) return;
             if (!settingsChanged && processedSessionRef.current.has(releaseId)) return;
 
             const meta = metadataRef.current[releaseId];
-            
+
             const needsApple = currentSettings.artistSource === MetadataSourceType.Apple || currentSettings.albumSource === MetadataSourceType.Apple;
             const needsMB = currentSettings.artistSource === MetadataSourceType.MusicBrainz || currentSettings.albumSource === MetadataSourceType.MusicBrainz;
 
@@ -236,9 +236,9 @@ export function useMetadataFetcher(
         });
 
         if (addedCount > 0 && dispatcherIntervalRef.current === null) {
-            processQueue(); 
+            processQueue();
             dispatcherIntervalRef.current = window.setInterval(processQueue, DISPATCH_INTERVAL_MS);
         }
-    // eslint-disable-next-line react-hooks/exhaustive-deps
+        // eslint-disable-next-line react-hooks/exhaustive-deps
     }, [collection, settings]);
 }

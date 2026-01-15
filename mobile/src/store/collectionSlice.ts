@@ -1,8 +1,8 @@
 
 import { createSlice, PayloadAction } from '@reduxjs/toolkit';
-import type { DiscogsRelease } from 'scrobbler-for-discogs-libs';
-import { mergePageIntoCollection } from 'scrobbler-for-discogs-libs';
-import { formatArtistNames } from 'scrobbler-for-discogs-libs';
+import type { DiscogsRelease } from '../../libs';
+import { mergePageIntoCollection } from '../../libs';
+import { formatArtistNames } from '../../libs';
 
 export interface CollectionState {
   collection: DiscogsRelease[];
@@ -25,22 +25,22 @@ export const initialCollectionState: CollectionState = {
 // based on the raw 'artists' array data.
 const formatReleases = (releases: DiscogsRelease[]): DiscogsRelease[] => {
   return releases.map(release => {
-      // guard against missing basic_information
-      if (!release.basic_information) return release; 
-      
-      const artists = release.basic_information.artists;
-      // Apply join/format logic here using the utils
-      const artistDisplayName = artists && artists.length > 0 
-          ? formatArtistNames(artists) 
-          : 'Unknown Artist';
-      
-      return {
-          ...release,
-          basic_information: {
-              ...release.basic_information,
-              artist_display_name: artistDisplayName
-          }
-      };
+    // guard against missing basic_information
+    if (!release.basic_information) return release;
+
+    const artists = release.basic_information.artists;
+    // Apply join/format logic here using the utils
+    const artistDisplayName = artists && artists.length > 0
+      ? formatArtistNames(artists)
+      : 'Unknown Artist';
+
+    return {
+      ...release,
+      basic_information: {
+        ...release.basic_information,
+        artist_display_name: artistDisplayName
+      }
+    };
   });
 };
 

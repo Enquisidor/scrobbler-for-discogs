@@ -9,7 +9,7 @@ import {
   useWindowDimensions,
   RefreshControl,
 } from 'react-native';
-import type { DiscogsRelease, QueueItem, Settings, CombinedMetadata } from 'scrobbler-for-discogs-libs';
+import type { DiscogsRelease, QueueItem, Settings, CombinedMetadata } from '../../libs';
 import { AlbumCard } from './AlbumCard';
 
 interface CollectionScreenProps {

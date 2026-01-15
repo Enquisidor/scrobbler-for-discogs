@@ -2,9 +2,9 @@
 import React, { useState, useMemo, useCallback, useEffect } from 'react';
 import ReactDOM from 'react-dom';
 import { useDispatch, useSelector } from 'react-redux';
-import type { Credentials, Settings } from 'scrobbler-for-discogs-libs';
+import type { Credentials, Settings } from '../libs';
 import type { RootState } from '../store/index';
-import { SortOption } from 'scrobbler-for-discogs-libs';
+import { SortOption } from '../libs';
 import CollectionScreen from './collection/CollectionScreen';
 import SettingsSheet from './settings/SettingsSheet';
 import QueueButton from './queue/QueueButton';
@@ -17,7 +17,7 @@ import { useCollectionFilters } from '../hooks/useCollection/useCollectionFilter
 import { useQueue } from '../hooks/useQueue';
 import { useMetadataFetcher } from '../hooks/useMetadata/useMetadataFetcher';
 import { clearMetadata } from '../store/metadataSlice';
-import { applyMetadataCorrections } from 'scrobbler-for-discogs-libs';
+import { applyMetadataCorrections } from '../libs';
 
 interface MainScreenProps {
   credentials: Credentials;
@@ -32,34 +32,34 @@ type Notification = { message: string; type: 'success' | 'error' };
 
 const CLIENT_PAGE_SIZE = 50;
 
-export default function MainScreen({ 
-  credentials, 
+export default function MainScreen({
+  credentials,
   onCredentialsChange,
-  onDiscogsLogout, 
-  onLastfmLogout,  
+  onDiscogsLogout,
+  onLastfmLogout,
   settings,
   onSettingsChange,
 }: MainScreenProps) {
   const dispatch = useDispatch();
   const isDiscogsConnected = !!credentials.discogsAccessToken;
-  
+
   const [sortOption, setSortOption] = useState<SortOption>(SortOption.AddedNewest);
   const [isSettingsOpen, setIsSettingsOpen] = useState(false);
   const [isQueueOpen, setIsQueueOpen] = useState(false);
   const [queueView, setQueueView] = useState<'queue' | 'history'>('queue');
   const [notification, setNotification] = useState<Notification | null>(null);
-  
-  const { 
-    loadingService, 
-    error: authError, 
+
+  const {
+    loadingService,
+    error: authError,
     handleDiscogsConnect,
     handleLastfmConnect,
   } = useAuthHandler(credentials, onCredentialsChange);
-  
-  const { 
-    collection: fullCollection, 
-    isLoading: isCollectionLoading, 
-    isSyncing, 
+
+  const {
+    collection: fullCollection,
+    isLoading: isCollectionLoading,
+    isSyncing,
     error: collectionError,
     isAuthError: isDiscogsAuthError,
     forceReload: forceDiscogsReload,
@@ -73,24 +73,24 @@ export default function MainScreen({
   }, [isDiscogsAuthError, onDiscogsLogout]);
 
   const metadata = useSelector((state: RootState) => state.metadata.data);
-  
+
   const handleQueueSuccess = (message: string) => {
     if (!message.startsWith('Scrobbled')) {
-        setIsQueueOpen(false);
+      setIsQueueOpen(false);
     }
     setNotification({ message, type: 'success' });
     const timeoutId = setTimeout(() => setNotification(null), 5000);
     return () => clearTimeout(timeoutId);
   };
-  
+
   const queueHandler = useQueue(credentials, settings, handleQueueSuccess);
 
   const collectionWithCorrections = useMemo(() => {
     return applyMetadataCorrections(fullCollection, metadata, settings);
   }, [fullCollection, metadata, settings]);
-  
+
   useMetadataFetcher(fullCollection, settings);
-  
+
   const {
     searchTerm, setSearchTerm,
     albumsPerRow, setAlbumsPerRow,
@@ -120,13 +120,13 @@ export default function MainScreen({
   }, [filteredAndSortedCollection.length]);
 
   const error = authError || collectionError;
-  
+
   const handleForceReload = () => {
     if (isSyncing || isCollectionLoading) return;
     dispatch(clearMetadata());
     forceDiscogsReload();
   };
-  
+
   const handleOpenQueue = () => {
     setQueueView('queue');
     setIsQueueOpen(true);
@@ -154,13 +154,12 @@ export default function MainScreen({
           onLastfmLogout={onLastfmLogout}
           setIsSettingsOpen={setIsSettingsOpen}
         />
-        
+
         {notification && (
-          <div className={`fixed top-6 left-1/2 -translate-x-1/2 z-50 rounded-full py-2 px-6 text-sm font-semibold shadow-lg ${
-            notification.type === 'error'
-              ? 'bg-red-500/20 border border-red-500/30 text-red-300'
-              : 'bg-green-500/20 border border-green-500/30 text-green-300'
-          }`}>
+          <div className={`fixed top-6 left-1/2 -translate-x-1/2 z-50 rounded-full py-2 px-6 text-sm font-semibold shadow-lg ${notification.type === 'error'
+            ? 'bg-red-500/20 border border-red-500/30 text-red-300'
+            : 'bg-green-500/20 border border-green-500/30 text-green-300'
+            }`}>
             {notification.message}
           </div>
         )}
@@ -188,7 +187,7 @@ export default function MainScreen({
             displayedCount={displayedCollection.length}
           />
         )}
-        
+
         <CollectionScreen
           collection={displayedCollection}
           queue={queueHandler.queue}
@@ -208,13 +207,13 @@ export default function MainScreen({
         />
       </div>
 
-      <SettingsSheet 
+      <SettingsSheet
         isOpen={isSettingsOpen}
         onClose={() => setIsSettingsOpen(false)}
         settings={settings}
         onSettingsChange={onSettingsChange}
       />
-      
+
       <QueueButton
         queueCount={queueHandler.queue.length}
         selectedTrackCount={queueHandler.totalSelectedTracks}
@@ -222,37 +221,37 @@ export default function MainScreen({
       />
 
       {portalRoot && !!credentials.discogsAccessToken && ReactDOM.createPortal(
-          <QueueSheet
-            isOpen={isQueueOpen}
-            onClose={() => setIsQueueOpen(false)}
-            view={queueView}
-            queue={queueHandler.queue}
-            selectedTracks={queueHandler.selectedTracks}
-            selectedFeatures={queueHandler.selectedFeatures}
-            artistSelections={queueHandler.artistSelections}
-            scrobbleTimestamps={queueHandler.scrobbleTimestamps}
-            scrobbleTimeOffset={queueHandler.scrobbleTimeOffset}
-            onScrobbleTimeOffsetChange={queueHandler.setScrobbleTimeOffset}
-            settings={settings}
-            metadata={metadata}
-            onTrackToggle={queueHandler.handleTrackToggle}
-            onFeatureToggle={queueHandler.handleFeatureToggle}
-            onArtistToggle={queueHandler.handleArtistToggle}
-            onToggleParent={queueHandler.handleToggleParent}
-            onSelectParentAsSingle={queueHandler.handleSelectParentAsSingle}
-            onSelectAll={queueHandler.handleSelectAll}
-            onDeselectAll={queueHandler.handleDeselectAll}
-            onToggleGroup={queueHandler.handleToggleGroup}
-            onScrobble={queueHandler.handleScrobble}
-            isScrobbling={queueHandler.isScrobbling}
-            scrobbleError={queueHandler.scrobbleError}
-            totalSelectedTracks={queueHandler.totalSelectedTracks}
-            onRemoveAlbumInstanceFromQueue={queueHandler.removeAlbumInstanceFromQueue}
-            onScrobbleModeToggle={queueHandler.handleScrobbleModeToggle}
-            isLastfmConnected={!!credentials.lastfmSessionKey}
-            scrobbledHistory={queueHandler.scrobbledHistory}
-            onScrobbleSingleRelease={queueHandler.handleScrobbleSingleRelease}
-          />,
+        <QueueSheet
+          isOpen={isQueueOpen}
+          onClose={() => setIsQueueOpen(false)}
+          view={queueView}
+          queue={queueHandler.queue}
+          selectedTracks={queueHandler.selectedTracks}
+          selectedFeatures={queueHandler.selectedFeatures}
+          artistSelections={queueHandler.artistSelections}
+          scrobbleTimestamps={queueHandler.scrobbleTimestamps}
+          scrobbleTimeOffset={queueHandler.scrobbleTimeOffset}
+          onScrobbleTimeOffsetChange={queueHandler.setScrobbleTimeOffset}
+          settings={settings}
+          metadata={metadata}
+          onTrackToggle={queueHandler.handleTrackToggle}
+          onFeatureToggle={queueHandler.handleFeatureToggle}
+          onArtistToggle={queueHandler.handleArtistToggle}
+          onToggleParent={queueHandler.handleToggleParent}
+          onSelectParentAsSingle={queueHandler.handleSelectParentAsSingle}
+          onSelectAll={queueHandler.handleSelectAll}
+          onDeselectAll={queueHandler.handleDeselectAll}
+          onToggleGroup={queueHandler.handleToggleGroup}
+          onScrobble={queueHandler.handleScrobble}
+          isScrobbling={queueHandler.isScrobbling}
+          scrobbleError={queueHandler.scrobbleError}
+          totalSelectedTracks={queueHandler.totalSelectedTracks}
+          onRemoveAlbumInstanceFromQueue={queueHandler.removeAlbumInstanceFromQueue}
+          onScrobbleModeToggle={queueHandler.handleScrobbleModeToggle}
+          isLastfmConnected={!!credentials.lastfmSessionKey}
+          scrobbledHistory={queueHandler.scrobbledHistory}
+          onScrobbleSingleRelease={queueHandler.handleScrobbleSingleRelease}
+        />,
         portalRoot
       )}
     </>

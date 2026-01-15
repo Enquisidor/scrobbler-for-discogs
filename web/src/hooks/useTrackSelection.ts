@@ -1,21 +1,21 @@
 import { useMemo, useCallback, useEffect } from 'react';
 import { useDispatch, useSelector } from 'react-redux';
-import type { QueueItem, Settings } from 'scrobbler-for-discogs-libs';
+import type { QueueItem, Settings } from '../libs';
 import type { RootState } from '../store/index';
-import { 
-  autoUpdateFeatures, 
-  initializeSelection, 
-  clearSelectionForInstance, 
-  resetSelections, 
-  toggleTrack, 
-  toggleFeature, 
-  toggleArtist, 
-  toggleScrobbleMode, 
-  toggleParent, 
-  selectParentAsSingle, 
-  selectAll, 
-  deselectAll, 
-  toggleGroup 
+import {
+    autoUpdateFeatures,
+    initializeSelection,
+    clearSelectionForInstance,
+    resetSelections,
+    toggleTrack,
+    toggleFeature,
+    toggleArtist,
+    toggleScrobbleMode,
+    toggleParent,
+    selectParentAsSingle,
+    selectAll,
+    deselectAll,
+    toggleGroup
 } from '../store/trackSelectionSlice';
 
 export function useTrackSelection(queue: QueueItem[], settings: Settings) {
@@ -33,7 +33,7 @@ export function useTrackSelection(queue: QueueItem[], settings: Settings) {
     const handleClearSelectionForInstance = useCallback((instanceKey: string) => {
         dispatch(clearSelectionForInstance({ instanceKey }));
     }, [dispatch]);
-    
+
     const handleResetSelections = useCallback(() => {
         dispatch(resetSelections());
     }, [dispatch]);
@@ -41,7 +41,7 @@ export function useTrackSelection(queue: QueueItem[], settings: Settings) {
     const handleTrackToggle = useCallback((instanceKey: string, trackKey: string) => {
         dispatch(toggleTrack({ instanceKey, trackKey }));
     }, [dispatch]);
-    
+
     const handleFeatureToggle = useCallback((instanceKey: string, trackKey: string) => {
         dispatch(toggleFeature({ instanceKey, trackKey }));
     }, [dispatch]);
@@ -64,7 +64,7 @@ export function useTrackSelection(queue: QueueItem[], settings: Settings) {
     const handleSelectParentAsSingle = useCallback((instanceKey: string, parentKey: string, subTrackKeys: string[]) => {
         dispatch(selectParentAsSingle({ instanceKey, parentKey, subTrackKeys }));
     }, [dispatch]);
-    
+
     const handleSelectAll = useCallback((instanceKey: string) => {
         const item = queue.find(i => i.instanceKey === instanceKey);
         if (item) {
@@ -73,7 +73,7 @@ export function useTrackSelection(queue: QueueItem[], settings: Settings) {
     }, [queue, dispatch]);
 
     const handleDeselectAll = useCallback((instanceKey: string) => {
-         dispatch(deselectAll({ instanceKey }));
+        dispatch(deselectAll({ instanceKey }));
     }, [dispatch]);
 
     const handleToggleGroup = useCallback((instanceKey: string, groupKeys: string[], parentKeysInGroup: string[]) => {

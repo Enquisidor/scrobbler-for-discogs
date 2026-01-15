@@ -1,5 +1,5 @@
 
-import type { Credentials, DiscogsRelease, QueueItem, DiscogsArtist } from 'scrobbler-for-discogs-libs';
+import type { Credentials, DiscogsRelease, QueueItem, DiscogsArtist } from '../libs';
 
 // This file assumes CryptoJS is loaded globally from a CDN in index.html
 declare const CryptoJS: any;
@@ -81,7 +81,7 @@ function generateOauthParams(
 
   const signature = CryptoJS.enc.Base64.stringify(CryptoJS.HmacSHA1(baseString, signingKey));
   oauthParams.oauth_signature = signature;
-  
+
   return oauthParams;
 }
 
@@ -96,72 +96,72 @@ async function discogsFetch(
   accessToken: string,
   accessTokenSecret: string
 ): Promise<any> {
-    const [path, queryString] = endpoint.split('?');
-    const url = `${API_BASE}${path}`;
-    const queryParams = new URLSearchParams(queryString);
-    const paramsObject: Record<string, string> = {};
-    queryParams.forEach((value, key) => {
-        paramsObject[key] = value;
-    });
+  const [path, queryString] = endpoint.split('?');
+  const url = `${API_BASE}${path}`;
+  const queryParams = new URLSearchParams(queryString);
+  const paramsObject: Record<string, string> = {};
+  queryParams.forEach((value, key) => {
+    paramsObject[key] = value;
+  });
 
-    const oauthParams = generateOauthParams('GET', url, paramsObject, accessToken, accessTokenSecret);
-    
-    const finalParams = new URLSearchParams({ ...paramsObject, ...oauthParams });
-    const finalUrl = `${url}?${finalParams.toString()}`;
+  const oauthParams = generateOauthParams('GET', url, paramsObject, accessToken, accessTokenSecret);
 
-    let attempt = 0;
-    while (attempt < MAX_RETRIES) {
-        try {
-            // Direct fetch to Discogs API
-            const response = await fetch(finalUrl, {
-                method: 'GET',
-                mode: 'cors',
-                headers: {
-                    'User-Agent': 'VinylScrobbler/1.0',
-                    'Accept': 'application/json',
-                    'Content-Type': 'application/json'
-                },
-            });
+  const finalParams = new URLSearchParams({ ...paramsObject, ...oauthParams });
+  const finalUrl = `${url}?${finalParams.toString()}`;
 
-            if (response.ok) {
-                return await response.json();
-            }
+  let attempt = 0;
+  while (attempt < MAX_RETRIES) {
+    try {
+      // Direct fetch to Discogs API
+      const response = await fetch(finalUrl, {
+        method: 'GET',
+        mode: 'cors',
+        headers: {
+          'User-Agent': 'VinylScrobbler/1.0',
+          'Accept': 'application/json',
+          'Content-Type': 'application/json'
+        },
+      });
 
-            if (response.status === 401) {
-                throw new DiscogsAuthError('Authentication failed. Please reconnect Discogs.');
-            }
+      if (response.ok) {
+        return await response.json();
+      }
 
-            if (response.status === 429 || response.status >= 500) {
-                 const isRateLimit = response.status === 429;
-                 const errorMessage = isRateLimit ? 'Rate limit exceeded' : `Server error ${response.status}`;
-                 
-                 attempt++;
-                 if (attempt < MAX_RETRIES) {
-                     const delay = BASE_DELAY * Math.pow(2, attempt - 1); 
-                     console.warn(`[Discogs API] ${errorMessage}. Retrying in ${delay}ms... (Attempt ${attempt}/${MAX_RETRIES})`);
-                     await wait(delay);
-                     continue;
-                 } else {
-                     if (isRateLimit) throw new DiscogsRateLimitError('Discogs API rate limit exceeded after retries.');
-                 }
-            }
+      if (response.status === 401) {
+        throw new DiscogsAuthError('Authentication failed. Please reconnect Discogs.');
+      }
 
-            const errorData = await response.json().catch(() => ({ message: 'Unknown error' }));
-            throw new Error(`Discogs API Error: ${errorData.message} (Status: ${response.status})`);
+      if (response.status === 429 || response.status >= 500) {
+        const isRateLimit = response.status === 429;
+        const errorMessage = isRateLimit ? 'Rate limit exceeded' : `Server error ${response.status}`;
 
-        } catch (error) {
-            if (error instanceof DiscogsAuthError || error instanceof DiscogsRateLimitError) {
-                throw error;
-            }
-            if (attempt === MAX_RETRIES - 1) {
-                throw error;
-            }
-            attempt++;
-            const delay = BASE_DELAY * Math.pow(2, attempt - 1);
-            console.warn(`[Discogs API] Network error. Retrying in ${delay}ms... (Attempt ${attempt}/${MAX_RETRIES})`, error);
-            await wait(delay);
+        attempt++;
+        if (attempt < MAX_RETRIES) {
+          const delay = BASE_DELAY * Math.pow(2, attempt - 1);
+          console.warn(`[Discogs API] ${errorMessage}. Retrying in ${delay}ms... (Attempt ${attempt}/${MAX_RETRIES})`);
+          await wait(delay);
+          continue;
+        } else {
+          if (isRateLimit) throw new DiscogsRateLimitError('Discogs API rate limit exceeded after retries.');
         }
+      }
+
+      const errorData = await response.json().catch(() => ({ message: 'Unknown error' }));
+      throw new Error(`Discogs API Error: ${errorData.message} (Status: ${response.status})`);
+
+    } catch (error) {
+      if (error instanceof DiscogsAuthError || error instanceof DiscogsRateLimitError) {
+        throw error;
+      }
+      if (attempt === MAX_RETRIES - 1) {
+        throw error;
+      }
+      attempt++;
+      const delay = BASE_DELAY * Math.pow(2, attempt - 1);
+      console.warn(`[Discogs API] Network error. Retrying in ${delay}ms... (Attempt ${attempt}/${MAX_RETRIES})`, error);
+      await wait(delay);
     }
+  }
 }
 
 // --- OAuth Flow Functions ---
@@ -171,7 +171,7 @@ export const getRequestToken = async (): Promise<{ requestToken: string; request
   const bodyParams = { oauth_callback: window.location.href.split('?')[0] };
   const oauthParams = generateOauthParams('POST', url, bodyParams);
   const allParams = { ...bodyParams, ...oauthParams };
-  
+
   const targetUrl = `${url}?${new URLSearchParams(allParams).toString()}`;
 
   const response = await fetch(targetUrl, {
@@ -185,10 +185,10 @@ export const getRequestToken = async (): Promise<{ requestToken: string; request
   });
 
   if (!response.ok) throw new Error('Failed to get Discogs request token. (Check CORS/Network)');
-  
+
   const responseText = await response.text();
   const responseParams = new URLSearchParams(responseText);
-  
+
   const requestToken = responseParams.get('oauth_token');
   const requestTokenSecret = responseParams.get('oauth_token_secret');
 
@@ -228,10 +228,10 @@ export const getAccessToken = async (
 
   const responseText = await response.text();
   const responseParams = new URLSearchParams(responseText);
-  
+
   const accessToken = responseParams.get('oauth_token');
   const accessTokenSecret = responseParams.get('oauth_token_secret');
-  
+
   if (!accessToken || !accessTokenSecret) {
     throw new Error('Invalid access token response from Discogs.');
   }
@@ -252,20 +252,20 @@ export const fetchDiscogsPage = async (
   page: number = 1,
   sort: string = 'added',
   sortOrder: 'asc' | 'desc' = 'desc',
-  perPage: number = 50 
+  perPage: number = 50
 ): Promise<{ releases: DiscogsRelease[]; pagination: CollectionResponse['pagination'] }> => {
-    const endpoint = `/users/${username}/collection/folders/0/releases?page=${page}&per_page=${perPage}&sort=${sort}&sort_order=${sortOrder}`;
-    const data: CollectionResponse = await discogsFetch(endpoint, accessToken, accessTokenSecret);
-    
-    // Return raw data so reducer can handle formatting
-    return {
-        releases: data.releases,
-        pagination: data.pagination
-    };
+  const endpoint = `/users/${username}/collection/folders/0/releases?page=${page}&per_page=${perPage}&sort=${sort}&sort_order=${sortOrder}`;
+  const data: CollectionResponse = await discogsFetch(endpoint, accessToken, accessTokenSecret);
+
+  // Return raw data so reducer can handle formatting
+  return {
+    releases: data.releases,
+    pagination: data.pagination
+  };
 };
 
 export const fetchReleaseTracklist = async (releaseId: number, accessToken: string, accessTokenSecret: string): Promise<QueueItem> => {
-    const endpoint = `/releases/${releaseId}`;
-    const releaseData = await discogsFetch(endpoint, accessToken, accessTokenSecret);
-    return releaseData;
+  const endpoint = `/releases/${releaseId}`;
+  const releaseData = await discogsFetch(endpoint, accessToken, accessTokenSecret);
+  return releaseData;
 }

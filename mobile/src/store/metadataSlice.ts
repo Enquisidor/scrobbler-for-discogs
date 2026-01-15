@@ -1,5 +1,5 @@
 import { createSlice, PayloadAction } from '@reduxjs/toolkit';
-import type { CombinedMetadata, ServiceMetadata } from 'scrobbler-for-discogs-libs';
+import type { CombinedMetadata, ServiceMetadata } from '../../libs';
 
 export interface MetadataState {
   data: Record<number, CombinedMetadata>;
@@ -24,7 +24,7 @@ const metadataSlice = createSlice({
     updateMetadataItem(state, action: PayloadAction<{ releaseId: number; provider: 'apple' | 'musicbrainz'; metadata: ServiceMetadata }>) {
       const { releaseId, provider, metadata } = action.payload;
       if (!state.data[releaseId]) {
-          state.data[releaseId] = {};
+        state.data[releaseId] = {};
       }
       state.data[releaseId][provider] = metadata;
     },

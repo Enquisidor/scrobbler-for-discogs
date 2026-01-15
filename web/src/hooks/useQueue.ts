@@ -4,27 +4,27 @@ import { useMemo, useCallback, useEffect, useState } from 'react';
 import { useDispatch, useSelector } from 'react-redux';
 import { fetchReleaseTracklist } from '../services/discogsService';
 import { scrobbleTracks as scrobbleLastfmTracks } from '../services/lastfmService';
-import type { Credentials, DiscogsRelease, QueueItem, Settings } from 'scrobbler-for-discogs-libs';
+import type { Credentials, DiscogsRelease, QueueItem, Settings } from '../libs';
 import type { RootState } from '../store/index';
 import { useTrackSelection } from './useTrackSelection';
-import { calculateScrobbleTimestamps, prepareTracksForScrobbling } from 'scrobbler-for-discogs-libs';
-import { 
-  addToQueue, 
-  updateQueueItem, 
-  removeLastInstanceOf, 
-  removeAllInstancesOf, 
-  removeFromQueue, 
-  updateScrobbleMode, 
-  setScrobbling, 
-  setScrobbleError, 
-  scrobbleSingleSuccess, 
-  scrobbleSuccess, 
-  setTimeOffset 
+import { calculateScrobbleTimestamps, prepareTracksForScrobbling } from '../libs';
+import {
+    addToQueue,
+    updateQueueItem,
+    removeLastInstanceOf,
+    removeAllInstancesOf,
+    removeFromQueue,
+    updateScrobbleMode,
+    setScrobbling,
+    setScrobbleError,
+    scrobbleSingleSuccess,
+    scrobbleSuccess,
+    setTimeOffset
 } from '../store/queueSlice';
 
 export function useQueue(
-    credentials: Credentials, 
-    settings: Settings, 
+    credentials: Credentials,
+    settings: Settings,
     onQueueSuccess: (message: string) => void
 ) {
     const dispatch = useDispatch();
@@ -50,12 +50,12 @@ export function useQueue(
 
         try {
             const fullRelease = await fetchReleaseTracklist(release.id, credentials.discogsAccessToken, credentials.discogsAccessTokenSecret);
-            const queueItemWithTracks: QueueItem = { 
-                ...newItem, 
-                ...release, 
-                identifiers: fullRelease.identifiers, 
-                tracklist: fullRelease.tracklist, 
-                isLoading: false 
+            const queueItemWithTracks: QueueItem = {
+                ...newItem,
+                ...release,
+                identifiers: fullRelease.identifiers,
+                tracklist: fullRelease.tracklist,
+                isLoading: false
             };
             dispatch(updateQueueItem(queueItemWithTracks));
             initializeSelection(queueItemWithTracks);
@@ -93,7 +93,7 @@ export function useQueue(
         dispatch(updateScrobbleMode({ instanceKey, useTrackArtist }));
         handleTrackSelectionScrobbleModeToggle(instanceKey, useTrackArtist);
     }, [handleTrackSelectionScrobbleModeToggle, dispatch]);
-    
+
     const handleScrobbleSingleRelease = useCallback(async (instanceKey: string) => {
         dispatch(setScrobbling(true));
 
@@ -102,26 +102,26 @@ export function useQueue(
             dispatch(setScrobbleError("Could not find the release in the queue."));
             return;
         }
-        
+
         // PASS SETTINGS HERE
         const tracksToScrobble = prepareTracksForScrobbling([itemToScrobble], selectedTracks, artistSelections, metadata, scrobbleTimeOffset, settings);
 
         if (tracksToScrobble.length === 0) {
-            dispatch(setScrobbling(false)); 
+            dispatch(setScrobbling(false));
             dispatch(setScrobbleError("No tracks selected for this release."));
             return;
         }
 
         try {
             await scrobbleLastfmTracks(tracksToScrobble, credentials.lastfmSessionKey, credentials.lastfmApiKey, credentials.lastfmSecret);
-            
+
             const scrobbledKeysForItem = Array.from(selectedTracks[itemToScrobble.instanceKey] || []);
-            const scrobbledItem = { 
-                ...itemToScrobble, 
+            const scrobbledItem = {
+                ...itemToScrobble,
                 scrobbledTrackCount: tracksToScrobble.length,
                 scrobbledTrackKeys: scrobbledKeysForItem,
             };
-            
+
             dispatch(scrobbleSingleSuccess({ scrobbledItem }));
             clearSelectionForInstance(instanceKey);
             onQueueSuccess(`Scrobbled ${tracksToScrobble.length} tracks from "${itemToScrobble.basic_information.title}"!`);
@@ -130,28 +130,28 @@ export function useQueue(
             dispatch(setScrobbleError(err instanceof Error ? err.message : "Failed to scrobble tracks."));
         }
     }, [queue, selectedTracks, artistSelections, metadata, scrobbleTimeOffset, credentials, clearSelectionForInstance, onQueueSuccess, dispatch, settings]);
-    
+
     const handleScrobble = useCallback(async () => {
         dispatch(setScrobbling(true));
-        
+
         // PASS SETTINGS HERE
         const tracksToScrobble = prepareTracksForScrobbling(queue, selectedTracks, artistSelections, metadata, scrobbleTimeOffset, settings);
 
         if (tracksToScrobble.length === 0) {
-            dispatch(setScrobbling(false)); 
+            dispatch(setScrobbling(false));
             dispatch(setScrobbleError("No tracks selected to scrobble."));
             return;
         }
 
         try {
             await scrobbleLastfmTracks(tracksToScrobble, credentials.lastfmSessionKey, credentials.lastfmApiKey, credentials.lastfmSecret);
-            
+
             const itemsToMoveToHistory = queue.map(item => ({
                 ...item,
                 scrobbledTrackCount: (selectedTracks[item.instanceKey] || new Set()).size,
                 scrobbledTrackKeys: Array.from(selectedTracks[item.instanceKey] || []),
             }));
-            
+
             dispatch(scrobbleSuccess({ itemsToMove: itemsToMoveToHistory }));
             resetSelections();
             onQueueSuccess(`Successfully scrobbled ${tracksToScrobble.length} tracks!`);
@@ -163,7 +163,7 @@ export function useQueue(
     const setScrobbleTimeOffset = useCallback((offset: number) => {
         dispatch(setTimeOffset(offset));
     }, [dispatch]);
-    
+
     const [currentTime, setCurrentTime] = useState(() => Math.floor(Date.now() / 1000));
     useEffect(() => {
         const interval = setInterval(() => {

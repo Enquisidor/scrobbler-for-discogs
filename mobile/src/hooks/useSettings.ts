@@ -1,5 +1,5 @@
 import { useAsyncStorage } from './useAsyncStorage';
-import type { Settings } from 'scrobbler-for-discogs-libs';
+import type { Settings } from '../../libs';
 
 const initialSettings: Settings = {
   selectAllTracksPerRelease: true,

@@ -1,6 +1,6 @@
 import React, { useRef } from 'react';
-import type { DiscogsRelease, Settings, CombinedMetadata } from 'scrobbler-for-discogs-libs';
-import { getReleaseDisplayArtist, getReleaseDisplayTitle } from 'scrobbler-for-discogs-libs';
+import type { DiscogsRelease, Settings, CombinedMetadata } from '../../libs';
+import { getReleaseDisplayArtist, getReleaseDisplayTitle } from '../../libs';
 import { VinylIcon } from '../misc/Icons';
 
 interface AlbumCardProps {
@@ -13,17 +13,17 @@ interface AlbumCardProps {
   metadata?: CombinedMetadata;
 }
 
-const AlbumCard: React.FC<AlbumCardProps> = ({ 
-  release, 
-  onAddInstance, 
-  onRemoveLastInstance, 
-  onRemoveAllInstances, 
-  scrobbleCount, 
-  settings, 
-  metadata 
+const AlbumCard: React.FC<AlbumCardProps> = ({
+  release,
+  onAddInstance,
+  onRemoveLastInstance,
+  onRemoveAllInstances,
+  scrobbleCount,
+  settings,
+  metadata
 }) => {
   const info = release.basic_information;
-  
+
   const artistName = getReleaseDisplayArtist(release, metadata, settings);
   const title = getReleaseDisplayTitle(release, metadata, settings);
 
@@ -54,10 +54,9 @@ const AlbumCard: React.FC<AlbumCardProps> = ({
   };
 
   return (
-    <div 
-      className={`aspect-square bg-gray-800 rounded-lg overflow-hidden group relative cursor-pointer shadow-lg hover:shadow-2xl transition-all duration-300 ${
-        scrobbleCount > 0 ? 'ring-4 ring-blue-500' : 'ring-0 ring-transparent'
-      }`}
+    <div
+      className={`aspect-square bg-gray-800 rounded-lg overflow-hidden group relative cursor-pointer shadow-lg hover:shadow-2xl transition-all duration-300 ${scrobbleCount > 0 ? 'ring-4 ring-blue-500' : 'ring-0 ring-transparent'
+        }`}
       onClick={onAddInstance}
     >
       {info.cover_image && info.cover_image !== 'https://st.discogs.com/images/default-release.png' ? (
@@ -69,7 +68,7 @@ const AlbumCard: React.FC<AlbumCardProps> = ({
         />
       ) : (
         <div className="w-full h-full flex items-center justify-center bg-gray-700">
-            <VinylIcon className="w-1/2 h-1/2 text-gray-500"/>
+          <VinylIcon className="w-1/2 h-1/2 text-gray-500" />
         </div>
       )}
       <div className="absolute inset-0 bg-gradient-to-t from-black/80 via-black/40 to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-300 pointer-events-none"></div>

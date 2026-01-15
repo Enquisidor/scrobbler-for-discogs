@@ -1,5 +1,5 @@
 
-import type { LastfmTrackScrobble } from 'scrobbler-for-discogs-libs';
+import type { LastfmTrackScrobble } from '../libs';
 
 // CryptoJS is loaded globally from CDN in index.html
 declare const CryptoJS: any;
@@ -65,11 +65,11 @@ export const scrobbleTracks = async (
     params[`artist[${index}]`] = track.artist;
     params[`track[${index}]`] = track.track;
     if (track.album) {
-        params[`album[${index}]`] = track.album;
+      params[`album[${index}]`] = track.album;
     }
     params[`timestamp[${index}]`] = track.timestamp.toString();
   });
-  
+
   const data = await apiCall(params, secret, 'POST');
   return data.scrobbles;
 };

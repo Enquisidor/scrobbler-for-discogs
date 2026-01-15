@@ -1,13 +1,13 @@
 import React from 'react';
-import type { Settings, MetadataSource } from 'scrobbler-for-discogs-libs';
-import { MetadataSourceType } from 'scrobbler-for-discogs-libs';
+import type { Settings, MetadataSource } from '../../libs';
+import { MetadataSourceType } from '../../libs';
 import { CloseIcon, SettingsIcon } from '../misc/Icons';
 
 interface SettingsSheetProps {
-  isOpen: boolean;
-  onClose: () => void;
-  settings: Settings;
-  onSettingsChange: (settings: Settings) => void;
+    isOpen: boolean;
+    onClose: () => void;
+    settings: Settings;
+    onSettingsChange: (settings: Settings) => void;
 }
 
 interface SettingsToggleProps {
@@ -69,109 +69,109 @@ const SourceSelect: React.FC<SourceSelectProps> = ({ label, description, value, 
 
 
 export default function SettingsSheet({ isOpen, onClose, settings, onSettingsChange }: SettingsSheetProps) {
-  if (!isOpen) return null;
-  
-  const handleShowFeaturesChange = (checked: boolean) => {
-    onSettingsChange({
-        ...settings,
-        showFeatures: checked,
-        // If "show features" is turned off, "select features by default" should also be turned off.
-        selectFeaturesByDefault: checked ? settings.selectFeaturesByDefault : false,
-    });
-  }
+    if (!isOpen) return null;
 
-  const handleResetApp = () => {
-    if (window.confirm('Are you sure? This will log you out, clear your cached collection, and reset all settings.')) {
-        localStorage.clear();
-        sessionStorage.clear();
-        window.location.reload();
+    const handleShowFeaturesChange = (checked: boolean) => {
+        onSettingsChange({
+            ...settings,
+            showFeatures: checked,
+            // If "show features" is turned off, "select features by default" should also be turned off.
+            selectFeaturesByDefault: checked ? settings.selectFeaturesByDefault : false,
+        });
     }
-  };
 
-  return (
-    <div className="fixed inset-0 bg-black/60 z-40 flex items-end" onClick={onClose}>
-      <div 
-        className="bg-gray-900 w-full max-w-2xl mx-auto h-[90vh] rounded-t-2xl flex flex-col shadow-2xl"
-        onClick={e => e.stopPropagation()}
-      >
-        <header className="p-4 border-b border-gray-700 flex justify-between items-center flex-shrink-0">
-          <div className="flex items-center gap-3">
-            <SettingsIcon className="w-6 h-6 text-gray-300"/>
-            <h2 className="text-xl font-bold">Settings</h2>
-          </div>
-          <button onClick={onClose} className="p-2 rounded-full hover:bg-gray-700">
-            <CloseIcon className="w-6 h-6" />
-          </button>
-        </header>
+    const handleResetApp = () => {
+        if (window.confirm('Are you sure? This will log you out, clear your cached collection, and reset all settings.')) {
+            localStorage.clear();
+            sessionStorage.clear();
+            window.location.reload();
+        }
+    };
 
-        <main className="flex-grow p-4 overflow-y-auto divide-y divide-gray-700/50">
-            <div>
-                <h3 className="text-xs font-bold uppercase text-gray-500 tracking-wider mb-2">Queue Defaults</h3>
-                <SettingsToggle
-                    label="Auto-select all tracks"
-                    description="Automatically select all tracks when adding an album to the queue."
-                    checked={settings.selectAllTracksPerRelease}
-                    onChange={(checked) => onSettingsChange({ ...settings, selectAllTracksPerRelease: checked })}
-                />
-                <SettingsToggle
-                    label="Auto-select sub-tracks"
-                    description="For medley tracks, select individual parts by default."
-                    checked={settings.selectSubtracksByDefault}
-                    onChange={(checked) => onSettingsChange({ ...settings, selectSubtracksByDefault: checked })}
-                    disabled={!settings.selectAllTracksPerRelease}
-                />
-            </div>
-             <div className="pt-4">
-                <h3 className="text-xs font-bold uppercase text-gray-500 tracking-wider mb-2">Featured Artists</h3>
-                <SettingsToggle
-                    label="Show featured artists"
-                    description="Display 'feat.' artists next to track titles in the queue."
-                    checked={settings.showFeatures}
-                    onChange={handleShowFeaturesChange}
-                />
-                <SettingsToggle
-                    label="Auto-select features for scrobbling"
-                    description="Include 'feat.' artists in the scrobble data by default."
-                    checked={settings.selectFeaturesByDefault}
-                    onChange={(checked) => onSettingsChange({ ...settings, selectFeaturesByDefault: checked })}
-                    disabled={!settings.showFeatures}
-                />
-            </div>
-            <div className="pt-4">
-                <h3 className="text-xs font-bold uppercase text-gray-500 tracking-wider mb-2">Metadata Sources</h3>
-                <p className="text-xs text-gray-400 mb-3">Choose where to fetch improved metadata. External sources can provide cleaner names and fix formatting issues.</p>
-                
-                <SourceSelect
-                    label="Artist Name Source"
-                    description="Source for artist names."
-                    value={settings.artistSource}
-                    onChange={(val) => onSettingsChange({ ...settings, artistSource: val })}
-                />
-                
-                <SourceSelect
-                    label="Album Title Source"
-                    description="Source for album titles."
-                    value={settings.albumSource}
-                    onChange={(val) => onSettingsChange({ ...settings, albumSource: val })}
-                />
-            </div>
-            <div className="pt-4 mt-4 border-t border-gray-700">
-                <h3 className="text-xs font-bold uppercase text-red-500 tracking-wider mb-2">Danger Zone</h3>
-                <div className="flex justify-between items-center py-3">
-                    <div>
-                        <label className="font-semibold text-gray-200">Reset Application</label>
-                        <p className="text-sm text-gray-400">Clear all cached data, settings, and credentials.</p>
+    return (
+        <div className="fixed inset-0 bg-black/60 z-40 flex items-end" onClick={onClose}>
+            <div
+                className="bg-gray-900 w-full max-w-2xl mx-auto h-[90vh] rounded-t-2xl flex flex-col shadow-2xl"
+                onClick={e => e.stopPropagation()}
+            >
+                <header className="p-4 border-b border-gray-700 flex justify-between items-center flex-shrink-0">
+                    <div className="flex items-center gap-3">
+                        <SettingsIcon className="w-6 h-6 text-gray-300" />
+                        <h2 className="text-xl font-bold">Settings</h2>
                     </div>
-                    <button 
-                        onClick={handleResetApp}
-                        className="bg-red-600 hover:bg-red-700 text-white text-sm font-bold py-2 px-4 rounded-full transition-colors"
-                    >
-                        Reset App
+                    <button onClick={onClose} className="p-2 rounded-full hover:bg-gray-700">
+                        <CloseIcon className="w-6 h-6" />
                     </button>
-                </div>
+                </header>
+
+                <main className="flex-grow p-4 overflow-y-auto divide-y divide-gray-700/50">
+                    <div>
+                        <h3 className="text-xs font-bold uppercase text-gray-500 tracking-wider mb-2">Queue Defaults</h3>
+                        <SettingsToggle
+                            label="Auto-select all tracks"
+                            description="Automatically select all tracks when adding an album to the queue."
+                            checked={settings.selectAllTracksPerRelease}
+                            onChange={(checked) => onSettingsChange({ ...settings, selectAllTracksPerRelease: checked })}
+                        />
+                        <SettingsToggle
+                            label="Auto-select sub-tracks"
+                            description="For medley tracks, select individual parts by default."
+                            checked={settings.selectSubtracksByDefault}
+                            onChange={(checked) => onSettingsChange({ ...settings, selectSubtracksByDefault: checked })}
+                            disabled={!settings.selectAllTracksPerRelease}
+                        />
+                    </div>
+                    <div className="pt-4">
+                        <h3 className="text-xs font-bold uppercase text-gray-500 tracking-wider mb-2">Featured Artists</h3>
+                        <SettingsToggle
+                            label="Show featured artists"
+                            description="Display 'feat.' artists next to track titles in the queue."
+                            checked={settings.showFeatures}
+                            onChange={handleShowFeaturesChange}
+                        />
+                        <SettingsToggle
+                            label="Auto-select features for scrobbling"
+                            description="Include 'feat.' artists in the scrobble data by default."
+                            checked={settings.selectFeaturesByDefault}
+                            onChange={(checked) => onSettingsChange({ ...settings, selectFeaturesByDefault: checked })}
+                            disabled={!settings.showFeatures}
+                        />
+                    </div>
+                    <div className="pt-4">
+                        <h3 className="text-xs font-bold uppercase text-gray-500 tracking-wider mb-2">Metadata Sources</h3>
+                        <p className="text-xs text-gray-400 mb-3">Choose where to fetch improved metadata. External sources can provide cleaner names and fix formatting issues.</p>
+
+                        <SourceSelect
+                            label="Artist Name Source"
+                            description="Source for artist names."
+                            value={settings.artistSource}
+                            onChange={(val) => onSettingsChange({ ...settings, artistSource: val })}
+                        />
+
+                        <SourceSelect
+                            label="Album Title Source"
+                            description="Source for album titles."
+                            value={settings.albumSource}
+                            onChange={(val) => onSettingsChange({ ...settings, albumSource: val })}
+                        />
+                    </div>
+                    <div className="pt-4 mt-4 border-t border-gray-700">
+                        <h3 className="text-xs font-bold uppercase text-red-500 tracking-wider mb-2">Danger Zone</h3>
+                        <div className="flex justify-between items-center py-3">
+                            <div>
+                                <label className="font-semibold text-gray-200">Reset Application</label>
+                                <p className="text-sm text-gray-400">Clear all cached data, settings, and credentials.</p>
+                            </div>
+                            <button
+                                onClick={handleResetApp}
+                                className="bg-red-600 hover:bg-red-700 text-white text-sm font-bold py-2 px-4 rounded-full transition-colors"
+                            >
+                                Reset App
+                            </button>
+                        </div>
+                    </div>
+                </main>
             </div>
-        </main>
-      </div>
-    </div>
-  );
+        </div>
+    );
 }

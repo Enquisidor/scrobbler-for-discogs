@@ -8,7 +8,7 @@ import {
   ScrollView,
   SafeAreaView,
 } from 'react-native';
-import type { QueueItem as QueueItemType, Settings, CombinedMetadata } from 'scrobbler-for-discogs-libs';
+import type { QueueItem as QueueItemType, Settings, CombinedMetadata } from '../../libs';
 import { QueueItem } from './QueueItem';
 
 interface QueueSheetProps {
@@ -146,8 +146,8 @@ export const QueueSheet: React.FC<QueueSheetProps> = ({
                     selectedTrackKeys={new Set()}
                     settings={settings}
                     metadata={metadata[item.id]}
-                    onRemove={() => {}}
-                    onScrobble={() => {}}
+                    onRemove={() => { }}
+                    onScrobble={() => { }}
                     isScrobbling={false}
                     isHistoryItem={true}
                   />

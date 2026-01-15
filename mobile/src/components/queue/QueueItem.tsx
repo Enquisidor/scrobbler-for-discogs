@@ -7,8 +7,8 @@ import {
   StyleSheet,
   ActivityIndicator,
 } from 'react-native';
-import type { QueueItem as QueueItemType, Settings, CombinedMetadata } from 'scrobbler-for-discogs-libs';
-import { getReleaseDisplayArtist, getReleaseDisplayTitle } from 'scrobbler-for-discogs-libs';
+import type { QueueItem as QueueItemType, Settings, CombinedMetadata } from '../../libs';
+import { getReleaseDisplayArtist, getReleaseDisplayTitle } from '../../libs';
 
 interface QueueItemProps {
   item: QueueItemType;

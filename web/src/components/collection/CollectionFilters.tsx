@@ -1,7 +1,7 @@
 
 
 import React from 'react';
-import { SortOption } from 'scrobbler-for-discogs-libs';
+import { SortOption } from '../../libs';
 
 interface CollectionFiltersProps {
   searchTerm: string;
@@ -148,7 +148,7 @@ const CollectionFilters: React.FC<CollectionFiltersProps> = ({
           )}
           {totalFilteredCount > 0 && (
             <div className="text-sm text-gray-400 font-semibold">
-                Showing {displayedCount} / {totalFilteredCount}
+              Showing {displayedCount} / {totalFilteredCount}
             </div>
           )}
         </div>

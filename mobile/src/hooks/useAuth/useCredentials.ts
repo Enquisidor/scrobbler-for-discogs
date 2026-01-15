@@ -1,5 +1,5 @@
 import { useSecureStorage } from '../useSecureStorage';
-import type { Credentials } from 'scrobbler-for-discogs-libs';
+import type { Credentials } from '../../libs';
 
 const initialCredentials: Credentials = {
   discogsUsername: '',

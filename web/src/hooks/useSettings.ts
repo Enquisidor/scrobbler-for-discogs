@@ -1,6 +1,6 @@
 
 import { useLocalStorage } from './useLocalStorage';
-import type { Settings } from 'scrobbler-for-discogs-libs';
+import type { Settings } from '../libs';
 
 const initialSettings: Settings = {
     selectAllTracksPerRelease: true,
@@ -13,7 +13,7 @@ const initialSettings: Settings = {
 
 export function useSettings() {
     const [settings, setSettings] = useLocalStorage<Settings>('vinyl-scrobbler-settings', initialSettings);
-    
+
     return {
         settings,
         onSettingsChange: setSettings,
