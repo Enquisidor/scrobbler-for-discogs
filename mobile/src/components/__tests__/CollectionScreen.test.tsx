@@ -8,10 +8,49 @@ import { render, fireEvent } from '@testing-library/react-native';
 import { CollectionScreen } from '../collection/CollectionScreen';
 import type { DiscogsRelease, Settings, QueueItem } from '../../libs';
 
-// Mock the libs functions
+// Mock the libs functions with STRINGS included
 jest.mock('scrobbler-for-discogs-libs', () => ({
   getReleaseDisplayArtist: jest.fn(() => 'Test Artist'),
   getReleaseDisplayTitle: jest.fn(() => 'Test Album'),
+  STRINGS: {
+    APP_NAME: 'Vinyl Scrobbler',
+    BUTTONS: {
+      DISCOGS: 'Discogs',
+      LASTFM: 'Last.fm',
+      CONNECT_DISCOGS: 'Connect Discogs',
+      CONNECT_LASTFM: 'Connect Last.fm',
+      QUEUE: 'Queue',
+      DONE: 'Done',
+      CLEAR: 'Clear',
+      SCROBBLE_ALL: 'Scrobble All',
+      REMOVE_FROM_QUEUE: 'Remove from Queue',
+    },
+    HEADERS: {
+      VIEW_COLLECTION: 'View Your Collection',
+      SETTINGS: 'Settings',
+      QUEUE: 'Queue',
+      HISTORY: 'History',
+      READY_TO_SCROBBLE: 'Ready to Scrobble',
+      RECENTLY_SCROBBLED: 'Recently Scrobbled',
+    },
+    ERRORS: {
+      FAILED_TO_LOAD_ALBUM: 'Failed to load album details.',
+    },
+    EMPTY_STATES: {
+      NO_FILTERED_ALBUMS: 'No albums match your filters.',
+      EMPTY_COLLECTION: 'Your collection appears to be empty.',
+      EMPTY_QUEUE: 'Your queue is empty',
+      QUEUE_INSTRUCTIONS: 'Tap albums in your collection to add them to the queue for scrobbling.',
+    },
+    STATUS: {
+      LOADING_COLLECTION: 'Loading your collection...',
+      CONNECT_COLLECTION_INFO: 'To get started, connect your Discogs account. This will allow this scrobbler to load and display your record collection.',
+    },
+    BADGES: {
+      ERROR: 'Error',
+      NO_IMAGE: 'No Image',
+    },
+  },
 }));
 
 // Helper to generate mock releases
@@ -177,9 +216,10 @@ describe('CollectionScreen', () => {
 
     it('should show correct scrobble count on album cards', () => {
       const collection = generateMockReleases(3);
+      // QueueItem extends DiscogsRelease with additional queue-specific fields
       const queue: QueueItem[] = [
-        { ...collection[0].basic_information, tracklist: [] } as any,
-        { ...collection[0].basic_information, tracklist: [] } as any, // Same album twice
+        { ...collection[0], tracklist: [], instanceKey: '1-1000', isLoading: false, useTrackArtist: false } as QueueItem,
+        { ...collection[0], tracklist: [], instanceKey: '1-1001', isLoading: false, useTrackArtist: false } as QueueItem, // Same album twice
       ];
 
       const { getByTestId, getByText } = render(

@@ -11,7 +11,7 @@ import {
 } from 'react-native';
 import type { DiscogsRelease, QueueItem, Settings, CombinedMetadata } from '../../libs';
 import { AlbumCard } from './AlbumCard';
-import { STRINGS } from '../../strings';
+import { STRINGS } from '../../libs';
 
 interface CollectionScreenProps {
   collection: DiscogsRelease[];

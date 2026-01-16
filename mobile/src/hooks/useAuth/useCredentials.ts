@@ -1,4 +1,4 @@
-import { useSecureStorage } from '../useSecureStorage';
+import { useStorage } from '../useStorage';
 import type { Credentials } from '../../libs';
 
 const initialCredentials: Credentials = {
@@ -16,9 +16,10 @@ const initialCredentials: Credentials = {
  * Provides credential state and methods to update or clear credentials.
  */
 export function useCredentials() {
-  const [credentials, setCredentials, { isLoading, removeValue }] = useSecureStorage<Credentials>(
+  const [credentials, setCredentials, { isLoading, removeValue }] = useStorage<Credentials>(
     'vinyl-scrobbler-credentials',
-    initialCredentials
+    initialCredentials,
+    { secure: true }
   );
 
   const onCredentialsChange = async (newCredentials: Partial<Credentials>) => {

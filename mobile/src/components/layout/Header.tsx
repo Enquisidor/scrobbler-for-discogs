@@ -1,7 +1,7 @@
 import React from 'react';
 import { View, Text, Pressable, ActivityIndicator, StyleSheet } from 'react-native';
 import type { Credentials } from '../../libs';
-import { STRINGS } from '../../strings';
+import { STRINGS } from '../../libs';
 
 interface HeaderProps {
   isSyncing: boolean;

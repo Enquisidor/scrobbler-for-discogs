@@ -1,6 +1,5 @@
-// Storage hooks
-export { useSecureStorage } from './useSecureStorage';
-export { useAsyncStorage } from './useAsyncStorage';
+// Storage hook (unified with secure option)
+export { useStorage } from './useStorage';
 
 // Auth hooks
 export { useCredentials, useAuthHandler } from './useAuth';

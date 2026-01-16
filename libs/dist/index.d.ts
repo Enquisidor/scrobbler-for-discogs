@@ -12,3 +12,4 @@ export * from './services/appleMusic/scoring';
 export * from './services/appleMusic/strategies';
 export * from './services/musicbrainz/musicbrainzAPI';
 export * from './services/musicbrainz/musicbrainzService';
+export * from './strings';

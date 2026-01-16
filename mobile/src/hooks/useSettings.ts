@@ -1,4 +1,4 @@
-import { useAsyncStorage } from './useAsyncStorage';
+import { useStorage } from './useStorage';
 import type { Settings } from '../libs';
 
 const initialSettings: Settings = {
@@ -15,7 +15,7 @@ const initialSettings: Settings = {
  * Provides settings state and method to update settings.
  */
 export function useSettings() {
-  const [settings, setSettings, { isLoading }] = useAsyncStorage<Settings>(
+  const [settings, setSettings, { isLoading }] = useStorage<Settings>(
     'vinyl-scrobbler-settings',
     initialSettings
   );
