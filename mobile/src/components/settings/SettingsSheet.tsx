@@ -1,7 +1,7 @@
 import React from 'react';
 import { Modal, View, Text, Pressable, Switch, ScrollView, StyleSheet } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
-import type { Settings, MetadataSource } from '../../libs';
+import type { Settings, MetadataSource } from '@libs';
 
 interface SettingsSheetProps {
   isOpen: boolean;

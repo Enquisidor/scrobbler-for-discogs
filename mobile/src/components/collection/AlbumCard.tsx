@@ -7,8 +7,8 @@ import {
   StyleSheet,
   GestureResponderEvent,
 } from 'react-native';
-import type { DiscogsRelease, Settings, CombinedMetadata } from '../../libs';
-import { getReleaseDisplayArtist, getReleaseDisplayTitle } from '../../libs';
+import type { DiscogsRelease, Settings, CombinedMetadata } from '@libs';
+import { getReleaseDisplayArtist, getReleaseDisplayTitle } from '@libs';
 
 interface AlbumCardProps {
   release: DiscogsRelease;

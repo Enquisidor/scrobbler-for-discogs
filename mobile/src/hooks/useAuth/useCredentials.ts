@@ -1,5 +1,5 @@
 import { useStorage } from '../useStorage';
-import type { Credentials } from '../../libs';
+import type { Credentials } from '@libs';
 
 const initialCredentials: Credentials = {
   discogsUsername: '',

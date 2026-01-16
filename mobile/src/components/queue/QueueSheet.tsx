@@ -8,7 +8,7 @@ import {
   ScrollView,
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
-import type { QueueItem as QueueItemType, Settings, CombinedMetadata } from '../../libs';
+import type { QueueItem as QueueItemType, Settings, CombinedMetadata } from '@libs';
 import { QueueItem } from './QueueItem';
 
 interface QueueSheetProps {

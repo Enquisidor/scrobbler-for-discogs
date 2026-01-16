@@ -1,5 +1,5 @@
 
-import type { LastfmTrackScrobble } from '../libs';
+import type { LastfmTrackScrobble } from '@libs';
 import { md5 } from '../adapters/cryptoAdapter';
 
 const API_BASE = 'https://ws.audioscrobbler.com/2.0/';

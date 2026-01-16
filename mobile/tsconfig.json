@@ -4,7 +4,8 @@
     "strict": true,
     "baseUrl": ".",
     "paths": {
-      "scrobbler-for-discogs-libs": ["../libs/src/index.ts"]
+      "@libs": ["../libs/src"],
+      "@libs/*": ["../libs/src/*"]
     }
   }
 }

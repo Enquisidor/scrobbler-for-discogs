@@ -6,7 +6,7 @@
 import React from 'react';
 import { render, fireEvent, act } from '@testing-library/react-native';
 import { AlbumCard } from '../collection/AlbumCard';
-import type { DiscogsRelease, Settings } from '../../libs';
+import type { DiscogsRelease, Settings } from '@libs';
 
 // Mock the libs functions
 jest.mock('scrobbler-for-discogs-libs', () => ({

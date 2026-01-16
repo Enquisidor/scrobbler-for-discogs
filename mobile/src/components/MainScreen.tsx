@@ -3,8 +3,8 @@ import { View, StyleSheet } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { useSelector } from 'react-redux';
 import type { RootState } from '../store';
-import type { DiscogsRelease } from '../libs';
-import { applyMetadataCorrections } from '../libs';
+import type { DiscogsRelease } from '@libs';
+import { applyMetadataCorrections } from '@libs';
 
 // Hooks
 import { useCredentials } from '../hooks/useAuth/useCredentials';

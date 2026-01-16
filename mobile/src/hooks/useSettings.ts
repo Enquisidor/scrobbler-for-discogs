@@ -1,5 +1,5 @@
 import { useStorage } from './useStorage';
-import type { Settings } from '../libs';
+import type { Settings } from '@libs';
 
 const initialSettings: Settings = {
   selectAllTracksPerRelease: true,

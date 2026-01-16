@@ -9,9 +9,9 @@ import {
   useWindowDimensions,
   RefreshControl,
 } from 'react-native';
-import type { DiscogsRelease, QueueItem, Settings, CombinedMetadata } from '../../libs';
+import type { DiscogsRelease, QueueItem, Settings, CombinedMetadata } from '@libs';
 import { AlbumCard } from './AlbumCard';
-import { STRINGS } from '../../libs';
+import { STRINGS } from '@libs';
 
 interface CollectionScreenProps {
   collection: DiscogsRelease[];

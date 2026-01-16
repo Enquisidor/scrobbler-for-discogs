@@ -6,7 +6,7 @@
 import { renderHook, act, waitFor } from '@testing-library/react-native';
 import * as SecureStore from 'expo-secure-store';
 import { useCredentials } from '../useCredentials';
-import type { Credentials } from '../../../libs';
+import type { Credentials } from '@libs';
 
 // Cast mocks for TypeScript
 const mockGetItemAsync = SecureStore.getItemAsync as jest.Mock;
