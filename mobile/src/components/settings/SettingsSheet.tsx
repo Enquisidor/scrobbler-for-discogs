@@ -69,7 +69,7 @@ export const SettingsSheet: React.FC<SettingsSheetProps> = ({
               <Switch
                 value={settings.selectAllTracksPerRelease}
                 onValueChange={() => handleToggle('selectAllTracksPerRelease')}
-                trackColor={{ true: '#1DB954', false: '#374151' }}
+                trackColor={{ true: '#2563eb', false: '#374151' }}
               />
             </View>
 
@@ -83,7 +83,7 @@ export const SettingsSheet: React.FC<SettingsSheetProps> = ({
               <Switch
                 value={settings.selectSubtracksByDefault}
                 onValueChange={() => handleToggle('selectSubtracksByDefault')}
-                trackColor={{ true: '#1DB954', false: '#374151' }}
+                trackColor={{ true: '#2563eb', false: '#374151' }}
               />
             </View>
           </View>
@@ -102,7 +102,7 @@ export const SettingsSheet: React.FC<SettingsSheetProps> = ({
               <Switch
                 value={settings.showFeatures}
                 onValueChange={() => handleToggle('showFeatures')}
-                trackColor={{ true: '#1DB954', false: '#374151' }}
+                trackColor={{ true: '#2563eb', false: '#374151' }}
               />
             </View>
 
@@ -116,7 +116,7 @@ export const SettingsSheet: React.FC<SettingsSheetProps> = ({
               <Switch
                 value={settings.selectFeaturesByDefault}
                 onValueChange={() => handleToggle('selectFeaturesByDefault')}
-                trackColor={{ true: '#1DB954', false: '#374151' }}
+                trackColor={{ true: '#2563eb', false: '#374151' }}
               />
             </View>
           </View>
@@ -216,7 +216,7 @@ const styles = StyleSheet.create({
   },
   closeText: {
     fontSize: 16,
-    color: '#1DB954',
+    color: '#3b82f6', // blue-500 (matches web)
     fontWeight: '600',
   },
   content: {
@@ -269,7 +269,7 @@ const styles = StyleSheet.create({
     backgroundColor: '#374151',
   },
   sourceOptionSelected: {
-    backgroundColor: '#1DB954',
+    backgroundColor: '#2563eb', // blue-600 (matches web)
   },
   sourceOptionText: {
     fontSize: 12,

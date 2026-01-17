@@ -10,10 +10,16 @@
     "watch": "tsc --watch",
     "prepublishOnly": "npm run build"
   },
-  "keywords": ["discogs", "lastfm", "scrobbler", "vinyl"],
+  "keywords": [
+    "discogs",
+    "lastfm",
+    "scrobbler",
+    "vinyl"
+  ],
   "author": "",
   "license": "ISC",
   "devDependencies": {
+    "@babel/runtime": "^7.28.6",
     "@types/node": "^25.0.6",
     "typescript": "^5.9.3"
   }

@@ -1,4 +1,3 @@
-
 import { createSlice, PayloadAction } from '@reduxjs/toolkit';
 import type { DiscogsRelease } from '@libs';
 import { mergePageIntoCollection } from '@libs';
@@ -14,7 +13,7 @@ export interface CollectionState {
 
 export const initialCollectionState: CollectionState = {
   collection: [],
-  isLoading: true,
+  isLoading: false,
   isSyncing: false,
   error: null,
   isAuthError: false,

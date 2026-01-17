@@ -27,6 +27,7 @@ interface CollectionScreenProps {
   onRemoveAllInstancesOfAlbumFromQueue: (releaseId: number) => void;
   onConnectDiscogs: () => void;
   isConnectingDiscogs: boolean;
+  isDiscogsConnected: boolean;
   settings: Settings;
   metadata: Record<number, CombinedMetadata>;
   numColumns?: number;
@@ -47,13 +48,13 @@ export const CollectionScreen: React.FC<CollectionScreenProps> = ({
   onRemoveAllInstancesOfAlbumFromQueue,
   onConnectDiscogs,
   isConnectingDiscogs,
+  isDiscogsConnected,
   settings,
   metadata,
   numColumns = 3,
   testID,
 }) => {
   const { width } = useWindowDimensions();
-  const isDiscogsConnected = collection.length > 0 || isSyncing || isLoading;
 
   // Calculate item dimensions
   const gap = 8;

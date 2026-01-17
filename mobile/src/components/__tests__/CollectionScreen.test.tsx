@@ -96,6 +96,7 @@ describe('CollectionScreen', () => {
     onRemoveAllInstancesOfAlbumFromQueue: jest.fn(),
     onConnectDiscogs: jest.fn(),
     isConnectingDiscogs: false,
+    isDiscogsConnected: true,
     settings: mockSettings,
     metadata: {},
     testID: 'collection-screen',
@@ -106,9 +107,9 @@ describe('CollectionScreen', () => {
   });
 
   describe('Not Connected State', () => {
-    it('should show connect button when collection is empty and not loading', () => {
+    it('should show connect button when not connected to Discogs', () => {
       const { getByTestId, getByText } = render(
-        <CollectionScreen {...defaultProps} collection={[]} />
+        <CollectionScreen {...defaultProps} collection={[]} isDiscogsConnected={false} />
       );
 
       expect(getByText('View Your Collection')).toBeTruthy();
@@ -122,6 +123,7 @@ describe('CollectionScreen', () => {
         <CollectionScreen
           {...defaultProps}
           collection={[]}
+          isDiscogsConnected={false}
           onConnectDiscogs={onConnectDiscogs}
         />
       );
@@ -136,6 +138,7 @@ describe('CollectionScreen', () => {
         <CollectionScreen
           {...defaultProps}
           collection={[]}
+          isDiscogsConnected={false}
           isConnectingDiscogs={true}
         />
       );
@@ -149,7 +152,7 @@ describe('CollectionScreen', () => {
   describe('Loading State', () => {
     it('should show loading indicator when isLoading and collection is empty', () => {
       const { getByText } = render(
-        <CollectionScreen {...defaultProps} collection={[]} isLoading={true} />
+        <CollectionScreen {...defaultProps} collection={[]} isLoading={true} isDiscogsConnected={true} />
       );
 
       expect(getByText('Loading your collection...')).toBeTruthy();

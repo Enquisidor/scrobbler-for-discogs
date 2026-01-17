@@ -2,6 +2,32 @@
 // Note: jest-expo preset already handles core expo mocks via its setup.js
 // We only need to add mocks for specific modules we're testing
 
+// Enable Immer MapSet plugin for Redux slices that use Set
+const { enableMapSet } = require('immer');
+enableMapSet();
+
+// Mock expo-crypto with working implementations for testing
+jest.mock('expo-crypto', () => ({
+  CryptoDigestAlgorithm: {
+    MD5: 'MD5',
+    SHA1: 'SHA-1',
+    SHA256: 'SHA-256',
+  },
+  CryptoEncoding: {
+    HEX: 'hex',
+    BASE64: 'base64',
+  },
+  digestStringAsync: jest.fn(async (algorithm, message, options) => {
+    // Use crypto-js for actual MD5 computation in tests
+    const CryptoJS = require('crypto-js');
+    if (algorithm === 'MD5') {
+      return CryptoJS.MD5(message).toString();
+    }
+    // Fallback for other algorithms
+    return 'mock-hash';
+  }),
+}));
+
 // Mock expo-secure-store with jest.requireActual for partial mocking
 jest.mock('expo-secure-store', () => {
   const actual = jest.requireActual('expo-secure-store');

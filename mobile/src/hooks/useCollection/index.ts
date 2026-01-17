@@ -1,0 +1,1 @@
+export { useDiscogsCollection } from './useDiscogsCollection';

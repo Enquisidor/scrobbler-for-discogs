@@ -229,7 +229,7 @@ const styles = StyleSheet.create({
   scrobbleAllButton: {
     paddingVertical: 8,
     paddingHorizontal: 16,
-    backgroundColor: '#22c55e',
+    backgroundColor: '#d51007', // Last.fm red (matches web brand-lastfm)
     borderRadius: 20,
   },
   scrobbleAllButtonText: {

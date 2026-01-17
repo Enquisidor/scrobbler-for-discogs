@@ -10,6 +10,7 @@ import { applyMetadataCorrections } from '@libs';
 import { useCredentials } from '../hooks/useAuth/useCredentials';
 import { useAuthHandler } from '../hooks/useAuth/useAuthHandler';
 import { useSettings } from '../hooks/useSettings';
+import { useDiscogsCollection } from '../hooks/useCollection/useDiscogsCollection';
 
 // Components
 import { Header } from './layout/Header';
@@ -18,13 +19,6 @@ import { QueueButton } from './queue/QueueButton';
 import { QueueSheet } from './queue/QueueSheet';
 import { SettingsSheet } from './settings/SettingsSheet';
 import { Notification } from './misc/Notification';
-
-// TODO: Implement these hooks when adapting more web logic
-// import { useDiscogsCollection } from '../hooks/useCollection/useDiscogsCollection';
-// import { useCollectionFilters } from '../hooks/useCollection/useCollectionFilters';
-// import { useQueue } from '../hooks/useQueue';
-
-const CLIENT_PAGE_SIZE = 50;
 
 type NotificationData = { message: string; type: 'success' | 'error' };
 
@@ -49,6 +43,16 @@ export const MainScreen: React.FC = () => {
 
   const isDiscogsConnected = !!credentials.discogsAccessToken;
 
+  // Collection fetching
+  const {
+    collection,
+    isLoading: isCollectionLoading,
+    isSyncing,
+    error: collectionError,
+    isAuthError: isDiscogsAuthError,
+    forceReload: forceDiscogsReload,
+  } = useDiscogsCollection(credentials, isDiscogsConnected);
+
   // UI state
   const [isSettingsOpen, setIsSettingsOpen] = useState(false);
   const [isQueueOpen, setIsQueueOpen] = useState(false);
@@ -58,9 +62,6 @@ export const MainScreen: React.FC = () => {
   // Redux selectors
   const queue = useSelector((state: RootState) => state.queue.queue);
   const scrobbledHistory = useSelector((state: RootState) => state.queue.scrobbledHistory);
-  const collection = useSelector((state: RootState) => state.collection.collection);
-  const isCollectionLoading = useSelector((state: RootState) => state.collection.isLoading);
-  const isSyncing = useSelector((state: RootState) => state.collection.isSyncing);
   const metadata = useSelector((state: RootState) => state.metadata.data);
 
   // Show notification helper
@@ -102,9 +103,8 @@ export const MainScreen: React.FC = () => {
   }, []);
 
   const handleForceReload = useCallback(() => {
-    // TODO: Implement force reload
-    console.log('Force reload collection');
-  }, []);
+    forceDiscogsReload();
+  }, [forceDiscogsReload]);
 
   // Calculate queue counts
   const queueCount = queue.length;
@@ -158,6 +158,7 @@ export const MainScreen: React.FC = () => {
           onRemoveAllInstancesOfAlbumFromQueue={handleRemoveAllInstances}
           onConnectDiscogs={handleDiscogsConnect}
           isConnectingDiscogs={loadingService === 'discogs'}
+          isDiscogsConnected={isDiscogsConnected}
           settings={settings}
           metadata={metadata}
           numColumns={3}
