@@ -61,7 +61,9 @@ export const createMockRelease = (overrides: Partial<DiscogsRelease> = {}): Disc
     artist_display_name: 'Test Artist',
     artists: [{ name: 'Test Artist', id: 1, anv: '', join: '', resource_url: '' }],
     formats: [{ name: 'Vinyl', qty: '1', descriptions: ['LP', '12"'] }],
-    labels: [{ name: 'Test Label', catno: 'TL001', entity_type: '', id: 1, resource_url: '' }],
+    labels: [{
+      name: 'Test Label', catno: 'TL001', id: 1
+    }],
   },
   ...overrides,
 });
@@ -90,7 +92,7 @@ export const createMockQueueItem = (overrides: Partial<QueueItem> = {}): QueueIt
   return {
     ...release,
     instanceKey: `${release.id}-${Date.now()}-${Math.random()}`,
-    tracklist: null,
+    tracklist: undefined,
     isLoading: false,
     useTrackArtist: true,
     ...overrides,
@@ -168,7 +170,7 @@ export const createMockQueueItemWithFeatures = (overrides: Partial<QueueItem> = 
       type_: 'track',
       artists: [{ name: 'Main Artist', id: 1, anv: '', join: '', resource_url: '' }],
       extraartists: [
-        { name: 'Featured Artist', id: 2, anv: '', join: '', role: 'Featuring', tracks: '', resource_url: '' },
+        { name: 'Featured Artist', id: 2, anv: '', join: '', role: 'Featuring' },
       ],
     },
     {
@@ -183,7 +185,7 @@ export const createMockQueueItemWithFeatures = (overrides: Partial<QueueItem> = 
       duration: '3:45',
       type_: 'track',
       extraartists: [
-        { name: 'Guest Vocalist', id: 3, anv: '', join: '', role: 'feat', tracks: '', resource_url: '' },
+        { name: 'Guest Vocalist', id: 3, anv: '', join: '', role: 'feat' },
       ],
     },
   ];

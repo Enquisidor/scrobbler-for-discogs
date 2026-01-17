@@ -149,7 +149,7 @@ describe('trackSelectionSlice', () => {
 
     it('should handle item with no tracklist', () => {
       const item = createMockQueueItemWithTracks(0);
-      item.tracklist = null;
+      item.tracklist = undefined;
 
       const state = reducer(
         initialState,

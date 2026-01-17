@@ -120,8 +120,8 @@ describe('collectionSlice', () => {
     it('should format artist display names', () => {
       const release = createMockRelease();
       release.basic_information.artists = [
-        { name: 'Artist 1', id: 1, anv: '', join: ' & ', role: '', tracks: '', resource_url: '' },
-        { name: 'Artist 2', id: 2, anv: '', join: '', role: '', tracks: '', resource_url: '' },
+        { name: 'Artist 1', id: 1, anv: '', join: ' & ' },
+        { name: 'Artist 2', id: 2, anv: '', join: '' },
       ];
 
       const state = reducer(
