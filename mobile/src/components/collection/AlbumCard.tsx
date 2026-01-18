@@ -112,14 +112,14 @@ export const AlbumCard: React.FC<AlbumCardProps> = ({
 const styles = StyleSheet.create({
   container: {
     aspectRatio: 1,
-    backgroundColor: '#1f2937',
+    backgroundColor: '#181818', // gray-800
     borderRadius: 8,
     overflow: 'hidden',
     position: 'relative',
   },
   containerSelected: {
     borderWidth: 4,
-    borderColor: '#3b82f6',
+    borderColor: '#3b82f6', // blue-500
   },
   image: {
     width: '100%',
@@ -129,12 +129,12 @@ const styles = StyleSheet.create({
   placeholder: {
     width: '100%',
     height: '100%',
-    backgroundColor: '#374151',
+    backgroundColor: '#282828', // gray-700
     alignItems: 'center',
     justifyContent: 'center',
   },
   placeholderText: {
-    color: '#6b7280',
+    color: '#535353', // gray-500
     fontSize: 12,
   },
   infoOverlay: {
@@ -151,7 +151,7 @@ const styles = StyleSheet.create({
     fontWeight: 'bold',
   },
   artist: {
-    color: '#d1d5db',
+    color: '#e0e0e0', // gray-300
     fontSize: 11,
   },
   badge: {
@@ -161,11 +161,11 @@ const styles = StyleSheet.create({
     width: 24,
     height: 24,
     borderRadius: 12,
-    backgroundColor: '#2563eb',
+    backgroundColor: '#2563eb', // blue-600
     alignItems: 'center',
     justifyContent: 'center',
     borderWidth: 2,
-    borderColor: '#111827',
+    borderColor: '#121212', // gray-900
   },
   badgeText: {
     color: '#ffffff',

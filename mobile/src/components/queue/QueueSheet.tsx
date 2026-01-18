@@ -171,7 +171,7 @@ export const QueueSheet: React.FC<QueueSheetProps> = ({
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: '#111827',
+    backgroundColor: '#121212', // gray-900
   },
   header: {
     flexDirection: 'row',
@@ -180,7 +180,7 @@ const styles = StyleSheet.create({
     paddingHorizontal: 16,
     paddingVertical: 12,
     borderBottomWidth: 1,
-    borderBottomColor: '#1f2937',
+    borderBottomColor: '#282828', // gray-700
   },
   headerTitle: {
     color: '#ffffff',
@@ -192,7 +192,7 @@ const styles = StyleSheet.create({
     paddingHorizontal: 12,
   },
   closeButtonText: {
-    color: '#3b82f6',
+    color: '#3b82f6', // blue-500
     fontSize: 16,
     fontWeight: '600',
   },
@@ -202,13 +202,13 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     paddingHorizontal: 16,
     paddingVertical: 12,
-    backgroundColor: '#1f2937',
+    backgroundColor: '#181818', // gray-800
   },
   statsContainer: {
     flex: 1,
   },
   statsText: {
-    color: '#9ca3af',
+    color: '#b3b3b3', // gray-400
     fontSize: 14,
   },
   actionButtons: {
@@ -218,7 +218,7 @@ const styles = StyleSheet.create({
   clearButton: {
     paddingVertical: 8,
     paddingHorizontal: 16,
-    backgroundColor: '#374151',
+    backgroundColor: '#282828', // gray-700
     borderRadius: 20,
   },
   clearButtonText: {
@@ -229,7 +229,7 @@ const styles = StyleSheet.create({
   scrobbleAllButton: {
     paddingVertical: 8,
     paddingHorizontal: 16,
-    backgroundColor: '#d51007', // Last.fm red (matches web brand-lastfm)
+    backgroundColor: '#d51007', // brand-lastfm
     borderRadius: 20,
   },
   scrobbleAllButtonText: {
@@ -259,7 +259,7 @@ const styles = StyleSheet.create({
     marginBottom: 8,
   },
   emptyText: {
-    color: '#6b7280',
+    color: '#535353', // gray-500
     fontSize: 14,
     textAlign: 'center',
     maxWidth: 280,
@@ -268,7 +268,7 @@ const styles = StyleSheet.create({
     marginBottom: 24,
   },
   sectionTitle: {
-    color: '#9ca3af',
+    color: '#b3b3b3', // gray-400
     fontSize: 12,
     fontWeight: '600',
     textTransform: 'uppercase',

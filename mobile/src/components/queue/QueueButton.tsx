@@ -19,17 +19,17 @@ const vinylStyles = StyleSheet.create({
     width: 24,
     height: 24,
     borderRadius: 12,
-    backgroundColor: '#1f2937', // gray-800
+    backgroundColor: '#181818', // gray-800
     justifyContent: 'center',
     alignItems: 'center',
     borderWidth: 2,
-    borderColor: '#4b5563', // gray-600
+    borderColor: '#3e3e3e', // gray-600
   },
   inner: {
     width: 8,
     height: 8,
     borderRadius: 4,
-    backgroundColor: '#9ca3af', // gray-400
+    backgroundColor: '#b3b3b3', // gray-400
   },
 });
 
@@ -66,7 +66,7 @@ const styles = StyleSheet.create({
     position: 'absolute',
     bottom: 24,
     right: 24,
-    backgroundColor: '#374151', // gray-700 (matches web)
+    backgroundColor: '#282828', // gray-700
     borderRadius: 28,
     padding: 16,
     shadowColor: '#000',
@@ -79,7 +79,7 @@ const styles = StyleSheet.create({
     position: 'absolute',
     top: -4,
     left: -4,
-    backgroundColor: '#2563eb', // blue-600 (matches web)
+    backgroundColor: '#2563eb', // blue-600
     borderRadius: 12,
     minWidth: 24,
     height: 24,
@@ -87,13 +87,13 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     paddingHorizontal: 6,
     borderWidth: 2,
-    borderColor: '#111827', // gray-900
+    borderColor: '#121212', // gray-900
   },
   trackBadge: {
     position: 'absolute',
     top: -4,
     right: -4,
-    backgroundColor: '#ef4444', // red-500 (matches web)
+    backgroundColor: '#ef4444', // red-500
     borderRadius: 12,
     minWidth: 24,
     height: 24,
@@ -101,10 +101,10 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     paddingHorizontal: 6,
     borderWidth: 2,
-    borderColor: '#111827', // gray-900
+    borderColor: '#121212', // gray-900
   },
   badgeText: {
-    color: '#fff',
+    color: '#ffffff',
     fontSize: 12,
     fontWeight: 'bold',
   },

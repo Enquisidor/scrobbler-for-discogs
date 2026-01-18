@@ -69,7 +69,7 @@ export const SettingsSheet: React.FC<SettingsSheetProps> = ({
               <Switch
                 value={settings.selectAllTracksPerRelease}
                 onValueChange={() => handleToggle('selectAllTracksPerRelease')}
-                trackColor={{ true: '#2563eb', false: '#374151' }}
+                trackColor={{ true: '#2563eb', false: '#3e3e3e' }}
               />
             </View>
 
@@ -83,7 +83,7 @@ export const SettingsSheet: React.FC<SettingsSheetProps> = ({
               <Switch
                 value={settings.selectSubtracksByDefault}
                 onValueChange={() => handleToggle('selectSubtracksByDefault')}
-                trackColor={{ true: '#2563eb', false: '#374151' }}
+                trackColor={{ true: '#2563eb', false: '#3e3e3e' }}
               />
             </View>
           </View>
@@ -102,7 +102,7 @@ export const SettingsSheet: React.FC<SettingsSheetProps> = ({
               <Switch
                 value={settings.showFeatures}
                 onValueChange={() => handleToggle('showFeatures')}
-                trackColor={{ true: '#2563eb', false: '#374151' }}
+                trackColor={{ true: '#2563eb', false: '#3e3e3e' }}
               />
             </View>
 
@@ -116,7 +116,7 @@ export const SettingsSheet: React.FC<SettingsSheetProps> = ({
               <Switch
                 value={settings.selectFeaturesByDefault}
                 onValueChange={() => handleToggle('selectFeaturesByDefault')}
-                trackColor={{ true: '#2563eb', false: '#374151' }}
+                trackColor={{ true: '#2563eb', false: '#3e3e3e' }}
               />
             </View>
           </View>
@@ -194,7 +194,7 @@ export const SettingsSheet: React.FC<SettingsSheetProps> = ({
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: '#111827',
+    backgroundColor: '#121212', // gray-900
   },
   header: {
     flexDirection: 'row',
@@ -203,12 +203,12 @@ const styles = StyleSheet.create({
     paddingHorizontal: 16,
     paddingVertical: 16,
     borderBottomWidth: 1,
-    borderBottomColor: '#374151',
+    borderBottomColor: '#282828', // gray-700
   },
   title: {
     fontSize: 20,
     fontWeight: 'bold',
-    color: '#F9FAFB',
+    color: '#ffffff',
   },
   closeButton: {
     paddingVertical: 8,
@@ -216,7 +216,7 @@ const styles = StyleSheet.create({
   },
   closeText: {
     fontSize: 16,
-    color: '#3b82f6', // blue-500 (matches web)
+    color: '#3b82f6', // blue-500
     fontWeight: '600',
   },
   content: {
@@ -227,21 +227,18 @@ const styles = StyleSheet.create({
     marginBottom: 24,
   },
   sectionTitle: {
-    fontSize: 14,
-    fontWeight: '600',
-    color: '#9CA3AF',
+    fontSize: 12,
+    fontWeight: 'bold',
+    color: '#535353', // gray-500
     textTransform: 'uppercase',
     letterSpacing: 1,
-    marginBottom: 12,
+    marginBottom: 8,
   },
   settingRow: {
     flexDirection: 'row',
     justifyContent: 'space-between',
     alignItems: 'center',
-    backgroundColor: '#1F2937',
-    padding: 16,
-    borderRadius: 12,
-    marginBottom: 8,
+    paddingVertical: 12,
   },
   settingInfo: {
     flex: 1,
@@ -249,13 +246,13 @@ const styles = StyleSheet.create({
   },
   settingLabel: {
     fontSize: 16,
-    color: '#F9FAFB',
-    fontWeight: '500',
+    color: '#f0f0f0', // gray-200
+    fontWeight: '600',
   },
   settingDescription: {
-    fontSize: 13,
-    color: '#9CA3AF',
-    marginTop: 4,
+    fontSize: 14,
+    color: '#b3b3b3', // gray-400
+    marginTop: 2,
   },
   sourceSelector: {
     flexDirection: 'row',
@@ -265,18 +262,18 @@ const styles = StyleSheet.create({
   sourceOption: {
     paddingHorizontal: 10,
     paddingVertical: 6,
-    borderRadius: 16,
-    backgroundColor: '#374151',
+    borderRadius: 6,
+    backgroundColor: '#282828', // gray-700
   },
   sourceOptionSelected: {
-    backgroundColor: '#2563eb', // blue-600 (matches web)
+    backgroundColor: '#2563eb', // blue-600
   },
   sourceOptionText: {
-    fontSize: 12,
-    color: '#9CA3AF',
+    fontSize: 14,
+    color: '#ffffff',
   },
   sourceOptionTextSelected: {
-    color: '#fff',
+    color: '#ffffff',
     fontWeight: '600',
   },
 });

@@ -11,8 +11,8 @@ WebBrowser.maybeCompleteAuthSession();
 
 const LASTFM_API_KEY = '8905f463b5d9e0cd0bbda00b274f8dc0';
 const LASTFM_SECRET = 'e1e800587e275d6dc0fe3373fd4a6ab9';
-const DISCOGS_REQUEST_TOKEN_SECRET_KEY = 'discogs_request_token_secret';
-const DISCOGS_REQUEST_TOKEN_KEY = 'discogs_request_token';
+const DISCOGS_REQUEST_TOKEN_SECRET_KEY = 'pfoWbAvyoguwrrhaSyCfGBPQAPpHNJVU  ';
+const DISCOGS_REQUEST_TOKEN_KEY = 'hjbANmoLJUNBWoaCbJwcvKMruGKTduJPcErvkywc';
 
 /**
  * Mobile authentication handler using expo-auth-session.

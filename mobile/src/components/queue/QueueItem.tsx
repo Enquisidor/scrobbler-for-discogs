@@ -165,7 +165,7 @@ export const QueueItem: React.FC<QueueItemProps> = ({
 
 const styles = StyleSheet.create({
   container: {
-    backgroundColor: '#1f2937',
+    backgroundColor: '#181818', // gray-800
     borderRadius: 8,
     overflow: 'hidden',
     marginBottom: 8,
@@ -186,7 +186,7 @@ const styles = StyleSheet.create({
     width: 48,
     height: 48,
     borderRadius: 6,
-    backgroundColor: '#374151',
+    backgroundColor: '#282828', // gray-700
   },
   info: {
     flex: 1,
@@ -199,7 +199,7 @@ const styles = StyleSheet.create({
     fontWeight: 'bold',
   },
   artist: {
-    color: '#9ca3af',
+    color: '#b3b3b3', // gray-400
     fontSize: 12,
     marginTop: 2,
   },
@@ -216,13 +216,13 @@ const styles = StyleSheet.create({
     paddingHorizontal: 6,
   },
   badge: {
-    backgroundColor: '#2563eb',
+    backgroundColor: '#2563eb', // blue-600
     borderRadius: 12,
     paddingHorizontal: 8,
     paddingVertical: 2,
   },
   badgeHistory: {
-    backgroundColor: '#4b5563',
+    backgroundColor: '#3e3e3e', // gray-600
   },
   badgeText: {
     color: '#ffffff',
@@ -230,7 +230,7 @@ const styles = StyleSheet.create({
     fontWeight: 'bold',
   },
   chevron: {
-    color: '#9ca3af',
+    color: '#b3b3b3', // gray-400
     fontSize: 12,
     paddingHorizontal: 4,
   },
@@ -245,19 +245,19 @@ const styles = StyleSheet.create({
     opacity: 0.5,
   },
   scrobbleIcon: {
-    color: '#22c55e',
+    color: '#22c55e', // green-500
     fontSize: 18,
     fontWeight: 'bold',
   },
   removeIcon: {
-    color: '#9ca3af',
+    color: '#b3b3b3', // gray-400
     fontSize: 14,
   },
   expandedContent: {
     paddingHorizontal: 12,
     paddingBottom: 12,
     borderTopWidth: 1,
-    borderTopColor: '#374151',
+    borderTopColor: '#282828', // gray-700
   },
   loadingContainer: {
     alignItems: 'center',
@@ -301,17 +301,17 @@ const styles = StyleSheet.create({
     paddingVertical: 6,
   },
   trackPosition: {
-    color: '#6b7280',
+    color: '#535353', // gray-500
     fontSize: 12,
     width: 32,
   },
   trackTitle: {
     flex: 1,
-    color: '#d1d5db',
+    color: '#e0e0e0', // gray-300
     fontSize: 13,
   },
   trackDuration: {
-    color: '#6b7280',
+    color: '#535353', // gray-500
     fontSize: 12,
     marginLeft: 8,
   },

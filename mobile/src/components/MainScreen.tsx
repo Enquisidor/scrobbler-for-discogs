@@ -3,18 +3,20 @@ import { View, StyleSheet } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { useSelector } from 'react-redux';
 import type { RootState } from '../store';
-import type { DiscogsRelease } from '@libs';
-import { applyMetadataCorrections } from '@libs';
+import type { DiscogsRelease, SortOption } from '@libs';
+import { applyMetadataCorrections, SortOption as SortOptionEnum } from '@libs';
 
 // Hooks
 import { useCredentials } from '../hooks/useAuth/useCredentials';
 import { useAuthHandler } from '../hooks/useAuth/useAuthHandler';
 import { useSettings } from '../hooks/useSettings';
 import { useDiscogsCollection } from '../hooks/useCollection/useDiscogsCollection';
+import { useCollectionFilters } from '../hooks/useCollection/useCollectionFilters';
 
 // Components
 import { Header } from './layout/Header';
 import { CollectionScreen } from './collection/CollectionScreen';
+import { CollectionFilters } from './collection/CollectionFilters';
 import { QueueButton } from './queue/QueueButton';
 import { QueueSheet } from './queue/QueueSheet';
 import { SettingsSheet } from './settings/SettingsSheet';
@@ -58,6 +60,7 @@ export const MainScreen: React.FC = () => {
   const [isQueueOpen, setIsQueueOpen] = useState(false);
   const [queueView, setQueueView] = useState<'queue' | 'history'>('queue');
   const [notification, setNotification] = useState<NotificationData | null>(null);
+  const [sortOption, setSortOption] = useState<SortOption>(SortOptionEnum.AddedNewest);
 
   // Redux selectors
   const queue = useSelector((state: RootState) => state.queue.queue);
@@ -81,10 +84,24 @@ export const MainScreen: React.FC = () => {
     setIsQueueOpen(true);
   }, []);
 
-  // Placeholder for collection with metadata corrections
+  // Apply metadata corrections to collection
   const collectionWithCorrections = useMemo(() => {
     return applyMetadataCorrections(collection, metadata, settings);
   }, [collection, metadata, settings]);
+
+  // Collection filters
+  const {
+    searchTerm,
+    setSearchTerm,
+    selectedFormat,
+    setSelectedFormat,
+    selectedYear,
+    setSelectedYear,
+    filterOptions,
+    filteredAndSortedCollection,
+    handleResetFilters,
+    isFiltered,
+  } = useCollectionFilters(collectionWithCorrections, sortOption, setSortOption);
 
   // Placeholder handlers until full hooks are implemented
   const handleAddAlbumToQueue = useCallback((release: DiscogsRelease) => {
@@ -144,15 +161,33 @@ export const MainScreen: React.FC = () => {
           />
         )}
 
+        {isDiscogsConnected && collection.length > 0 && (
+          <CollectionFilters
+            searchTerm={searchTerm}
+            setSearchTerm={setSearchTerm}
+            sortOption={sortOption}
+            setSortOption={setSortOption}
+            selectedFormat={selectedFormat}
+            setSelectedFormat={setSelectedFormat}
+            selectedYear={selectedYear}
+            setSelectedYear={setSelectedYear}
+            filterOptions={filterOptions}
+            isFiltered={isFiltered}
+            handleResetFilters={handleResetFilters}
+            totalCount={collectionWithCorrections.length}
+            filteredCount={filteredAndSortedCollection.length}
+          />
+        )}
+
         <CollectionScreen
-          collection={collectionWithCorrections}
+          collection={filteredAndSortedCollection}
           queue={queue}
           isLoading={isCollectionLoading}
           isSyncing={isSyncing}
           hasMore={false} // TODO: Implement pagination
           onLoadMore={() => {}}
           onRefresh={handleForceReload}
-          isFiltered={false}
+          isFiltered={isFiltered}
           onAddAlbumToQueue={handleAddAlbumToQueue}
           onRemoveLastInstanceOfAlbumFromQueue={handleRemoveLastInstance}
           onRemoveAllInstancesOfAlbumFromQueue={handleRemoveAllInstances}
@@ -196,7 +231,7 @@ export const MainScreen: React.FC = () => {
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: '#111827', // gray-900
+    backgroundColor: '#121212', // gray-900
   },
   content: {
     flex: 1,

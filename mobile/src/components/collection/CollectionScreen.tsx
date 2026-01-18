@@ -217,7 +217,7 @@ const styles = StyleSheet.create({
     paddingVertical: 80,
   },
   emptyText: {
-    color: '#6b7280',
+    color: '#535353', // gray-500
     fontSize: 16,
     textAlign: 'center',
   },
@@ -227,7 +227,7 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
   },
   loadingText: {
-    color: '#d1d5db',
+    color: '#e0e0e0', // gray-300
     fontSize: 16,
     marginTop: 16,
   },
@@ -244,14 +244,14 @@ const styles = StyleSheet.create({
     marginBottom: 8,
   },
   notConnectedText: {
-    color: '#9ca3af',
+    color: '#b3b3b3', // gray-400
     fontSize: 16,
     textAlign: 'center',
     marginBottom: 24,
     maxWidth: 320,
   },
   connectButton: {
-    backgroundColor: '#333333',
+    backgroundColor: '#333333', // brand-discogs
     paddingVertical: 12,
     paddingHorizontal: 24,
     borderRadius: 8,
@@ -259,7 +259,7 @@ const styles = StyleSheet.create({
     alignItems: 'center',
   },
   connectButtonDisabled: {
-    backgroundColor: '#4b5563',
+    backgroundColor: '#3e3e3e', // gray-600
   },
   connectButtonText: {
     color: '#ffffff',

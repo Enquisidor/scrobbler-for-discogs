@@ -108,7 +108,7 @@ const styles = StyleSheet.create({
   title: {
     fontSize: 24,
     fontWeight: 'bold',
-    color: '#F9FAFB',
+    color: '#ffffff',
   },
   buttonsRow: {
     flexDirection: 'row',
@@ -123,15 +123,15 @@ const styles = StyleSheet.create({
     alignItems: 'center',
   },
   connectedButton: {
-    backgroundColor: '#1F2937', // gray-800
+    backgroundColor: '#181818', // gray-800
     borderWidth: 1,
-    borderColor: '#374151', // gray-700
+    borderColor: '#282828', // gray-700
   },
   disconnectedButton: {
-    backgroundColor: '#374151', // gray-700
+    backgroundColor: '#282828', // gray-700
   },
   buttonText: {
-    color: '#F9FAFB',
+    color: '#ffffff',
     fontSize: 14,
     fontWeight: '500',
   },
@@ -139,12 +139,12 @@ const styles = StyleSheet.create({
     width: 40,
     height: 40,
     borderRadius: 20,
-    backgroundColor: '#374151',
+    backgroundColor: '#282828', // gray-700
     justifyContent: 'center',
     alignItems: 'center',
   },
   iconText: {
     fontSize: 18,
-    color: '#9CA3AF',
+    color: '#b3b3b3', // gray-400
   },
 });
