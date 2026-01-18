@@ -2,6 +2,7 @@ import React from 'react';
 import { View, Text, Pressable, ActivityIndicator, StyleSheet } from 'react-native';
 import type { Credentials } from '@libs';
 import { STRINGS } from '@libs';
+import { DiscogsIcon, LastfmIcon, CheckIcon, RefreshIcon, SettingsIcon } from '../misc/Icons';
 
 interface HeaderProps {
   isSyncing: boolean;
@@ -43,7 +44,7 @@ export const Header: React.FC<HeaderProps> = ({
         <Pressable
           style={[
             styles.connectionButton,
-            isDiscogsConnected ? styles.connectedButton : styles.disconnectedButton,
+            isDiscogsConnected ? styles.connectedButton : styles.discogsButton,
           ]}
           onPress={isDiscogsConnected ? onDiscogsLogout : handleDiscogsConnect}
           disabled={!!loadingService}
@@ -51,20 +52,24 @@ export const Header: React.FC<HeaderProps> = ({
           {loadingService === 'discogs' ? (
             <ActivityIndicator size="small" color="#fff" />
           ) : (
-            <Text style={styles.buttonText}>
-              {isDiscogsConnected ? credentials.discogsUsername : STRINGS.BUTTONS.DISCOGS}
-            </Text>
+            <View style={styles.buttonContent}>
+              <DiscogsIcon size={20} fill="#fff" />
+              {isDiscogsConnected && <CheckIcon size={16} color="#4ade80" />}
+              <Text style={styles.buttonText}>
+                {isDiscogsConnected ? credentials.discogsUsername : STRINGS.BUTTONS.DISCOGS}
+              </Text>
+            </View>
           )}
         </Pressable>
 
         {/* Refresh Button */}
         {isDiscogsConnected && (
           <Pressable
-            style={styles.iconButton}
+            style={[styles.iconButton, (isSyncing || isCollectionLoading) && styles.iconButtonDisabled]}
             onPress={handleForceReload}
             disabled={isSyncing || isCollectionLoading}
           >
-            <Text style={styles.iconText}>↻</Text>
+            <RefreshIcon size={24} color="#b3b3b3" />
           </Pressable>
         )}
 
@@ -72,7 +77,7 @@ export const Header: React.FC<HeaderProps> = ({
         <Pressable
           style={[
             styles.connectionButton,
-            isLastfmConnected ? styles.connectedButton : styles.disconnectedButton,
+            isLastfmConnected ? styles.connectedButton : styles.lastfmButton,
           ]}
           onPress={isLastfmConnected ? onLastfmLogout : handleLastfmConnect}
           disabled={!!loadingService}
@@ -80,15 +85,19 @@ export const Header: React.FC<HeaderProps> = ({
           {loadingService === 'lastfm' ? (
             <ActivityIndicator size="small" color="#fff" />
           ) : (
-            <Text style={styles.buttonText}>
-              {isLastfmConnected ? credentials.lastfmUsername : STRINGS.BUTTONS.LASTFM}
-            </Text>
+            <View style={styles.buttonContent}>
+              <LastfmIcon size={20} fill="#fff" />
+              {isLastfmConnected && <CheckIcon size={16} color="#4ade80" />}
+              <Text style={styles.buttonText}>
+                {isLastfmConnected ? credentials.lastfmUsername : STRINGS.BUTTONS.LASTFM}
+              </Text>
+            </View>
           )}
         </Pressable>
 
         {/* Settings Button */}
         <Pressable style={styles.iconButton} onPress={onSettingsOpen}>
-          <Text style={styles.iconText}>⚙</Text>
+          <SettingsIcon size={24} color="#b3b3b3" />
         </Pressable>
       </View>
     </View>
@@ -123,12 +132,18 @@ const styles = StyleSheet.create({
     alignItems: 'center',
   },
   connectedButton: {
-    backgroundColor: '#181818', // gray-800
-    borderWidth: 1,
-    borderColor: '#282828', // gray-700
-  },
-  disconnectedButton: {
     backgroundColor: '#282828', // gray-700
+  },
+  discogsButton: {
+    backgroundColor: '#333333', // brand-discogs
+  },
+  lastfmButton: {
+    backgroundColor: '#d51007', // brand-lastfm
+  },
+  buttonContent: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 6,
   },
   buttonText: {
     color: '#ffffff',
@@ -143,8 +158,7 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
     alignItems: 'center',
   },
-  iconText: {
-    fontSize: 18,
-    color: '#b3b3b3', // gray-400
+  iconButtonDisabled: {
+    opacity: 0.5,
   },
 });

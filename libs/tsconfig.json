@@ -17,7 +17,6 @@
   },
   "include": [
     "src/**/*",
-    "../web/src/components/misc/Icons.tsx"
   ],
   "exclude": [
     "node_modules",
