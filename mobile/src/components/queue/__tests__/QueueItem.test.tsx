@@ -25,9 +25,22 @@ describe('QueueItem', () => {
   const defaultProps = {
     item: createMockQueueItemWithTracks(3),
     selectedTrackKeys: new Set(['0', '1', '2']),
+    selectedFeatures: new Set<string>(),
+    artistSelections: {} as Record<string, Set<string>>,
+    scrobbleTimestamps: {} as Record<string, number>,
     settings: defaultSettings,
-    onRemove: jest.fn(),
-    onScrobble: jest.fn(),
+    metadata: undefined,
+    onSelectAll: jest.fn(),
+    onDeselectAll: jest.fn(),
+    onToggleGroup: jest.fn(),
+    onToggle: jest.fn(),
+    onFeatureToggle: jest.fn(),
+    onArtistToggle: jest.fn(),
+    onToggleParent: jest.fn(),
+    onSelectParentAsSingle: jest.fn(),
+    onRemoveAlbumInstanceFromQueue: jest.fn(),
+    onScrobbleModeToggle: jest.fn(),
+    onScrobbleSingleRelease: jest.fn(),
     isScrobbling: false,
     isHistoryItem: false,
   };
@@ -122,21 +135,6 @@ describe('QueueItem', () => {
       fireEvent.press(screen.getByTestId('queue-item-header'));
       expect(screen.queryByText('Track 1')).toBeNull();
     });
-
-    it('should call onToggleExpand callback', () => {
-      const onToggleExpand = jest.fn();
-      render(
-        <QueueItem
-          {...defaultProps}
-          onToggleExpand={onToggleExpand}
-          testID="queue-item"
-        />
-      );
-
-      fireEvent.press(screen.getByTestId('queue-item-header'));
-
-      expect(onToggleExpand).toHaveBeenCalledTimes(1);
-    });
   });
 
   describe('Loading state', () => {
@@ -203,26 +201,26 @@ describe('QueueItem', () => {
   });
 
   describe('Action buttons', () => {
-    it('should call onScrobble when scrobble button is pressed', () => {
-      const onScrobble = jest.fn();
+    it('should call onScrobbleSingleRelease when scrobble button is pressed', () => {
+      const onScrobbleSingleRelease = jest.fn();
       render(
-        <QueueItem {...defaultProps} onScrobble={onScrobble} testID="queue-item" />
+        <QueueItem {...defaultProps} onScrobbleSingleRelease={onScrobbleSingleRelease} testID="queue-item" />
       );
 
       fireEvent.press(screen.getByTestId('queue-item-scrobble'));
 
-      expect(onScrobble).toHaveBeenCalledTimes(1);
+      expect(onScrobbleSingleRelease).toHaveBeenCalledTimes(1);
     });
 
-    it('should call onRemove when remove button is pressed', () => {
-      const onRemove = jest.fn();
+    it('should call onRemoveAlbumInstanceFromQueue when remove button is pressed', () => {
+      const onRemoveAlbumInstanceFromQueue = jest.fn();
       render(
-        <QueueItem {...defaultProps} onRemove={onRemove} testID="queue-item" />
+        <QueueItem {...defaultProps} onRemoveAlbumInstanceFromQueue={onRemoveAlbumInstanceFromQueue} testID="queue-item" />
       );
 
       fireEvent.press(screen.getByTestId('queue-item-remove'));
 
-      expect(onRemove).toHaveBeenCalledTimes(1);
+      expect(onRemoveAlbumInstanceFromQueue).toHaveBeenCalledTimes(1);
     });
 
     it('should disable scrobble button when isScrobbling', () => {

@@ -127,8 +127,19 @@ export const QueueSheet: React.FC<QueueSheetProps> = ({
                     testID={testID ? `${testID}-item-${item.id}` : undefined}
                     item={item}
                     selectedTrackKeys={selectedTrackKeys.get(instanceKey) || new Set()}
+                    selectedFeatures={new Set()}
+                    artistSelections={{}}
+                    scrobbleTimestamps={{}}
                     settings={settings}
                     metadata={metadata[item.id]}
+                    onSelectAll={() => {}}
+                    onDeselectAll={() => {}}
+                    onToggleGroup={() => {}}
+                    onToggle={() => {}}
+                    onFeatureToggle={() => {}}
+                    onArtistToggle={() => {}}
+                    onToggleParent={() => {}}
+                    onSelectParentAsSingle={() => {}}
                     onRemoveAlbumInstanceFromQueue={() => onRemoveItem(instanceKey)}
                     onScrobbleModeToggle={(useTrackArtist) => useTrackArtist}
                     onScrobbleSingleRelease={() => onScrobbleItem(instanceKey)}
@@ -152,11 +163,22 @@ export const QueueSheet: React.FC<QueueSheetProps> = ({
                     testID={testID ? `${testID}-history-${item.id}` : undefined}
                     item={item}
                     selectedTrackKeys={new Set()}
+                    selectedFeatures={new Set()}
+                    artistSelections={{}}
+                    scrobbleTimestamps={{}}
                     settings={settings}
                     metadata={metadata[item.id]}
-                    onRemoveAlbumInstanceFromQueue={() => { }}
+                    onSelectAll={() => {}}
+                    onDeselectAll={() => {}}
+                    onToggleGroup={() => {}}
+                    onToggle={() => {}}
+                    onFeatureToggle={() => {}}
+                    onArtistToggle={() => {}}
+                    onToggleParent={() => {}}
+                    onSelectParentAsSingle={() => {}}
+                    onRemoveAlbumInstanceFromQueue={() => {}}
                     onScrobbleModeToggle={(useTrackArtist) => useTrackArtist}
-                    onScrobbleSingleRelease={() => { }}
+                    onScrobbleSingleRelease={() => {}}
                     isScrobbling={false}
                     isHistoryItem={true}
                   />
