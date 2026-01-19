@@ -1,5 +1,5 @@
 import React, { useMemo } from 'react';
-import type { QueueItem as QueueItemType, SelectedTracks, SelectedFeatures, Settings, ArtistSelections, CombinedMetadata } from '../../types';
+import type { QueueItem as QueueItemType, SelectedTracks, SelectedFeatures, Settings, ArtistSelections, CombinedMetadata } from '@libs';
 import { CloseIcon, VinylIcon } from '../misc/Icons';
 import QueueItem from './QueueItem';
 import QueueScrobbler from './QueueScrobbler';

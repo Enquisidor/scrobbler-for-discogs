@@ -100,7 +100,7 @@ export default function SettingsSheet({ isOpen, onClose, settings, onSettingsCha
                         <h2 className="text-xl font-bold">Settings</h2>
                     </div>
                     <button onClick={onClose} className="p-2 rounded-full hover:bg-gray-700">
-                        <div classname="closeText">Done</div>
+                        <div className="closeText">Done</div>
                     </button>
                 </header>
 

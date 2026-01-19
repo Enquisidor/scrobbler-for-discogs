@@ -21,6 +21,12 @@
     "paths": {
       "@/*": [
         "./*"
+      ],
+      "@libs": [
+        "../libs/src/index"
+      ],
+      "@libs/*": [
+        "../libs/src/*"
       ]
     },
     "allowImportingTsExtensions": true,

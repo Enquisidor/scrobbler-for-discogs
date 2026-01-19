@@ -2,8 +2,7 @@
 
 import { useCallback } from 'react';
 import { useLocalStorage } from '../useLocalStorage';
-// FIX: Changed AppleMusicMetadata to ServiceMetadata, as this hook is intended to store generic service metadata.
-import type { ServiceMetadata } from '../../types';
+import type { ServiceMetadata } from '@libs';
 
 export function useAppleMusicMetadata() {
   const [metadata, setMetadata] = useLocalStorage<Record<number, ServiceMetadata>>('vinyl-scrobbler-metadata-v2', {});

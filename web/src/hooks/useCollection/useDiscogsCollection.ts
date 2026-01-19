@@ -2,7 +2,7 @@
 import { useState, useEffect, useCallback, useRef } from 'react';
 import { useDispatch, useSelector } from 'react-redux';
 import { fetchDiscogsPage, DiscogsAuthError, DiscogsRateLimitError } from '../../services/discogsService';
-import type { Credentials } from '../../types';
+import type { Credentials } from '@libs';
 import type { RootState } from '../../store/index';
 import { 
   startLoading, 

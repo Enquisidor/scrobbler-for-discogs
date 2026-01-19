@@ -2,7 +2,7 @@
 import { useState, useEffect, useRef } from 'react';
 import { getAccessToken, getDiscogsIdentity, getRequestToken } from '../../services/discogsService';
 import { getLastfmSession } from '../../services/lastfmService';
-import type { Credentials } from '../../types';
+import type { Credentials } from '@libs';
 
 const LASTFM_API_KEY = '8905f463b5d9e0cd0bbda00b274f8dc0';
 const LASTFM_SECRET = 'e1e800587e275d6dc0fe3373fd4a6ab9';

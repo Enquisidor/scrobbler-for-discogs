@@ -1,5 +1,5 @@
 import React, { useEffect, useRef, useMemo } from 'react';
-import type { DiscogsRelease, QueueItem, Settings, CombinedMetadata } from '../../types';
+import type { DiscogsRelease, QueueItem, Settings, CombinedMetadata } from '@libs';
 import AlbumCard from './AlbumCard';
 import { Loader } from '../misc/Loader';
 import { DiscogsIcon } from '../misc/Icons';

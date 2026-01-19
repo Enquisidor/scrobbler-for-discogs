@@ -1,5 +1,5 @@
 import React from 'react';
-import type { Credentials } from '../../types';
+import type { Credentials } from '@libs';
 import ConnectionButton from '../misc/ConnectionButton';
 import { Loader } from '../misc/Loader';
 import { SettingsIcon, RefreshIcon } from '../misc/Icons';

@@ -1,5 +1,5 @@
 import { useLocalStorage } from '../useLocalStorage';
-import type { Credentials } from '../../types';
+import type { Credentials } from '@libs';
 
 const initialCredentials: Credentials = {
     discogsUsername: '',
@@ -9,8 +9,6 @@ const initialCredentials: Credentials = {
     lastfmSecret: '',
     lastfmSessionKey: '',
     lastfmUsername: '',
-    spotifyClientId: '',
-    spotifyClientSecret: '',
 };
 
 export function useCredentials() {
