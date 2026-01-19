@@ -20,7 +20,11 @@
   "license": "ISC",
   "devDependencies": {
     "@babel/runtime": "^7.28.6",
+    "@types/lodash": "^4.17.23",
     "@types/node": "^25.0.6",
     "typescript": "^5.9.3"
+  },
+  "dependencies": {
+    "lodash": "^4.17.21"
   }
 }

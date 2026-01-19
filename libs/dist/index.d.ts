@@ -13,3 +13,5 @@ export * from './services/appleMusic/strategies';
 export * from './services/musicbrainz/musicbrainzAPI';
 export * from './services/musicbrainz/musicbrainzService';
 export * from './strings';
+export * from './theme';
+export * from './styles';

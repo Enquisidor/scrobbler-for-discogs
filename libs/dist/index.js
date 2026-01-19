@@ -18,3 +18,6 @@ export * from './services/musicbrainz/musicbrainzAPI';
 export * from './services/musicbrainz/musicbrainzService';
 // Strings / i18n
 export * from './strings';
+// Theme / Styling
+export * from './theme';
+export * from './styles';
