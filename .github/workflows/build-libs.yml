@@ -39,6 +39,10 @@ jobs:
       working-directory: libs
       run: npm run build
 
+    - name: Run tests
+      working-directory: libs
+      run: npx test
+
     - name: Check for build artifacts
       working-directory: libs
       run: |
