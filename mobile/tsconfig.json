@@ -3,8 +3,9 @@
   "compilerOptions": {
     "strict": true,
     "baseUrl": ".",
+    "moduleResolution": "node",
     "paths": {
-      "@libs": ["../libs/src"],
+      "@libs": ["../libs/src/index"],
       "@libs/*": ["../libs/src/*"]
     }
   },
