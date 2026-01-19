@@ -7,5 +7,6 @@
       "@libs": ["../libs/src"],
       "@libs/*": ["../libs/src/*"]
     }
-  }
+  },
+  "include": ["src/**/*", "../libs/src/**/*"]
 }

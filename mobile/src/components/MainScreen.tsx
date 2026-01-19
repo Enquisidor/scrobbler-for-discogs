@@ -61,6 +61,7 @@ export const MainScreen: React.FC = () => {
   const [queueView, setQueueView] = useState<'queue' | 'history'>('queue');
   const [notification, setNotification] = useState<NotificationData | null>(null);
   const [sortOption, setSortOption] = useState<SortOption>(SortOptionEnum.AddedNewest);
+  const [numColumns, setNumColumns] = useState(3);
 
   // Redux selectors
   const queue = useSelector((state: RootState) => state.queue.queue);
@@ -151,6 +152,9 @@ export const MainScreen: React.FC = () => {
           handleLastfmConnect={handleLastfmConnect}
           onLastfmLogout={handleLastfmLogout}
           onSettingsOpen={() => setIsSettingsOpen(true)}
+          totalCount={collectionWithCorrections.length}
+          filteredCount={filteredAndSortedCollection.length}
+          isFiltered={isFiltered}
         />
 
         {notification && (
@@ -174,8 +178,8 @@ export const MainScreen: React.FC = () => {
             filterOptions={filterOptions}
             isFiltered={isFiltered}
             handleResetFilters={handleResetFilters}
-            totalCount={collectionWithCorrections.length}
-            filteredCount={filteredAndSortedCollection.length}
+            numColumns={numColumns}
+            setNumColumns={setNumColumns}
           />
         )}
 
@@ -196,7 +200,7 @@ export const MainScreen: React.FC = () => {
           isDiscogsConnected={isDiscogsConnected}
           settings={settings}
           metadata={metadata}
-          numColumns={3}
+          numColumns={numColumns}
         />
       </View>
 

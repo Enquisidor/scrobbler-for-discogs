@@ -2,9 +2,7 @@
 node_modules/
 
 # Build outputs
-dist/
-web/dist/
-libs/dist/
+**/dist/
 
 # Expo / React Native
 mobile/.expo/

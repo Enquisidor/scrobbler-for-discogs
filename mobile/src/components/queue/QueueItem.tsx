@@ -4,41 +4,127 @@ import {
   Text,
   Image,
   Pressable,
+  TouchableOpacity,
   StyleSheet,
   ActivityIndicator,
+  Switch,
 } from 'react-native';
-import type { QueueItem as QueueItemType, Settings, CombinedMetadata } from '@libs';
-import { getReleaseDisplayArtist, getReleaseDisplayTitle } from '@libs';
+import type { QueueItem as QueueItemType, DiscogsTrack } from '@libs';
+import {
+  getReleaseDisplayArtist,
+  getReleaseDisplayTitle,
+  isVariousArtist,
+  assignGroups,
+  colors,
+  spacing,
+  fontSize,
+  fontWeight,
+  borderRadius,
+} from '@libs';
+import Track, { TrackPassthroughProps } from './Track';
+import IndeterminateCheckbox from './IndeterminateCheckbox';
 
-interface QueueItemProps {
+interface QueueItemProps extends TrackPassthroughProps {
   item: QueueItemType;
-  selectedTrackKeys: Set<string>;
-  settings: Settings;
-  metadata?: CombinedMetadata;
-  onRemove: () => void;
-  onScrobble: () => void;
-  onToggleExpand?: () => void;
+  onSelectAll: () => void;
+  onDeselectAll: () => void;
+  onToggleGroup: (groupKeys: string[], parentKeysInGroup: string[]) => void;
+  onRemoveAlbumInstanceFromQueue: () => void;
+  onScrobbleModeToggle: (useTrackArtist: boolean) => void;
+  onScrobbleSingleRelease: () => void;
   isScrobbling: boolean;
-  isHistoryItem?: boolean;
   testID?: string;
 }
 
 export const QueueItem: React.FC<QueueItemProps> = ({
   item,
-  selectedTrackKeys,
-  settings,
-  metadata,
-  onRemove,
-  onScrobble,
-  onToggleExpand,
+  onSelectAll,
+  onDeselectAll,
+  onToggleGroup,
+  onRemoveAlbumInstanceFromQueue,
+  onScrobbleModeToggle,
+  onScrobbleSingleRelease,
   isScrobbling,
-  isHistoryItem = false,
   testID,
+  ...trackPassthroughProps
 }) => {
+  const {
+    selectedTrackKeys,
+    settings,
+    metadata,
+    isHistoryItem,
+  } = trackPassthroughProps;
+
   const [isExpanded, setIsExpanded] = useState(false);
 
   const artistName = getReleaseDisplayArtist(item, metadata, settings);
   const title = getReleaseDisplayTitle(item, metadata, settings);
+
+  const isVarious = useMemo(() => {
+    if (isVariousArtist(artistName)) return true;
+    return item.basic_information.artists?.some(a => isVariousArtist(a.name)) ?? false;
+  }, [artistName, item.basic_information.artists]);
+
+  const processedTracklist = useMemo(() => {
+    if (!isHistoryItem || !item.scrobbledTrackKeys || !item.tracklist) {
+      return item.tracklist;
+    }
+
+    const scrobbledKeysSet = new Set(item.scrobbledTrackKeys);
+    const newTracklist: DiscogsTrack[] = [];
+
+    item.tracklist.forEach((track, pIndex) => {
+      const trackKey = String(pIndex);
+
+      if (track.sub_tracks && track.sub_tracks.length > 0) {
+        if (scrobbledKeysSet.has(trackKey)) {
+          newTracklist.push({ ...track, sub_tracks: [] });
+          return;
+        }
+
+        const scrobbledSubTracks = track.sub_tracks.filter((_sub, sIndex) => {
+          const subKey = `${pIndex}-${sIndex}`;
+          return scrobbledKeysSet.has(subKey);
+        });
+
+        if (scrobbledSubTracks.length > 0) {
+          newTracklist.push({ ...track, sub_tracks: scrobbledSubTracks });
+        }
+      } else if (scrobbledKeysSet.has(trackKey)) {
+        newTracklist.push(track);
+      } else if (track.type_ === 'heading') {
+        newTracklist.push(track);
+      }
+    });
+
+    return newTracklist.filter((track, index, arr) => {
+      if (track.type_ === 'heading') {
+        const nextTrack = arr[index + 1];
+        return nextTrack && nextTrack.type_ !== 'heading';
+      }
+      return true;
+    });
+  }, [isHistoryItem, item.tracklist, item.scrobbledTrackKeys]);
+
+  const trackGroups = useMemo(() => assignGroups(processedTracklist ?? null), [processedTracklist]);
+
+  const allSelectableKeys = useMemo(() => {
+    const keys: string[] = [];
+    item.tracklist?.forEach((track, pIndex) => {
+      if (track.type_ === 'heading') return;
+      if (track.sub_tracks?.length) {
+        track.sub_tracks.forEach((_, sIndex) => keys.push(`${pIndex}-${sIndex}`));
+      } else {
+        keys.push(String(pIndex));
+      }
+    });
+    return keys;
+  }, [item.tracklist]);
+
+  const numSelected = selectedTrackKeys.size;
+  const allTracksSelected = allSelectableKeys.length > 0 && numSelected === allSelectableKeys.length;
+
+  const handleToggleAll = () => allTracksSelected ? onDeselectAll() : onSelectAll();
 
   const trackCount = useMemo(() => {
     if (isHistoryItem && item.scrobbledTrackCount) {
@@ -46,11 +132,6 @@ export const QueueItem: React.FC<QueueItemProps> = ({
     }
     return selectedTrackKeys.size;
   }, [isHistoryItem, item.scrobbledTrackCount, selectedTrackKeys.size]);
-
-  const handleToggleExpand = () => {
-    setIsExpanded(!isExpanded);
-    onToggleExpand?.();
-  };
 
   return (
     <View
@@ -65,7 +146,7 @@ export const QueueItem: React.FC<QueueItemProps> = ({
       <Pressable
         testID={testID ? `${testID}-header` : undefined}
         style={styles.header}
-        onPress={handleToggleExpand}
+        onPress={() => setIsExpanded(!isExpanded)}
       >
         <Image
           source={{ uri: item.basic_information.cover_image }}
@@ -93,7 +174,7 @@ export const QueueItem: React.FC<QueueItemProps> = ({
 
           {/* Expand/Collapse indicator */}
           <Text style={[styles.chevron, isExpanded && styles.chevronExpanded]}>
-            {isExpanded ? '▲' : '▼'}
+            ▼
           </Text>
 
           {!isHistoryItem && (
@@ -101,11 +182,11 @@ export const QueueItem: React.FC<QueueItemProps> = ({
               <Pressable
                 testID={testID ? `${testID}-scrobble` : undefined}
                 style={[styles.actionButton, isScrobbling && styles.actionButtonDisabled]}
-                onPress={onScrobble}
+                onPress={onScrobbleSingleRelease}
                 disabled={isScrobbling}
               >
                 {isScrobbling ? (
-                  <ActivityIndicator size="small" color="#22c55e" />
+                  <ActivityIndicator size="small" color={colors.success} />
                 ) : (
                   <Text style={styles.scrobbleIcon}>✓</Text>
                 )}
@@ -114,7 +195,7 @@ export const QueueItem: React.FC<QueueItemProps> = ({
               <Pressable
                 testID={testID ? `${testID}-remove` : undefined}
                 style={styles.actionButton}
-                onPress={onRemove}
+                onPress={onRemoveAlbumInstanceFromQueue}
               >
                 <Text style={styles.removeIcon}>✕</Text>
               </Pressable>
@@ -128,7 +209,7 @@ export const QueueItem: React.FC<QueueItemProps> = ({
         <View style={styles.expandedContent}>
           {item.isLoading && (
             <View style={styles.loadingContainer}>
-              <ActivityIndicator size="small" color="#3b82f6" />
+              <ActivityIndicator size="small" color={colors.primary} />
             </View>
           )}
 
@@ -136,25 +217,104 @@ export const QueueItem: React.FC<QueueItemProps> = ({
             <View style={styles.errorContainer}>
               <Text style={styles.errorTitle}>Failed to load album details.</Text>
               <Text style={styles.errorMessage}>{item.error}</Text>
-              <Pressable style={styles.removeButton} onPress={onRemove}>
+              <Pressable style={styles.removeButton} onPress={onRemoveAlbumInstanceFromQueue}>
                 <Text style={styles.removeButtonText}>Remove from Queue</Text>
               </Pressable>
             </View>
           )}
 
-          {!item.error && item.tracklist && (
-            <View style={styles.tracklist}>
-              {item.tracklist
-                .filter(track => track.type_ !== 'heading')
-                .map((track, index) => (
-                  <View key={index} style={styles.trackRow}>
-                    <Text style={styles.trackPosition}>{track.position || '-'}</Text>
-                    <Text style={styles.trackTitle} numberOfLines={1}>
-                      {track.title}
+          {!item.error && processedTracklist && (
+            <View style={styles.tracklistContainer}>
+              {/* Select All / Scrobble Mode Controls */}
+              <View style={styles.controlsRow}>
+                {!isHistoryItem && (
+                  <TouchableOpacity
+                    style={styles.selectAllRow}
+                    onPress={handleToggleAll}
+                  >
+                    <IndeterminateCheckbox
+                      checked={allTracksSelected}
+                      indeterminate={false}
+                      onChange={handleToggleAll}
+                      size={16}
+                    />
+                    <Text style={styles.selectAllText}>
+                      {allTracksSelected ? 'Deselect All' : 'Select All'}
                     </Text>
-                    <Text style={styles.trackDuration}>{track.duration || ''}</Text>
+                  </TouchableOpacity>
+                )}
+
+                {!isHistoryItem && isVarious && (
+                  <View style={styles.scrobbleModeContainer}>
+                    <Text style={styles.scrobbleModeLabel}>Track Artists</Text>
+                    <Switch
+                      value={item.useTrackArtist}
+                      onValueChange={onScrobbleModeToggle}
+                      trackColor={{ false: colors.gray[600], true: colors.primary }}
+                      thumbColor={colors.white}
+                    />
                   </View>
-                ))}
+                )}
+              </View>
+
+              {/* Track Groups */}
+              {trackGroups.map((group, groupIndex) => {
+                const selectableGroupKeys = group.tracks.flatMap(({ track, originalIndex: pIndex }) => {
+                  if (track.sub_tracks?.length) return track.sub_tracks.map((_, sIndex) => `${pIndex}-${sIndex}`);
+                  if (track.type_ !== 'heading') return [String(pIndex)];
+                  return [];
+                });
+                const parentKeysInGroup = group.tracks
+                  .filter(({ track }) => track.sub_tracks && track.sub_tracks.length > 0)
+                  .map(({ originalIndex }) => String(originalIndex));
+
+                const numSelectedInGroup = selectableGroupKeys.filter(key => selectedTrackKeys.has(key)).length;
+                const allInGroupSelected = selectableGroupKeys.length > 0 && numSelectedInGroup === selectableGroupKeys.length;
+                const someInGroupSelected = numSelectedInGroup > 0 && numSelectedInGroup < selectableGroupKeys.length;
+
+                return (
+                  <View key={group.heading || groupIndex} style={styles.groupContainer}>
+                    {group.heading && (
+                      <View style={styles.groupHeader}>
+                        <Text style={styles.groupHeading}>{group.heading}</Text>
+                        {!isHistoryItem && (
+                          <TouchableOpacity
+                            style={styles.groupSelectRow}
+                            onPress={() => onToggleGroup(selectableGroupKeys, parentKeysInGroup)}
+                          >
+                            <IndeterminateCheckbox
+                              checked={allInGroupSelected}
+                              indeterminate={someInGroupSelected}
+                              onChange={() => onToggleGroup(selectableGroupKeys, parentKeysInGroup)}
+                              disabled={selectableGroupKeys.length === 0}
+                              size={16}
+                            />
+                            <Text style={styles.groupSelectText}>
+                              {allInGroupSelected ? 'Deselect Side' : 'Select Side'}
+                            </Text>
+                          </TouchableOpacity>
+                        )}
+                      </View>
+                    )}
+                    <View>
+                      {group.tracks.map(({ track, originalIndex }) =>
+                        track.type_ !== 'heading' && (
+                          <Track
+                            key={originalIndex}
+                            track={track}
+                            release={item}
+                            parentIndex={originalIndex}
+                            groupHeading={group.heading}
+                            albumArtistName={artistName}
+                            useTrackArtist={item.useTrackArtist}
+                            {...trackPassthroughProps}
+                          />
+                        )
+                      )}
+                    </View>
+                  </View>
+                );
+              })}
             </View>
           )}
         </View>
@@ -165,14 +325,14 @@ export const QueueItem: React.FC<QueueItemProps> = ({
 
 const styles = StyleSheet.create({
   container: {
-    backgroundColor: '#181818', // gray-800
-    borderRadius: 8,
+    backgroundColor: colors.gray[800],
+    borderRadius: borderRadius.lg,
     overflow: 'hidden',
-    marginBottom: 8,
+    marginBottom: spacing[2],
   },
   containerError: {
     borderWidth: 1,
-    borderColor: '#991b1b',
+    borderColor: colors.errorDark,
   },
   containerHistory: {
     opacity: 0.7,
@@ -180,140 +340,174 @@ const styles = StyleSheet.create({
   header: {
     flexDirection: 'row',
     alignItems: 'center',
-    padding: 12,
+    padding: spacing[3],
   },
   coverImage: {
     width: 48,
     height: 48,
-    borderRadius: 6,
-    backgroundColor: '#282828', // gray-700
+    borderRadius: borderRadius.md,
+    backgroundColor: colors.gray[700],
   },
   info: {
     flex: 1,
-    marginLeft: 12,
+    marginLeft: spacing[3],
     minWidth: 0,
   },
   title: {
-    color: '#ffffff',
-    fontSize: 14,
-    fontWeight: 'bold',
+    color: colors.white,
+    fontSize: fontSize.sm,
+    fontWeight: fontWeight.bold,
   },
   artist: {
-    color: '#b3b3b3', // gray-400
-    fontSize: 12,
-    marginTop: 2,
+    color: colors.gray[400],
+    fontSize: fontSize.xs,
+    marginTop: spacing[0.5],
   },
   actions: {
     flexDirection: 'row',
     alignItems: 'center',
-    gap: 8,
-    marginLeft: 8,
+    gap: spacing[2],
+    marginLeft: spacing[2],
   },
   errorBadge: {
-    color: '#f87171',
-    fontSize: 10,
-    fontWeight: 'bold',
-    paddingHorizontal: 6,
+    color: colors.error,
+    fontSize: fontSize.xs,
+    fontWeight: fontWeight.bold,
+    paddingHorizontal: spacing[1.5],
   },
   badge: {
-    backgroundColor: '#2563eb', // blue-600
-    borderRadius: 12,
-    paddingHorizontal: 8,
-    paddingVertical: 2,
+    backgroundColor: colors.primary,
+    borderRadius: borderRadius.full,
+    paddingHorizontal: spacing[2],
+    paddingVertical: spacing[0.5],
   },
   badgeHistory: {
-    backgroundColor: '#3e3e3e', // gray-600
+    backgroundColor: colors.gray[600],
   },
   badgeText: {
-    color: '#ffffff',
-    fontSize: 11,
-    fontWeight: 'bold',
+    color: colors.white,
+    fontSize: fontSize.xs,
+    fontWeight: fontWeight.bold,
   },
   chevron: {
-    color: '#b3b3b3', // gray-400
+    color: colors.gray[400],
     fontSize: 12,
-    paddingHorizontal: 4,
+    paddingHorizontal: spacing[1],
   },
   chevronExpanded: {
     transform: [{ rotate: '180deg' }],
   },
   actionButton: {
-    padding: 8,
-    borderRadius: 20,
+    padding: spacing[2],
+    borderRadius: borderRadius.full,
   },
   actionButtonDisabled: {
     opacity: 0.5,
   },
   scrobbleIcon: {
-    color: '#22c55e', // green-500
+    color: colors.success,
     fontSize: 18,
-    fontWeight: 'bold',
+    fontWeight: fontWeight.bold,
   },
   removeIcon: {
-    color: '#b3b3b3', // gray-400
+    color: colors.gray[400],
     fontSize: 14,
   },
   expandedContent: {
-    paddingHorizontal: 12,
-    paddingBottom: 12,
+    paddingHorizontal: spacing[3],
+    paddingBottom: spacing[3],
     borderTopWidth: 1,
-    borderTopColor: '#282828', // gray-700
+    borderTopColor: colors.gray[700],
   },
   loadingContainer: {
     alignItems: 'center',
-    paddingVertical: 16,
+    paddingVertical: spacing[4],
   },
   errorContainer: {
     backgroundColor: 'rgba(185, 28, 28, 0.2)',
-    borderRadius: 8,
-    padding: 16,
+    borderRadius: borderRadius.lg,
+    padding: spacing[4],
     alignItems: 'center',
   },
   errorTitle: {
-    color: '#f87171',
-    fontSize: 14,
-    fontWeight: '600',
-    marginBottom: 4,
+    color: colors.error,
+    fontSize: fontSize.sm,
+    fontWeight: fontWeight.semibold,
+    marginBottom: spacing[1],
   },
   errorMessage: {
     color: '#fca5a5',
-    fontSize: 12,
-    marginBottom: 12,
+    fontSize: fontSize.xs,
+    marginBottom: spacing[3],
     textAlign: 'center',
   },
   removeButton: {
-    backgroundColor: '#b91c1c',
-    paddingHorizontal: 16,
-    paddingVertical: 8,
-    borderRadius: 20,
+    backgroundColor: colors.errorDark,
+    paddingHorizontal: spacing[4],
+    paddingVertical: spacing[2],
+    borderRadius: borderRadius.full,
   },
   removeButtonText: {
-    color: '#ffffff',
-    fontSize: 12,
-    fontWeight: 'bold',
+    color: colors.white,
+    fontSize: fontSize.xs,
+    fontWeight: fontWeight.bold,
   },
-  tracklist: {
-    marginTop: 8,
+  tracklistContainer: {
+    marginTop: spacing[2],
   },
-  trackRow: {
+  controlsRow: {
     flexDirection: 'row',
     alignItems: 'center',
-    paddingVertical: 6,
+    justifyContent: 'space-between',
+    paddingHorizontal: spacing[2],
+    paddingVertical: spacing[1],
+    marginBottom: spacing[2],
   },
-  trackPosition: {
-    color: '#535353', // gray-500
-    fontSize: 12,
-    width: 32,
+  selectAllRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: spacing[2],
   },
-  trackTitle: {
-    flex: 1,
-    color: '#e0e0e0', // gray-300
-    fontSize: 13,
+  selectAllText: {
+    fontSize: fontSize.xs,
+    color: colors.primary,
   },
-  trackDuration: {
-    color: '#535353', // gray-500
-    fontSize: 12,
-    marginLeft: 8,
+  scrobbleModeContainer: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: spacing[2],
+    backgroundColor: 'rgba(0, 0, 0, 0.3)',
+    paddingHorizontal: spacing[3],
+    paddingVertical: spacing[1],
+    borderRadius: borderRadius.full,
+  },
+  scrobbleModeLabel: {
+    fontSize: fontSize.xs,
+    color: colors.gray[300],
+  },
+  groupContainer: {
+    marginTop: spacing[2],
+  },
+  groupHeader: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    paddingHorizontal: spacing[2],
+    marginBottom: spacing[1],
+  },
+  groupHeading: {
+    fontSize: fontSize.sm,
+    fontWeight: fontWeight.bold,
+    color: colors.gray[400],
+  },
+  groupSelectRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: spacing[2],
+  },
+  groupSelectText: {
+    fontSize: fontSize.xs,
+    color: colors.primary,
   },
 });
 

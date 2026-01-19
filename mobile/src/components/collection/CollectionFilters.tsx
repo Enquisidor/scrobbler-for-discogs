@@ -16,10 +16,10 @@ import {
   Pressable,
   Modal,
   FlatList,
-  SafeAreaView,
 } from 'react-native';
+import { SafeAreaView } from 'react-native-safe-area-context';
 import type { SortOption } from '@libs';
-import { SortOption as SortOptionEnum, STRINGS } from '@libs';
+import { SortOption as SortOptionEnum, colors, filterStyles, pickerModalStyles } from '@libs';
 import type { FilterOptions } from '../../hooks/useCollection/useCollectionFilters';
 
 interface CollectionFiltersProps {
@@ -34,8 +34,8 @@ interface CollectionFiltersProps {
   filterOptions: FilterOptions;
   isFiltered: boolean;
   handleResetFilters: () => void;
-  totalCount: number;
-  filteredCount: number;
+  numColumns: number;
+  setNumColumns: (value: number) => void;
 }
 
 // Sort option labels for display
@@ -56,7 +56,7 @@ const SORT_OPTIONS: { value: SortOption; label: string }[] = [
   { value: SortOptionEnum.CatNoZA, label: 'Catalog# Z-A' },
 ];
 
-type PickerModalType = 'sort' | 'format' | 'year' | null;
+type PickerModalType = 'sort' | 'format' | 'year' | 'columns' | null;
 
 interface PickerOption {
   value: string;
@@ -75,8 +75,8 @@ export const CollectionFilters: React.FC<CollectionFiltersProps> = ({
   filterOptions,
   isFiltered,
   handleResetFilters,
-  totalCount,
-  filteredCount,
+  numColumns,
+  setNumColumns,
 }) => {
   const [activeModal, setActiveModal] = useState<PickerModalType>(null);
 
@@ -127,6 +127,18 @@ export const CollectionFilters: React.FC<CollectionFiltersProps> = ({
     setActiveModal(null);
   };
 
+  const handleSelectColumns = (value: string) => {
+    setNumColumns(parseInt(value, 10));
+    setActiveModal(null);
+  };
+
+  // Column options
+  const columnOptions: PickerOption[] = [
+    { value: '2', label: '2 per row' },
+    { value: '3', label: '3 per row' },
+    { value: '4', label: '4 per row' },
+  ];
+
   const renderPickerModal = () => {
     if (!activeModal) return null;
 
@@ -153,6 +165,12 @@ export const CollectionFilters: React.FC<CollectionFiltersProps> = ({
         options = yearOptions;
         selectedValue = selectedYear;
         onSelect = handleSelectYear;
+        break;
+      case 'columns':
+        title = 'Albums per Row';
+        options = columnOptions;
+        selectedValue = numColumns.toString();
+        onSelect = handleSelectColumns;
         break;
       default:
         return null;
@@ -204,11 +222,11 @@ export const CollectionFilters: React.FC<CollectionFiltersProps> = ({
 
   return (
     <View style={styles.container}>
-      {/* Search input */}
+      {/* Row 1: Search input */}
       <TextInput
         style={styles.searchInput}
         placeholder="Search collection..."
-        placeholderTextColor="#6b7280"
+        placeholderTextColor={colors.gray[500]}
         value={searchTerm}
         onChangeText={setSearchTerm}
         returnKeyType="search"
@@ -217,7 +235,7 @@ export const CollectionFilters: React.FC<CollectionFiltersProps> = ({
         autoCorrect={false}
       />
 
-      {/* Filter row */}
+      {/* Row 2: Sort + Format + Year filters */}
       <View style={styles.filterRow}>
         {/* Sort button */}
         <Pressable style={styles.filterButton} onPress={() => setActiveModal('sort')}>
@@ -244,18 +262,19 @@ export const CollectionFilters: React.FC<CollectionFiltersProps> = ({
         </Pressable>
       </View>
 
-      {/* Status row */}
+      {/* Row 3: Columns selector + Reset */}
       <View style={styles.statusRow}>
+        {/* Columns selector */}
+        <Pressable style={styles.columnsButton} onPress={() => setActiveModal('columns')}>
+          <Text style={styles.columnsButtonText}>{numColumns}</Text>
+          <Text style={styles.filterArrow}>▼</Text>
+        </Pressable>
+
         {isFiltered && (
           <Pressable style={styles.resetButton} onPress={handleResetFilters}>
             <Text style={styles.resetButtonText}>Reset</Text>
           </Pressable>
         )}
-        <Text style={styles.countText}>
-          {isFiltered
-            ? `${filteredCount} / ${totalCount} albums`
-            : `${totalCount} albums`}
-        </Text>
       </View>
 
       {renderPickerModal()}
@@ -264,121 +283,28 @@ export const CollectionFilters: React.FC<CollectionFiltersProps> = ({
 };
 
 const styles = StyleSheet.create({
-  container: {
-    backgroundColor: 'rgba(18, 18, 18, 0.95)', // gray-900 with opacity
-    paddingHorizontal: 16,
-    paddingVertical: 12,
-    gap: 10,
-  },
-  searchInput: {
-    backgroundColor: '#181818', // gray-800
-    borderRadius: 20,
-    paddingHorizontal: 16,
-    paddingVertical: 10,
-    fontSize: 16,
-    color: '#ffffff',
-    borderWidth: 1,
-    borderColor: '#282828', // gray-700
-  },
-  filterRow: {
-    flexDirection: 'row',
-    gap: 8,
-  },
-  filterButton: {
-    flex: 1,
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'space-between',
-    backgroundColor: '#181818', // gray-800
-    borderRadius: 16,
-    paddingHorizontal: 12,
-    paddingVertical: 8,
-    borderWidth: 1,
-    borderColor: '#282828', // gray-700
-  },
-  filterButtonText: {
-    color: '#e0e0e0', // gray-300
-    fontSize: 13,
-    flex: 1,
-  },
-  filterArrow: {
-    color: '#535353', // gray-500
-    fontSize: 10,
-    marginLeft: 4,
-  },
-  statusRow: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'space-between',
-  },
-  resetButton: {
-    backgroundColor: '#282828', // gray-700
-    paddingHorizontal: 12,
-    paddingVertical: 6,
-    borderRadius: 12,
-  },
-  resetButtonText: {
-    color: '#ffffff',
-    fontSize: 13,
-    fontWeight: '600',
-  },
-  countText: {
-    color: '#b3b3b3', // gray-400
-    fontSize: 13,
-    marginLeft: 'auto',
-  },
+  container: filterStyles.container,
+  searchInput: filterStyles.searchInput,
+  filterRow: filterStyles.filterRow,
+  filterButton: filterStyles.filterButton,
+  filterButtonText: filterStyles.filterButtonText,
+  filterArrow: filterStyles.filterArrow,
+  statusRow: filterStyles.statusRow,
+  columnsButton: filterStyles.columnsButton,
+  columnsButtonText: filterStyles.columnsButtonText,
+  resetButton: filterStyles.resetButton,
+  resetButtonText: filterStyles.resetButtonText,
   // Modal styles
-  modalContainer: {
-    flex: 1,
-    backgroundColor: '#121212', // gray-900
-  },
-  modalHeader: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'space-between',
-    paddingHorizontal: 16,
-    paddingVertical: 12,
-    borderBottomWidth: 1,
-    borderBottomColor: '#282828', // gray-700
-  },
-  modalTitle: {
-    color: '#ffffff',
-    fontSize: 18,
-    fontWeight: '600',
-  },
-  modalCloseButton: {
-    padding: 8,
-  },
-  modalCloseText: {
-    color: '#3b82f6', // blue-500
-    fontSize: 16,
-    fontWeight: '600',
-  },
-  modalOption: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'space-between',
-    paddingHorizontal: 16,
-    paddingVertical: 14,
-    borderBottomWidth: StyleSheet.hairlineWidth,
-    borderBottomColor: '#282828', // gray-700
-  },
-  modalOptionSelected: {
-    backgroundColor: '#181818', // gray-800
-  },
-  modalOptionText: {
-    color: '#e0e0e0', // gray-300
-    fontSize: 16,
-  },
-  modalOptionTextSelected: {
-    color: '#3b82f6', // blue-500
-    fontWeight: '600',
-  },
-  checkmark: {
-    color: '#3b82f6', // blue-500
-    fontSize: 18,
-    fontWeight: 'bold',
-  },
+  modalContainer: pickerModalStyles.container,
+  modalHeader: pickerModalStyles.header,
+  modalTitle: pickerModalStyles.title,
+  modalCloseButton: pickerModalStyles.closeButton,
+  modalCloseText: pickerModalStyles.closeText,
+  modalOption: pickerModalStyles.option,
+  modalOptionSelected: pickerModalStyles.optionSelected,
+  modalOptionText: pickerModalStyles.optionText,
+  modalOptionTextSelected: pickerModalStyles.optionTextSelected,
+  checkmark: pickerModalStyles.checkmark,
 });
 
 export default CollectionFilters;

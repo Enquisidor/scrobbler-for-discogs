@@ -40,10 +40,10 @@ export const QueueSheet: React.FC<QueueSheetProps> = ({
   isLastfmConnected,
   metadata = {},
   selectedTrackKeys = new Map(),
-  onRemoveItem = () => {},
-  onScrobbleItem = () => {},
-  onScrobbleAll = () => {},
-  onClearQueue = () => {},
+  onRemoveItem = () => { },
+  onScrobbleItem = () => { },
+  onScrobbleAll = () => { },
+  onClearQueue = () => { },
   isScrobbling = false,
   testID,
 }) => {
@@ -129,8 +129,9 @@ export const QueueSheet: React.FC<QueueSheetProps> = ({
                     selectedTrackKeys={selectedTrackKeys.get(instanceKey) || new Set()}
                     settings={settings}
                     metadata={metadata[item.id]}
-                    onRemove={() => onRemoveItem(instanceKey)}
-                    onScrobble={() => onScrobbleItem(instanceKey)}
+                    onRemoveAlbumInstanceFromQueue={() => onRemoveItem(instanceKey)}
+                    onScrobbleModeToggle={(useTrackArtist) => useTrackArtist}
+                    onScrobbleSingleRelease={() => onScrobbleItem(instanceKey)}
                     isScrobbling={isScrobbling}
                     isHistoryItem={false}
                   />
@@ -153,8 +154,9 @@ export const QueueSheet: React.FC<QueueSheetProps> = ({
                     selectedTrackKeys={new Set()}
                     settings={settings}
                     metadata={metadata[item.id]}
-                    onRemove={() => { }}
-                    onScrobble={() => { }}
+                    onRemoveAlbumInstanceFromQueue={() => { }}
+                    onScrobbleModeToggle={(useTrackArtist) => useTrackArtist}
+                    onScrobbleSingleRelease={() => { }}
                     isScrobbling={false}
                     isHistoryItem={true}
                   />
