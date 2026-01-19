@@ -5,7 +5,7 @@
  */
 
 export const STRINGS = {
-  APP_NAME: 'Vinyl Scrobbler',
+  APP_NAME: 'Scrobbler for Discogs',
 
   BUTTONS: {
     DISCOGS: 'Discogs',
