@@ -3,7 +3,10 @@
     "allowJs": true,
     "esModuleInterop": true,
     "jsx": "react-native",
-    "lib": ["DOM", "ESNext"],
+    "lib": [
+      "DOM",
+      "ESNext"
+    ],
     "module": "ESNext",
     "moduleResolution": "node",
     "noEmit": true,
@@ -13,10 +16,25 @@
     "strict": true,
     "baseUrl": ".",
     "paths": {
-      "@libs": ["../libs/src/index"],
-      "@libs/*": ["../libs/src/*"]
+      "@libs": [
+        "../libs/src/index"
+      ],
+      "@libs/*": [
+        "../libs/src/*"
+      ]
     }
   },
-  "include": ["src/**/*", "../libs/src/**/*"],
-  "exclude": ["node_modules", "babel.config.js", "metro.config.js", "jest.config.js", "android", "ios"]
+  "include": [
+    "src/**/*",
+    "../libs/src/**/*"
+  ],
+  "exclude": [
+    "node_modules",
+    "babel.config.js",
+    "metro.config.js",
+    "jest.config.js",
+    "android",
+    "ios"
+  ],
+  "extends": "expo/tsconfig.base"
 }
