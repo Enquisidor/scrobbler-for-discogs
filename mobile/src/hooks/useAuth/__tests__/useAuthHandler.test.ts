@@ -28,6 +28,10 @@ jest.mock('../../../services/lastfmService', () => ({
 import { getRequestToken, getAccessToken, getDiscogsIdentity } from '../../../services/discogsService';
 import { getLastfmSession } from '../../../services/lastfmService';
 
+// Match the actual keys used in useAuthHandler.ts
+const DISCOGS_REQUEST_TOKEN_SECRET_KEY = 'pfoWbAvyoguwrrhaSyCfGBPQAPpHNJVU  ';
+const DISCOGS_REQUEST_TOKEN_KEY = 'hjbANmoLJUNBWoaCbJwcvKMruGKTduJPcErvkywc';
+
 // Cast mocks for TypeScript
 const mockOpenAuthSessionAsync = WebBrowser.openAuthSessionAsync as jest.Mock;
 const mockMakeRedirectUri = AuthSession.makeRedirectUri as jest.Mock;
@@ -126,8 +130,12 @@ describe('useAuthHandler', () => {
       // Verify flow executed correctly
       expect(mockGetRequestToken).toHaveBeenCalledWith('scrobbler-for-discogs://auth');
       expect(mockSetItemAsync).toHaveBeenCalledWith(
-        'discogs_request_token_secret',
+        DISCOGS_REQUEST_TOKEN_SECRET_KEY,
         'req_secret'
+      );
+      expect(mockSetItemAsync).toHaveBeenCalledWith(
+        DISCOGS_REQUEST_TOKEN_KEY,
+        'req_token'
       );
       expect(mockOpenAuthSessionAsync).toHaveBeenCalled();
       expect(mockGetAccessToken).toHaveBeenCalledWith(
@@ -143,7 +151,8 @@ describe('useAuthHandler', () => {
       });
 
       // Cleanup should have occurred
-      expect(mockDeleteItemAsync).toHaveBeenCalledWith('discogs_request_token_secret');
+      expect(mockDeleteItemAsync).toHaveBeenCalledWith(DISCOGS_REQUEST_TOKEN_SECRET_KEY);
+      expect(mockDeleteItemAsync).toHaveBeenCalledWith(DISCOGS_REQUEST_TOKEN_KEY);
       expect(result.current.loadingService).toBeNull();
     });
 

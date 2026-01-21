@@ -295,7 +295,7 @@ describe('QueueItem', () => {
       expect(screen.getByText('3:00')).toBeTruthy();
     });
 
-    it('should filter out heading tracks', () => {
+    it('should convert heading tracks into group headers', () => {
       const itemWithHeading = createMockQueueItemWithTracks(0, {
         tracklist: [
           { position: '', title: 'Side A', duration: '', type_: 'heading' },
@@ -310,7 +310,9 @@ describe('QueueItem', () => {
       // Expand
       fireEvent.press(screen.getByTestId('queue-item-header'));
 
-      expect(screen.queryByText('Side A')).toBeNull();
+      // Heading appears as a group header (not a selectable track)
+      expect(screen.getByText('Side A')).toBeTruthy();
+      // Actual track is shown
       expect(screen.getByText('Track 1')).toBeTruthy();
     });
   });

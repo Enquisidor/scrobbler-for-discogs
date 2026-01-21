@@ -650,8 +650,8 @@ describe('trackSelectionSlice', () => {
         })
       );
 
-      const features = state.selectedFeatures[item.instanceKey];
-      expect(features.size).toBe(0);
+      // When showFeatures is false, no entry should exist for this instance
+      expect(state.selectedFeatures[item.instanceKey]).toBeUndefined();
     });
   });
 });

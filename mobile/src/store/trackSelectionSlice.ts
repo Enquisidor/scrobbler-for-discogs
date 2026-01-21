@@ -241,7 +241,10 @@ const trackSelectionSlice = createSlice({
             }
           }
         }
-        newSelectedFeatures[instanceKey] = newInstanceFeatures;
+        // Only add entry if there are actually selected features
+        if (newInstanceFeatures.size > 0) {
+          newSelectedFeatures[instanceKey] = newInstanceFeatures;
+        }
       }
 
       // Optimization: Check if actually different before replacing to avoid re-renders?
