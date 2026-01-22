@@ -1,8 +1,7 @@
-
 import { createSlice, PayloadAction } from '@reduxjs/toolkit';
-import type { DiscogsRelease } from '../libs';
-import { mergePageIntoCollection } from '../libs';
-import { formatArtistNames } from '../libs';
+import type { DiscogsRelease } from '../types';
+import { mergePageIntoCollection } from '../utils/collectionSyncUtils';
+import { formatArtistNames } from '../utils/formattingUtils';
 
 export interface CollectionState {
   collection: DiscogsRelease[];
@@ -14,7 +13,7 @@ export interface CollectionState {
 
 export const initialCollectionState: CollectionState = {
   collection: [],
-  isLoading: true,
+  isLoading: false,
   isSyncing: false,
   error: null,
   isAuthError: false,

@@ -10,7 +10,7 @@ import {
   LASTFM_API_KEY,
   LASTFM_SECRET,
 } from '@env';
-import { store } from './src/store';
+import { store } from '../libs/src/store';
 import { MainScreen } from './src/components/MainScreen';
 
 // Initialize shared config from libs/.env (loaded via react-native-dotenv)

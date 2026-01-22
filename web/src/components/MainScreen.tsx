@@ -2,8 +2,8 @@
 import React, { useState, useMemo, useCallback, useEffect } from 'react';
 import ReactDOM from 'react-dom';
 import { useDispatch, useSelector } from 'react-redux';
-import type { Credentials, Settings } from '../libs';
-import type { RootState } from '../store/index';
+import type { Credentials, Settings } from '@libs';
+import { RootState, clearMetadata } from '@libs'
 import { SortOption } from '../libs';
 import CollectionScreen from './collection/CollectionScreen';
 import SettingsSheet from './settings/SettingsSheet';
@@ -16,7 +16,6 @@ import { useDiscogsCollection } from '../hooks/useCollection/useDiscogsCollectio
 import { useCollectionFilters } from '../hooks/useCollection/useCollectionFilters';
 import { useQueue } from '../hooks/useQueue';
 import { useMetadataFetcher } from '../hooks/useMetadata/useMetadataFetcher';
-import { clearMetadata } from '../store/metadataSlice';
 import { applyMetadataCorrections } from '../libs';
 
 interface MainScreenProps {

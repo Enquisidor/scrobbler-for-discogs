@@ -1,4 +1,4 @@
-import { useStorage } from '../useStorage';
+import { useStorage } from '../../../../libs/src/hooks/useStorage';
 import type { Credentials } from '@libs';
 
 const initialCredentials: Credentials = {

@@ -7,6 +7,13 @@ export * from './types';
 // Theme
 export * from './theme';
 
+// Store
+export * from './store/collectionSlice';
+export * from './store/metadataSlice';
+export * from './store/queueSlice';
+export * from './store/trackSelectionSlice';
+export * from './store/index';
+
 // Strings
 export * from './strings';
 
@@ -34,3 +41,6 @@ export * from './services/musicbrainz/musicbrainzService';
 
 // Adapters
 export * from './adapters';
+
+// Test fixtures (for shared testing)
+export * from './__tests__/fixtures';

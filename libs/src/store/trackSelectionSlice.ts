@@ -1,7 +1,7 @@
 import { createSlice, PayloadAction } from '@reduxjs/toolkit';
-import type { QueueItem, SelectedTracks, SelectedFeatures, ArtistSelections, Settings, DiscogsTrack } from '@libs';
-import { getTrackFeaturedArtists } from '@libs';
-import { getDisplayArtistName } from '@libs';
+import type { QueueItem, SelectedTracks, SelectedFeatures, ArtistSelections, Settings, DiscogsTrack } from '../types';
+import { getTrackFeaturedArtists } from '../utils/queueUtils';
+import { getDisplayArtistName } from '../utils/formattingUtils';
 
 export interface TrackSelectionState {
   selectedTracks: SelectedTracks;
@@ -9,7 +9,7 @@ export interface TrackSelectionState {
   artistSelections: ArtistSelections;
 }
 
-export const initialState: TrackSelectionState = {
+export const initialTrackSelectionState: TrackSelectionState = {
   selectedTracks: {},
   selectedFeatures: {},
   artistSelections: {},
@@ -17,7 +17,7 @@ export const initialState: TrackSelectionState = {
 
 const trackSelectionSlice = createSlice({
   name: 'trackSelection',
-  initialState,
+  initialState: initialTrackSelectionState,
   reducers: {
     initializeSelection(state, action: PayloadAction<{ item: QueueItem; settings: Settings }>) {
       const { item, settings } = action.payload;
@@ -90,7 +90,7 @@ const trackSelectionSlice = createSlice({
       delete state.artistSelections[instanceKey];
     },
     resetSelections() {
-      return initialState;
+      return initialTrackSelectionState;
     },
     toggleTrack(state, action: PayloadAction<{ instanceKey: string; trackKey: string }>) {
       const { instanceKey, trackKey } = action.payload;

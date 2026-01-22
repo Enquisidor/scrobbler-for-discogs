@@ -1,7 +1,7 @@
 import { useMemo, useCallback, useEffect } from 'react';
 import { useDispatch, useSelector } from 'react-redux';
 import type { QueueItem, Settings } from '../libs';
-import type { RootState } from '../store/index';
+import type { RootState } from '@libs';
 import {
     autoUpdateFeatures,
     initializeSelection,
@@ -16,7 +16,7 @@ import {
     selectAll,
     deselectAll,
     toggleGroup
-} from '../store/trackSelectionSlice';
+} from '@libs';
 
 export function useTrackSelection(queue: QueueItem[], settings: Settings) {
     const dispatch = useDispatch();

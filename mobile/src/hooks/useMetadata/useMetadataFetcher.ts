@@ -15,8 +15,8 @@ import { useEffect, useRef, useCallback } from 'react';
 import { useDispatch, useSelector } from 'react-redux';
 import type { DiscogsRelease, Settings, CombinedMetadata, ServiceMetadata } from '@libs';
 import { fetchAppleMusicMetadata, fetchMusicBrainzMetadata } from '@libs';
-import { updateMetadataItem } from '../../store/metadataSlice';
-import type { RootState } from '../../store';
+import { updateMetadataItem } from '../../../../libs/src/store/metadataSlice';
+import type { RootState } from '../../../../libs/src/store';
 
 // Configuration constants
 const RECHECK_INTERVAL_MS = 30 * 24 * 60 * 60 * 1000; // 30 days
@@ -124,16 +124,16 @@ export function useMetadataFetcher(
               if (!mountedRef.current || signal.aborted) return;
               const finalResult: ServiceMetadata = result
                 ? {
-                    artist: result.artist,
-                    album: result.album,
-                    primaryGenreName: result.primaryGenreName,
-                    copyright: result.copyright,
-                    country: result.country,
-                    explicit: result.explicit,
-                    score: result.score,
-                    rawResult: result.rawItunesResult,
-                    lastChecked: Date.now(),
-                  }
+                  artist: result.artist,
+                  album: result.album,
+                  primaryGenreName: result.primaryGenreName,
+                  copyright: result.copyright,
+                  country: result.country,
+                  explicit: result.explicit,
+                  score: result.score,
+                  rawResult: result.rawItunesResult,
+                  lastChecked: Date.now(),
+                }
                 : { lastChecked: Date.now() };
               dispatch(updateMetadataItem({ releaseId, provider: 'apple', metadata: finalResult }));
             })

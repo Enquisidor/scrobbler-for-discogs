@@ -11,7 +11,7 @@ import { Provider } from 'react-redux';
 import { configureStore } from '@reduxjs/toolkit';
 import { useDiscogsCollection } from '../useDiscogsCollection';
 import * as discogsService from '../../../services/discogsService';
-import collectionReducer from '../../../store/collectionSlice';
+import collectionReducer from '../../../../../libs/src/store/collectionSlice';
 import { connectedCredentials, createMockCollectionResponse } from '../../../__tests__/testUtils';
 
 // Mock the discogs service

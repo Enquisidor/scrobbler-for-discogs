@@ -5,7 +5,7 @@ import { useDispatch, useSelector } from 'react-redux';
 import { fetchReleaseTracklist } from '../services/discogsService';
 import { scrobbleTracks as scrobbleLastfmTracks } from '../services/lastfmService';
 import type { Credentials, DiscogsRelease, QueueItem, Settings } from '../libs';
-import type { RootState } from '../store/index';
+import type { RootState } from '@libs';
 import { useTrackSelection } from './useTrackSelection';
 import { calculateScrobbleTimestamps, prepareTracksForScrobbling } from '../libs';
 import {
@@ -20,7 +20,7 @@ import {
     scrobbleSingleSuccess,
     scrobbleSuccess,
     setTimeOffset
-} from '../store/queueSlice';
+} from '@libs';
 
 export function useQueue(
     credentials: Credentials,

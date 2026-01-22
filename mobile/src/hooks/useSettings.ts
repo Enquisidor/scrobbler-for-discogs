@@ -1,4 +1,4 @@
-import { useStorage } from './useStorage';
+import { useStorage } from '../../../libs/src/hooks/useStorage';
 import type { Settings } from '@libs';
 
 const initialSettings: Settings = {

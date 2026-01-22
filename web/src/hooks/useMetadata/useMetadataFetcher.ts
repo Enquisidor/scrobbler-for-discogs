@@ -2,8 +2,8 @@ import { useEffect, useRef } from 'react';
 import { useDispatch, useSelector } from 'react-redux';
 import type { DiscogsRelease, Settings } from '../../libs';
 import { MetadataSourceType, fetchAppleMusicMetadata, fetchMusicBrainzMetadata } from '../../libs';
-import type { RootState } from '../../store/index';
-import { updateMetadataItem } from '../../store/metadataSlice';
+import type { RootState } from '@libs';
+import { updateMetadataItem } from '@libs';
 
 const RECHECK_INTERVAL_MS = 30 * 24 * 60 * 60 * 1000; // 30 days
 const MAX_SESSION_QUERIES = 200;

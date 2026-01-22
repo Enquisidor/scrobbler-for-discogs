@@ -2,7 +2,7 @@ import React, { useState, useMemo, useCallback } from 'react';
 import { View, StyleSheet } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { useSelector } from 'react-redux';
-import type { RootState } from '../store';
+import type { RootState } from '../../../libs/src/store';
 import type { DiscogsRelease, SortOption } from '@libs';
 import { applyMetadataCorrections, SortOption as SortOptionEnum } from '@libs';
 
@@ -189,7 +189,7 @@ export const MainScreen: React.FC = () => {
           isLoading={isCollectionLoading}
           isSyncing={isSyncing}
           hasMore={false} // TODO: Implement pagination
-          onLoadMore={() => {}}
+          onLoadMore={() => { }}
           onRefresh={handleForceReload}
           isFiltered={isFiltered}
           onAddAlbumToQueue={handleAddAlbumToQueue}

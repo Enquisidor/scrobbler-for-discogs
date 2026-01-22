@@ -20,12 +20,19 @@
   "license": "ISC",
   "devDependencies": {
     "@babel/runtime": "^7.28.6",
+    "@types/jest": "^30.0.0",
     "@types/lodash": "^4.17.23",
     "@types/node": "^25.0.6",
+    "@types/react": "^19.2.9",
+    "jest": "^30.2.0",
     "typescript": "^5.9.3"
   },
   "dependencies": {
+    "@react-native-async-storage/async-storage": "^2.2.0",
+    "@reduxjs/toolkit": "^2.11.0",
     "dotenv": "^17.2.3",
-    "lodash": "^4.17.21"
+    "expo-secure-store": "^15.0.8",
+    "lodash": "^4.17.21",
+    "react": "^19.2.0"
   }
 }

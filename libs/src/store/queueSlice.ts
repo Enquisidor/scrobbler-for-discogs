@@ -1,5 +1,5 @@
 import { createSlice, PayloadAction } from '@reduxjs/toolkit';
-import type { QueueItem } from '@libs';
+import type { QueueItem } from '../types';
 
 export interface QueueState {
   queue: QueueItem[];
@@ -11,7 +11,7 @@ export interface QueueState {
 }
 
 // Note: Initial state starts empty - we'll hydrate asynchronously
-export const initialState: QueueState = {
+export const initialQueueState: QueueState = {
   queue: [],
   scrobbledHistory: [],
   isScrobbling: false,
@@ -22,7 +22,7 @@ export const initialState: QueueState = {
 
 const queueSlice = createSlice({
   name: 'queue',
-  initialState,
+  initialState: initialQueueState,
   reducers: {
     // Hydrate queue from AsyncStorage
     hydrateQueue(state, action: PayloadAction<{ queue: QueueItem[] }>) {

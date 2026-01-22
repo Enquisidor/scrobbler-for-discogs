@@ -1,8 +1,7 @@
 
 import { useState, useMemo, useEffect } from 'react';
-import type { DiscogsRelease } from '../../libs';
-import { SortOption } from '../../libs';
-import { sortCollection, calculateFuzzyScore } from '../../libs';
+import type { DiscogsRelease } from '@libs';
+import { SortOption, sortCollection, calculateFuzzyScore } from '@libs';
 
 export function useCollectionFilters(
   collection: DiscogsRelease[],

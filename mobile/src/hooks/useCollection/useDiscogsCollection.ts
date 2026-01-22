@@ -2,7 +2,7 @@ import { useState, useEffect, useCallback, useRef } from 'react';
 import { useDispatch, useSelector } from 'react-redux';
 import { fetchDiscogsPage, DiscogsAuthError, DiscogsRateLimitError } from '../../services/discogsService';
 import type { Credentials } from '@libs';
-import type { RootState } from '../../store/index';
+import type { RootState } from '../../../../libs/src/store/index';
 import {
   startLoading,
   setInitialCollection,
@@ -13,7 +13,7 @@ import {
   setAuthError,
   setError,
   resetCollection
-} from '../../store/collectionSlice';
+} from '../../../../libs/src/store/collectionSlice';
 
 const PAGE_SIZE = 50;
 // Increased concurrency to 3 to parallelize network latency.

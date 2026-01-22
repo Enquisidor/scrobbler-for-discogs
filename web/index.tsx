@@ -1,7 +1,7 @@
 import React from 'react';
 import ReactDOM from 'react-dom/client';
 import { Provider } from 'react-redux';
-import { store } from './src/store/index';
+import { store } from '@libs';
 import App from './src/components/App';
 import { enableMapSet } from 'immer';
 import { initConfig } from '@libs';
