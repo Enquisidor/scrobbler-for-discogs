@@ -4,7 +4,7 @@ import { Provider } from 'react-redux';
 import { SafeAreaProvider } from 'react-native-safe-area-context';
 import { initConfig } from '@libs';
 import {
-  DISCOGS_REQUEST_SECRET,
+  DISCOGS_PERSONAL_ACCESS_TOKEN,
   DISCOGS_CONSUMER_KEY,
   DISCOGS_CONSUMER_SECRET,
   LASTFM_API_KEY,
@@ -15,7 +15,7 @@ import { MainScreen } from './src/components/MainScreen';
 
 // Initialize shared config from libs/.env (loaded via react-native-dotenv)
 initConfig({
-  DISCOGS_REQUEST_SECRET,
+  DISCOGS_PERSONAL_ACCESS_TOKEN,
   DISCOGS_CONSUMER_KEY,
   DISCOGS_CONSUMER_SECRET,
   LASTFM_API_KEY,

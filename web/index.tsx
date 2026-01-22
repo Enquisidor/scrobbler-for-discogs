@@ -8,7 +8,7 @@ import { initConfig } from '@libs';
 
 // Initialize shared config from libs/.env (loaded via vite.config.ts)
 initConfig({
-  DISCOGS_REQUEST_SECRET: process.env.DISCOGS_REQUEST_SECRET,
+  DISCOGS_PERSONAL_ACCESS_TOKEN: process.env.DISCOGS_PERSONAL_ACCESS_TOKEN,
   DISCOGS_CONSUMER_KEY: process.env.DISCOGS_CONSUMER_KEY,
   DISCOGS_CONSUMER_SECRET: process.env.DISCOGS_CONSUMER_SECRET,
   LASTFM_API_KEY: process.env.LASTFM_API_KEY,

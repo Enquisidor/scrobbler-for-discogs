@@ -12,6 +12,7 @@ import * as AuthSession from 'expo-auth-session';
 import * as SecureStore from 'expo-secure-store';
 import { useAuthHandler } from '../useAuthHandler';
 import type { Credentials } from '@libs';
+import { STORAGE_KEYS } from '@libs';
 
 // Mock the services
 jest.mock('../../../services/discogsService', () => ({
@@ -28,9 +29,9 @@ jest.mock('../../../services/lastfmService', () => ({
 import { getRequestToken, getAccessToken, getDiscogsIdentity } from '../../../services/discogsService';
 import { getLastfmSession } from '../../../services/lastfmService';
 
-// Match the actual keys used in useAuthHandler.ts
-const DISCOGS_REQUEST_TOKEN_SECRET_KEY = 'pfoWbAvyoguwrrhaSyCfGBPQAPpHNJVU  ';
-const DISCOGS_REQUEST_TOKEN_KEY = 'hjbANmoLJUNBWoaCbJwcvKMruGKTduJPcErvkywc';
+// Use the actual storage keys from config
+const DISCOGS_REQUEST_TOKEN_SECRET_KEY = STORAGE_KEYS.DISCOGS_REQUEST_TOKEN_SECRET;
+const DISCOGS_REQUEST_TOKEN_KEY = STORAGE_KEYS.DISCOGS_REQUEST_TOKEN;
 
 // Cast mocks for TypeScript
 const mockOpenAuthSessionAsync = WebBrowser.openAuthSessionAsync as jest.Mock;

@@ -72,7 +72,7 @@ describe('discogsService', () => {
         text: () => Promise.resolve(mockResponse),
       });
 
-      const result = await getAccessToken('request_token', 'request_secret', 'verifier');
+      const result = await getAccessToken('request_token', 'PERSONAL_ACCESS_TOKEN', 'verifier');
 
       expect(result.accessToken).toBe('access_token_123');
       expect(result.accessTokenSecret).toBe('access_secret_456');

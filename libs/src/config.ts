@@ -48,7 +48,7 @@ let config: AppConfig = {
  * - Mobile: react-native-dotenv's @env module (configured to read from libs/.env)
  */
 export function initConfig(envConfig: {
-  DISCOGS_REQUEST_SECRET?: string;
+  DISCOGS_PERSONAL_ACCESS_TOKEN?: string;
   DISCOGS_CONSUMER_KEY?: string;
   DISCOGS_CONSUMER_SECRET?: string;
   LASTFM_API_KEY?: string;
@@ -56,7 +56,7 @@ export function initConfig(envConfig: {
 }): void {
   config = {
     discogs: {
-      requestSecret: envConfig.DISCOGS_REQUEST_SECRET || '',
+      requestSecret: envConfig.DISCOGS_PERSONAL_ACCESS_TOKEN || '',
       consumerKey: envConfig.DISCOGS_CONSUMER_KEY || '',
       consumerSecret: envConfig.DISCOGS_CONSUMER_SECRET || '',
     },

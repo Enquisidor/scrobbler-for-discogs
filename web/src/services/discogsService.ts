@@ -1,4 +1,4 @@
-import type { Credentials, DiscogsRelease, QueueItem, DiscogsArtist } from '../libs';
+import type { Credentials, DiscogsRelease, QueueItem, DiscogsArtist } from '@libs';
 import { getDiscogsConfig } from '@libs';
 
 // This file assumes CryptoJS is loaded globally from a CDN in index.html
