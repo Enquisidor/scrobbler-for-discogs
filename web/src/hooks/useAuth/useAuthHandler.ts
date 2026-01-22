@@ -1,12 +1,8 @@
-
 import { useState, useEffect, useRef } from 'react';
 import { getAccessToken, getDiscogsIdentity, getRequestToken } from '../../services/discogsService';
 import { getLastfmSession } from '../../services/lastfmService';
 import type { Credentials } from '@libs';
-
-const LASTFM_API_KEY = '8905f463b5d9e0cd0bbda00b274f8dc0';
-const LASTFM_SECRET = 'e1e800587e275d6dc0fe3373fd4a6ab9';
-const discogsRequestTokenSecretKey = 'hjbANmoLJUNBWoaCbJwcvKMruGKTduJPcErvkywc';
+import { getLastfmConfig, STORAGE_KEYS } from '@libs';
 
 export function useAuthHandler(
   credentials: Credentials,
@@ -29,20 +25,20 @@ export function useAuthHandler(
     const completeDiscogsAuth = async (oauthToken: string, oauthVerifier: string) => {
       setLoadingService('discogs');
       setError(null);
-      const requestTokenSecret = sessionStorage.getItem(discogsRequestTokenSecretKey);
+      const requestTokenSecret = sessionStorage.getItem(STORAGE_KEYS.DISCOGS_REQUEST_TOKEN_SECRET);
 
       if (!requestTokenSecret) {
         setError('Discogs authentication session expired. Please try again.');
         setLoadingService(null);
         return;
       }
-      
+
       try {
         const { accessToken, accessTokenSecret } = await getAccessToken(oauthToken, requestTokenSecret, oauthVerifier);
         const identity = await getDiscogsIdentity(accessToken, accessTokenSecret);
-        
-        onCredentialsChange({ 
-          discogsUsername: identity.username, 
+
+        onCredentialsChange({
+          discogsUsername: identity.username,
           discogsAccessToken: accessToken,
           discogsAccessTokenSecret: accessTokenSecret,
         });
@@ -50,7 +46,7 @@ export function useAuthHandler(
         console.error(err);
         setError(err instanceof Error ? err.message : 'Failed to finalize Discogs connection.');
       } finally {
-        sessionStorage.removeItem(discogsRequestTokenSecretKey);
+        sessionStorage.removeItem(STORAGE_KEYS.DISCOGS_REQUEST_TOKEN_SECRET);
         window.history.replaceState({}, document.title, window.location.pathname);
         setLoadingService(null);
       }
@@ -62,15 +58,16 @@ export function useAuthHandler(
         return;
       }
 
+      const { apiKey, secret } = getLastfmConfig();
       setLoadingService('lastfm');
       setError(null);
       try {
-        const session = await getLastfmSession(LASTFM_API_KEY, LASTFM_SECRET, token);
-        onCredentialsChange({ 
-          lastfmApiKey: LASTFM_API_KEY, 
-          lastfmSecret: LASTFM_SECRET, 
-          lastfmSessionKey: session.key, 
-          lastfmUsername: session.name 
+        const session = await getLastfmSession(apiKey, secret, token);
+        onCredentialsChange({
+          lastfmApiKey: apiKey,
+          lastfmSecret: secret,
+          lastfmSessionKey: session.key,
+          lastfmUsername: session.name
         });
       } catch (err) {
         console.error(err);
@@ -80,7 +77,7 @@ export function useAuthHandler(
         setLoadingService(null);
       }
     };
-    
+
     if (discogsOauthToken && discogsOauthVerifier) {
       effectRan.current = true;
       completeDiscogsAuth(discogsOauthToken, discogsOauthVerifier);
@@ -96,7 +93,7 @@ export function useAuthHandler(
     setError(null);
     try {
       const { requestToken, requestTokenSecret, authorizeUrl } = await getRequestToken();
-      sessionStorage.setItem(discogsRequestTokenSecretKey, requestTokenSecret);
+      sessionStorage.setItem(STORAGE_KEYS.DISCOGS_REQUEST_TOKEN_SECRET, requestTokenSecret);
       window.location.href = authorizeUrl;
     } catch (err) {
       setError(err instanceof Error ? err.message : 'Could not start Discogs authentication.');
@@ -105,11 +102,12 @@ export function useAuthHandler(
   };
 
   const handleLastfmConnect = () => {
+    const { apiKey } = getLastfmConfig();
     setLoadingService('lastfm');
     setError(null);
     try {
       const callbackUrl = window.location.href.split('?')[0];
-      const authUrl = `https://www.last.fm/api/auth/?api_key=${LASTFM_API_KEY}&cb=${encodeURIComponent(callbackUrl)}`;
+      const authUrl = `https://www.last.fm/api/auth/?api_key=${apiKey}&cb=${encodeURIComponent(callbackUrl)}`;
       window.location.href = authUrl;
     } catch (err) {
       setError(err instanceof Error ? err.message : 'An unknown error occurred.');

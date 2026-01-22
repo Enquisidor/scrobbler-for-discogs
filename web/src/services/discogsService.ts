@@ -1,5 +1,5 @@
-
 import type { Credentials, DiscogsRelease, QueueItem, DiscogsArtist } from '../libs';
+import { getDiscogsConfig } from '@libs';
 
 // This file assumes CryptoJS is loaded globally from a CDN in index.html
 declare const CryptoJS: any;
@@ -22,10 +22,6 @@ export class DiscogsRateLimitError extends Error {
 
 // Direct API Base URL - No Proxy
 const API_BASE = 'https://api.discogs.com';
-
-// IMPORTANT: Replace with your actual Discogs application credentials.
-const CONSUMER_KEY = 'GwlBnzIstBUPmTsYjtgN';
-const CONSUMER_SECRET = 'pfoWbAvyoguwrrhaSyCfGBPQAPpHNJVU';
 
 interface CollectionResponse {
   pagination: {
@@ -61,8 +57,10 @@ function generateOauthParams(
   token = '',
   tokenSecret = ''
 ): Record<string, string> {
+  const { consumerKey, consumerSecret } = getDiscogsConfig();
+
   const oauthParams: Record<string, string> = {
-    oauth_consumer_key: CONSUMER_KEY,
+    oauth_consumer_key: consumerKey,
     oauth_nonce: `${Date.now()}${Math.random().toString(36).substring(2)}`,
     oauth_signature_method: 'HMAC-SHA1',
     oauth_timestamp: String(Math.floor(Date.now() / 1000)),
@@ -77,7 +75,7 @@ function generateOauthParams(
     .join('&');
 
   const baseString = `${method.toUpperCase()}&${rfc3986encode(url)}&${rfc3986encode(paramString)}`;
-  const signingKey = `${rfc3986encode(CONSUMER_SECRET)}&${rfc3986encode(tokenSecret)}`;
+  const signingKey = `${rfc3986encode(consumerSecret)}&${rfc3986encode(tokenSecret)}`;
 
   const signature = CryptoJS.enc.Base64.stringify(CryptoJS.HmacSHA1(baseString, signingKey));
   oauthParams.oauth_signature = signature;

@@ -4,6 +4,16 @@ import { Provider } from 'react-redux';
 import { store } from './src/store/index';
 import App from './src/components/App';
 import { enableMapSet } from 'immer';
+import { initConfig } from '@libs';
+
+// Initialize shared config from libs/.env (loaded via vite.config.ts)
+initConfig({
+  DISCOGS_REQUEST_SECRET: process.env.DISCOGS_REQUEST_SECRET,
+  DISCOGS_CONSUMER_KEY: process.env.DISCOGS_CONSUMER_KEY,
+  DISCOGS_CONSUMER_SECRET: process.env.DISCOGS_CONSUMER_SECRET,
+  LASTFM_API_KEY: process.env.LASTFM_API_KEY,
+  LASTFM_SECRET: process.env.LASTFM_SECRET,
+});
 
 const rootElement = document.getElementById('root');
 if (!rootElement) {

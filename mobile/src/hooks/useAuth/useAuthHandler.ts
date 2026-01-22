@@ -1,18 +1,14 @@
-import { useState, useEffect, useCallback, useRef } from 'react';
+import { useState, useCallback, useRef } from 'react';
 import * as AuthSession from 'expo-auth-session';
 import * as WebBrowser from 'expo-web-browser';
 import * as SecureStore from 'expo-secure-store';
 import { getAccessToken, getDiscogsIdentity, getRequestToken } from '../../services/discogsService';
 import { getLastfmSession } from '../../services/lastfmService';
 import type { Credentials } from '@libs';
+import { getLastfmConfig, STORAGE_KEYS } from '@libs';
 
 // Ensure browser sessions are properly cleaned up
 WebBrowser.maybeCompleteAuthSession();
-
-const LASTFM_API_KEY = '8905f463b5d9e0cd0bbda00b274f8dc0';
-const LASTFM_SECRET = 'e1e800587e275d6dc0fe3373fd4a6ab9';
-const DISCOGS_REQUEST_TOKEN_SECRET_KEY = 'pfoWbAvyoguwrrhaSyCfGBPQAPpHNJVU  ';
-const DISCOGS_REQUEST_TOKEN_KEY = 'hjbANmoLJUNBWoaCbJwcvKMruGKTduJPcErvkywc';
 
 /**
  * Mobile authentication handler using expo-auth-session.
@@ -47,8 +43,8 @@ export function useAuthHandler(
       const { requestToken, requestTokenSecret, authorizeUrl } = await getRequestToken(redirectUri);
 
       // Store the request token secret for later use
-      await SecureStore.setItemAsync(DISCOGS_REQUEST_TOKEN_SECRET_KEY, requestTokenSecret);
-      await SecureStore.setItemAsync(DISCOGS_REQUEST_TOKEN_KEY, requestToken);
+      await SecureStore.setItemAsync(STORAGE_KEYS.DISCOGS_REQUEST_TOKEN_SECRET, requestTokenSecret);
+      await SecureStore.setItemAsync(STORAGE_KEYS.DISCOGS_REQUEST_TOKEN, requestToken);
 
       // Step 2: Open browser for user authorization
       const result = await WebBrowser.openAuthSessionAsync(
@@ -67,7 +63,7 @@ export function useAuthHandler(
         }
 
         // Get stored request token secret
-        const storedSecret = await SecureStore.getItemAsync(DISCOGS_REQUEST_TOKEN_SECRET_KEY);
+        const storedSecret = await SecureStore.getItemAsync(STORAGE_KEYS.DISCOGS_REQUEST_TOKEN_SECRET);
         if (!storedSecret) {
           throw new Error('Discogs authentication session expired. Please try again.');
         }
@@ -96,8 +92,8 @@ export function useAuthHandler(
       setError(err instanceof Error ? err.message : 'Failed to connect to Discogs.');
     } finally {
       // Clean up stored tokens
-      await SecureStore.deleteItemAsync(DISCOGS_REQUEST_TOKEN_SECRET_KEY);
-      await SecureStore.deleteItemAsync(DISCOGS_REQUEST_TOKEN_KEY);
+      await SecureStore.deleteItemAsync(STORAGE_KEYS.DISCOGS_REQUEST_TOKEN_SECRET);
+      await SecureStore.deleteItemAsync(STORAGE_KEYS.DISCOGS_REQUEST_TOKEN);
       setLoadingService(null);
       processingRef.current = false;
     }
@@ -111,7 +107,8 @@ export function useAuthHandler(
     setError(null);
 
     try {
-      const authUrl = `https://www.last.fm/api/auth/?api_key=${LASTFM_API_KEY}&cb=${encodeURIComponent(redirectUri)}`;
+      const { apiKey, secret } = getLastfmConfig();
+      const authUrl = `https://www.last.fm/api/auth/?api_key=${apiKey}&cb=${encodeURIComponent(redirectUri)}`;
 
       const result = await WebBrowser.openAuthSessionAsync(
         authUrl,
@@ -128,12 +125,12 @@ export function useAuthHandler(
         }
 
         // Get session key
-        const session = await getLastfmSession(LASTFM_API_KEY, LASTFM_SECRET, token);
+        const session = await getLastfmSession(apiKey, secret, token);
 
         // Save credentials
         await onCredentialsChange({
-          lastfmApiKey: LASTFM_API_KEY,
-          lastfmSecret: LASTFM_SECRET,
+          lastfmApiKey: apiKey,
+          lastfmSecret: secret,
           lastfmSessionKey: session.key,
           lastfmUsername: session.name,
         });

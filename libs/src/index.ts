@@ -1,3 +1,6 @@
+// Config
+export * from './config';
+
 // Types
 export * from './types';
 

@@ -1,5 +1,5 @@
-
 import type { Credentials, DiscogsRelease, QueueItem, DiscogsArtist } from '@libs';
+import { getDiscogsConfig } from '@libs';
 import { hmacSha1Base64, rfc3986encode as encode } from '../adapters/cryptoAdapter';
 
 // Custom Error types for specific API responses
@@ -20,10 +20,6 @@ export class DiscogsRateLimitError extends Error {
 
 // Direct API Base URL - No Proxy
 const API_BASE = 'https://api.discogs.com';
-
-// IMPORTANT: Replace with your actual Discogs application credentials.
-const CONSUMER_KEY = 'GwlBnzIstBUPmTsYjtgN';
-const CONSUMER_SECRET = 'pfoWbAvyoguwrrhaSyCfGBPQAPpHNJVU';
 
 interface CollectionResponse {
   pagination: {
@@ -50,8 +46,10 @@ function generateOauthParams(
   token = '',
   tokenSecret = ''
 ): Record<string, string> {
+  const { consumerKey, consumerSecret } = getDiscogsConfig();
+
   const oauthParams: Record<string, string> = {
-    oauth_consumer_key: CONSUMER_KEY,
+    oauth_consumer_key: consumerKey,
     oauth_nonce: `${Date.now()}${Math.random().toString(36).substring(2)}`,
     oauth_signature_method: 'HMAC-SHA1',
     oauth_timestamp: String(Math.floor(Date.now() / 1000)),
@@ -66,7 +64,7 @@ function generateOauthParams(
     .join('&');
 
   const baseString = `${method.toUpperCase()}&${encode(url)}&${encode(paramString)}`;
-  const signingKey = `${encode(CONSUMER_SECRET)}&${encode(tokenSecret)}`;
+  const signingKey = `${encode(consumerSecret)}&${encode(tokenSecret)}`;
 
   const signature = hmacSha1Base64(baseString, signingKey);
   oauthParams.oauth_signature = signature;
