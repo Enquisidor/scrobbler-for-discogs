@@ -1,17 +1,13 @@
-/**
- * useCollectionFilters - Manages search, filtering, and sorting of the collection
- *
- * Provides:
- * - Fuzzy search across title and artist (0.6 threshold)
- * - Format and year filtering
- * - Automatic sort switching to SearchRelevance when searching
- * - Memoized filter options derived from collection
- */
 import { useState, useMemo, useEffect } from 'react';
-import type { DiscogsRelease, SortOption } from '@libs';
-import { SortOption as SortOptionEnum, sortCollection, calculateFuzzyScore } from '@libs';
+import type { DiscogsRelease } from '../../types';
+import { SortOption } from '../../types';
+import { sortCollection } from '../../utils/sortCollection';
+import { calculateFuzzyScore } from '../../utils/fuzzyUtils';
 
-const FUZZY_SEARCH_THRESHOLD = 0.6;
+export interface CollectionFiltersOptions {
+  /** Default number of albums per row (default: 6 for web, use 3 for mobile) */
+  defaultAlbumsPerRow?: number;
+}
 
 export interface FilterOptions {
   formats: Map<string, number>;
@@ -21,61 +17,45 @@ export interface FilterOptions {
 export function useCollectionFilters(
   collection: DiscogsRelease[],
   sortOption: SortOption,
-  setSortOption: (option: SortOption) => void
+  setSortOption: (option: SortOption) => void,
+  options: CollectionFiltersOptions = {}
 ) {
+  const { defaultAlbumsPerRow = 6 } = options;
   const [searchTerm, setSearchTerm] = useState('');
+  const [albumsPerRow, setAlbumsPerRow] = useState<number>(defaultAlbumsPerRow);
   const [selectedFormat, setSelectedFormat] = useState<string>('');
   const [selectedYear, setSelectedYear] = useState<string>('');
 
-  // When a search is started, default to relevance sort. When cleared, go back to default.
   useEffect(() => {
-    if (searchTerm && sortOption !== SortOptionEnum.SearchRelevance) {
-      setSortOption(SortOptionEnum.SearchRelevance);
-    } else if (!searchTerm && sortOption === SortOptionEnum.SearchRelevance) {
-      setSortOption(SortOptionEnum.AddedNewest);
+    // When a search is started, default to relevance sort. When cleared, go back to default.
+    if (searchTerm && sortOption !== SortOption.SearchRelevance) {
+      setSortOption(SortOption.SearchRelevance);
+    } else if (!searchTerm && sortOption === SortOption.SearchRelevance) {
+      setSortOption(SortOption.AddedNewest);
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [searchTerm]);
 
-  // Derive available filter options from collection
-  const filterOptions = useMemo((): FilterOptions => {
+  const filterOptions = useMemo(() => {
     const formats = new Map<string, number>();
     const years = new Map<number, number>();
-
     collection.forEach(release => {
-      release.basic_information.formats?.forEach(f => {
-        formats.set(f.name, (formats.get(f.name) || 0) + 1);
-      });
-      if (release.basic_information.year) {
-        years.set(
-          release.basic_information.year,
-          (years.get(release.basic_information.year) || 0) + 1
-        );
-      }
+      release.basic_information.formats?.forEach(f => formats.set(f.name, (formats.get(f.name) || 0) + 1));
+      if (release.basic_information.year) years.set(release.basic_information.year, (years.get(release.basic_information.year) || 0) + 1);
     });
-
     return {
       formats: new Map([...formats.entries()].sort()),
       years: new Map([...years.entries()].sort((a, b) => b[0] - a[0])),
     };
   }, [collection]);
 
-  // Filter and sort the collection
   const filteredAndSortedCollection = useMemo(() => {
     const lowerSearchTerm = searchTerm.toLowerCase();
 
     const filtered = collection.filter(release => {
-      // Format filter
-      if (selectedFormat && !release.basic_information.formats?.some(f => f.name === selectedFormat)) {
-        return false;
-      }
+      if (selectedFormat && !release.basic_information.formats?.some(f => f.name === selectedFormat)) return false;
+      if (selectedYear && release.basic_information.year?.toString() !== selectedYear) return false;
 
-      // Year filter
-      if (selectedYear && release.basic_information.year?.toString() !== selectedYear) {
-        return false;
-      }
-
-      // Search filter (exact + fuzzy)
       if (lowerSearchTerm) {
         const title = release.basic_information.title.toLowerCase();
         const artist = release.basic_information.artist_display_name.toLowerCase();
@@ -86,16 +66,18 @@ export function useCollectionFilters(
         }
 
         // 2. Fuzzy match (Slower, handles typos)
+        // Threshold of 0.6 handles decent typos (e.g. "Beetles" -> "Beatles")
+        // We check tokens, so searching "Beat" finds "The Beatles"
         const titleScore = calculateFuzzyScore(lowerSearchTerm, title);
         const artistScore = calculateFuzzyScore(lowerSearchTerm, artist);
 
-        return Math.max(titleScore, artistScore) > FUZZY_SEARCH_THRESHOLD;
+        return Math.max(titleScore, artistScore) > 0.6;
       }
-
       return true;
     });
 
-    // Sort locally to ensure chunks are ordered correctly and support search relevance
+    // Even though we do server-side sort, we sort locally too to ensure
+    // the chunks we have are ordered correctly (and to support search relevance)
     return sortCollection(filtered, sortOption, searchTerm);
   }, [collection, searchTerm, sortOption, selectedFormat, selectedYear]);
 
@@ -110,6 +92,8 @@ export function useCollectionFilters(
   return {
     searchTerm,
     setSearchTerm,
+    albumsPerRow,
+    setAlbumsPerRow,
     selectedFormat,
     setSelectedFormat,
     selectedYear,

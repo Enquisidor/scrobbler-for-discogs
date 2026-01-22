@@ -1,9 +1,8 @@
-import * as Crypto from 'expo-crypto';
 import CryptoJS from 'crypto-js';
 
 /**
- * Crypto adapter for React Native
- * Uses expo-crypto for simple hashing and crypto-js for HMAC operations
+ * Crypto adapter
+ * Uses crypto-js for all hashing operations (works on both web and mobile)
  */
 
 /**
@@ -21,18 +20,13 @@ export function hmacSha1Base64(message: string, key: string): string {
 
 /**
  * Generate MD5 hash (used for Last.fm API signatures)
+ * Uses crypto-js which works on both web and mobile
  * @param message - The message to hash
  * @returns Hex-encoded hash
  */
 export async function md5(message: string): Promise<string> {
-  const hash = await Crypto.digestStringAsync(
-    Crypto.CryptoDigestAlgorithm.MD5,
-    message,
-    {
-      encoding: Crypto.CryptoEncoding.HEX,
-    }
-  );
-  return hash;
+  const hash = CryptoJS.MD5(message);
+  return hash.toString(CryptoJS.enc.Hex);
 }
 
 /**

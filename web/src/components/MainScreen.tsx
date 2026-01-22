@@ -3,8 +3,16 @@ import React, { useState, useMemo, useCallback, useEffect } from 'react';
 import ReactDOM from 'react-dom';
 import { useDispatch, useSelector } from 'react-redux';
 import type { Credentials, Settings } from '@libs';
-import { RootState, clearMetadata } from '@libs'
-import { SortOption } from '../libs';
+import {
+  RootState,
+  clearMetadata,
+  SortOption,
+  useDiscogsCollection,
+  useCollectionFilters,
+  useMetadataFetcher,
+  useQueue,
+  applyMetadataCorrections
+} from '@libs';
 import CollectionScreen from './collection/CollectionScreen';
 import SettingsSheet from './settings/SettingsSheet';
 import QueueButton from './queue/QueueButton';
@@ -12,11 +20,6 @@ import QueueSheet from './queue/QueueSheet';
 import Header from './layout/Header';
 import CollectionFilters from './collection/CollectionFilters';
 import { useAuthHandler } from '../hooks/useAuth/useAuthHandler';
-import { useDiscogsCollection } from '../hooks/useCollection/useDiscogsCollection';
-import { useCollectionFilters } from '../hooks/useCollection/useCollectionFilters';
-import { useQueue } from '@libs';
-import { useMetadataFetcher } from '../hooks/useMetadata/useMetadataFetcher';
-import { applyMetadataCorrections } from '../libs';
 
 interface MainScreenProps {
   credentials: Credentials;
@@ -62,7 +65,9 @@ export default function MainScreen({
     error: collectionError,
     isAuthError: isDiscogsAuthError,
     forceReload: forceDiscogsReload,
-  } = useDiscogsCollection(credentials, isDiscogsConnected);
+  } = useDiscogsCollection(credentials, isDiscogsConnected, {
+    onForceReload: () => sessionStorage.setItem('force-metadata-fetch', 'true'),
+  });
 
   useEffect(() => {
     if (isDiscogsAuthError) {
@@ -88,7 +93,10 @@ export default function MainScreen({
     return applyMetadataCorrections(fullCollection, metadata, settings);
   }, [fullCollection, metadata, settings]);
 
-  useMetadataFetcher(fullCollection, settings);
+  useMetadataFetcher(fullCollection, settings, {
+    checkForceFetch: () => sessionStorage.getItem('force-metadata-fetch') === 'true',
+    clearForceFetch: () => sessionStorage.removeItem('force-metadata-fetch'),
+  });
 
   const {
     searchTerm, setSearchTerm,

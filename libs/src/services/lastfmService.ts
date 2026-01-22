@@ -22,13 +22,16 @@ const apiCall = async (params: Record<string, string>, secret?: string, method: 
   if (secret) {
     const signature = await createLastfmSignature(params, secret);
     allParams.api_sig = signature;
+    console.log('[Last.fm] Generated signature:', signature);
   }
 
   const searchParams = new URLSearchParams(allParams);
   const url = `${API_BASE}?${searchParams.toString()}`;
+  console.log('[Last.fm] API call:', method, url);
 
   const response = await fetch(url, { method });
   const data = await response.json();
+  console.log('[Last.fm] Response:', data);
 
   if (data.error) {
     throw new Error(`Last.fm API Error: ${data.message} (code: ${data.error})`);
@@ -38,11 +41,13 @@ const apiCall = async (params: Record<string, string>, secret?: string, method: 
 };
 
 export const getLastfmSession = async (apiKey: string, secret: string, token: string) => {
+  console.log('[Last.fm] getLastfmSession called with:', { apiKey: apiKey ? '[set]' : '[empty]', secret: secret ? '[set]' : '[empty]', token });
   const params = {
     method: 'auth.getsession',
     api_key: apiKey,
     token,
   };
+  console.log('[Last.fm] Request params:', params);
   const data = await apiCall(params, secret);
   return data.session;
 };

@@ -18,9 +18,8 @@ import {
   FlatList,
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
-import type { SortOption } from '@libs';
+import type { SortOption, FilterOptions } from '@libs';
 import { SortOption as SortOptionEnum, colors, filterStyles, pickerModalStyles } from '@libs';
-import type { FilterOptions } from '../../hooks/useCollection/useCollectionFilters';
 
 interface CollectionFiltersProps {
   searchTerm: string;

@@ -25,6 +25,13 @@ export default defineConfig(() => {
       alias: {
         '@': path.resolve(__dirname, '.'),
         '@libs': path.resolve(__dirname, '../libs/src'),
+        // Stub out react-native packages for web build
+        'react-native': path.resolve(__dirname, 'src/stubs/react-native.ts'),
+        '@react-native-async-storage/async-storage': path.resolve(__dirname, 'src/stubs/async-storage.ts'),
+        'expo-secure-store': path.resolve(__dirname, 'src/stubs/expo-secure-store.ts'),
+        'expo-crypto': path.resolve(__dirname, 'src/stubs/expo-crypto.ts'),
+        'expo-auth-session': path.resolve(__dirname, 'src/stubs/expo-stub.ts'),
+        'expo-web-browser': path.resolve(__dirname, 'src/stubs/expo-stub.ts'),
       }
     }
   };

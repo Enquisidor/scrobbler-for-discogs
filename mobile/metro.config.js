@@ -17,8 +17,18 @@ config.resolver.nodeModulesPaths = [
 ];
 
 // Allow imports using @libs alias
+// IMPORTANT: Force React to resolve from mobile's node_modules to avoid duplicate React errors
 config.resolver.extraNodeModules = {
   '@libs': libsPath,
+  'react': path.resolve(projectRoot, 'node_modules', 'react'),
+  'react-native': path.resolve(projectRoot, 'node_modules', 'react-native'),
+  'react-redux': path.resolve(projectRoot, 'node_modules', 'react-redux'),
 };
+
+// Block libs/node_modules from being resolved to prevent duplicate packages
+config.resolver.blockList = [
+  new RegExp(path.resolve(workspaceRoot, 'libs', 'node_modules', 'react') + '/.*'),
+  new RegExp(path.resolve(workspaceRoot, 'libs', 'node_modules', 'react-redux') + '/.*'),
+];
 
 module.exports = config;

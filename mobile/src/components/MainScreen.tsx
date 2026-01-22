@@ -2,16 +2,20 @@ import React, { useState, useMemo, useCallback } from 'react';
 import { View, StyleSheet } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { useSelector } from 'react-redux';
-import type { RootState } from '../../../libs/src/store';
+import type { RootState } from '@libs';
 import type { DiscogsRelease, SortOption } from '@libs';
-import { applyMetadataCorrections, SortOption as SortOptionEnum } from '@libs';
+import {
+  applyMetadataCorrections,
+  SortOption as SortOptionEnum,
+  useCredentials,
+  useSettings,
+  useDiscogsCollection,
+  useCollectionFilters,
+  useMetadataFetcher,
+} from '@libs';
 
 // Hooks
-import { useCredentials } from '../../../libs/src/hooks/useCredentials/useCredentials';
 import { useAuthHandler } from '../hooks/useAuth/useAuthHandler';
-import { useSettings } from '@libs';
-import { useDiscogsCollection } from '../../../libs/src/hooks/useCollection/useDiscogsCollection';
-import { useCollectionFilters } from '../hooks/useCollection/useCollectionFilters';
 
 // Components
 import { Header } from './layout/Header';
@@ -61,7 +65,6 @@ export const MainScreen: React.FC = () => {
   const [queueView, setQueueView] = useState<'queue' | 'history'>('queue');
   const [notification, setNotification] = useState<NotificationData | null>(null);
   const [sortOption, setSortOption] = useState<SortOption>(SortOptionEnum.AddedNewest);
-  const [numColumns, setNumColumns] = useState(3);
 
   // Redux selectors
   const queue = useSelector((state: RootState) => state.queue.queue);
@@ -90,6 +93,9 @@ export const MainScreen: React.FC = () => {
     return applyMetadataCorrections(collection, metadata, settings);
   }, [collection, metadata, settings]);
 
+  // Background metadata fetching
+  useMetadataFetcher(collection, settings);
+
   // Collection filters
   const {
     searchTerm,
@@ -102,7 +108,9 @@ export const MainScreen: React.FC = () => {
     filteredAndSortedCollection,
     handleResetFilters,
     isFiltered,
-  } = useCollectionFilters(collectionWithCorrections, sortOption, setSortOption);
+    albumsPerRow,
+    setAlbumsPerRow,
+  } = useCollectionFilters(collectionWithCorrections, sortOption, setSortOption, { defaultAlbumsPerRow: 3 });
 
   // Placeholder handlers until full hooks are implemented
   const handleAddAlbumToQueue = useCallback((release: DiscogsRelease) => {
@@ -178,8 +186,8 @@ export const MainScreen: React.FC = () => {
             filterOptions={filterOptions}
             isFiltered={isFiltered}
             handleResetFilters={handleResetFilters}
-            numColumns={numColumns}
-            setNumColumns={setNumColumns}
+            numColumns={albumsPerRow}
+            setNumColumns={setAlbumsPerRow}
           />
         )}
 
@@ -200,7 +208,7 @@ export const MainScreen: React.FC = () => {
           isDiscogsConnected={isDiscogsConnected}
           settings={settings}
           metadata={metadata}
-          numColumns={numColumns}
+          numColumns={albumsPerRow}
         />
       </View>
 

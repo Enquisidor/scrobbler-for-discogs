@@ -57,6 +57,7 @@ export function useAuthHandler(
       }
 
       const { apiKey, secret } = getLastfmConfig();
+      console.log('Last.fm auth callback - apiKey:', apiKey, 'secret:', secret ? '[set]' : '[empty]', 'token:', token);
       setLoadingService('lastfm');
       setError(null);
       try {
@@ -90,7 +91,8 @@ export function useAuthHandler(
     setLoadingService('discogs');
     setError(null);
     try {
-      const { requestTokenSecret, authorizeUrl } = await getRequestToken("");
+      const callbackUrl = window.location.href.split('?')[0];
+      const { requestTokenSecret, authorizeUrl } = await getRequestToken(callbackUrl);
       sessionStorage.setItem(STORAGE_KEYS.DISCOGS_REQUEST_TOKEN_SECRET, requestTokenSecret);
       window.location.href = authorizeUrl;
     } catch (err) {
@@ -100,7 +102,9 @@ export function useAuthHandler(
   };
 
   const handleLastfmConnect = () => {
-    const { apiKey } = getLastfmConfig();
+    const config = getLastfmConfig();
+    console.log('Last.fm config:', config);
+    const { apiKey } = config;
     setLoadingService('lastfm');
     setError(null);
     try {

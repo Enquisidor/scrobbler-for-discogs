@@ -1,5 +1,5 @@
 import type { Credentials, DiscogsRelease, QueueItem, DiscogsArtist } from '../types';
-import { getDiscogsConfig } from '../';
+import { getDiscogsConfig } from '../config';
 import { hmacSha1Base64, rfc3986encode as encode } from '../adapters/cryptoAdapter';
 
 // Custom Error types for specific API responses

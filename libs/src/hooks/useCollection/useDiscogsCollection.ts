@@ -25,9 +25,15 @@ const REQUEST_DELAY_MS = 3100;
 const API_SORT = 'added';
 const API_SORT_ORDER = 'desc';
 
+export interface DiscogsCollectionOptions {
+  /** Callback to run when force reload is triggered (e.g., to set a flag for metadata refetch) */
+  onForceReload?: () => void;
+}
+
 export function useDiscogsCollection(
   credentials: Credentials,
-  isConnected: boolean
+  isConnected: boolean,
+  options: DiscogsCollectionOptions = {}
 ) {
   const dispatch = useDispatch();
   const { collection: fullCollection, isLoading, isSyncing, error, isAuthError } = useSelector(
@@ -168,8 +174,9 @@ export function useDiscogsCollection(
 
   const forceReload = useCallback(() => {
     if (!isConnected) return;
+    options.onForceReload?.();
     setReloadTrigger(c => c + 1);
-  }, [isConnected]);
+  }, [isConnected, options]);
 
   return {
     collection: fullCollection,
