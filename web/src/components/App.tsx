@@ -2,17 +2,17 @@
 import React from 'react';
 import MainScreen from './MainScreen';
 import ErrorBoundary from './misc/ErrorBoundary';
-import { useCredentials } from '../hooks/useAuth/useCredentials';
-import { useSettings } from '../hooks/useSettings';
+import { useCredentials } from '@libs';
+import { useSettings } from '@libs';
 
 export default function App() {
-  const { 
-    credentials, 
-    onCredentialsChange, 
-    handleDiscogsLogout, 
-    handleLastfmLogout 
+  const {
+    credentials,
+    onCredentialsChange,
+    handleDiscogsLogout,
+    handleLastfmLogout
   } = useCredentials();
-  
+
   const { settings, onSettingsChange } = useSettings();
 
   return (

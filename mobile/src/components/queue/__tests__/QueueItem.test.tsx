@@ -19,7 +19,7 @@ import { QueueItem } from '../QueueItem';
 import {
   createMockQueueItemWithTracks,
   defaultSettings,
-} from '../../../__tests__/testUtils';
+} from '../../../../../libs/src/__tests__/testUtils';
 
 describe('QueueItem', () => {
   const defaultProps = {

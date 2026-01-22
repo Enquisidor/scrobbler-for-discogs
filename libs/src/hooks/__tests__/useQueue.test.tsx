@@ -18,7 +18,7 @@ import {
   connectedCredentials,
   defaultSettings,
 } from '../../__tests__/testUtils';
-import type { DiscogsRelease } from '@libs';
+import type { DiscogsRelease } from '../../types';
 
 // Mock the services
 jest.mock('../../services/discogsService', () => ({

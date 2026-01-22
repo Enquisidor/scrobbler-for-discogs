@@ -17,7 +17,7 @@ import { QueueSheet } from '../QueueSheet';
 import {
   createMockQueueItemWithTracks,
   defaultSettings,
-} from '../../../__tests__/testUtils';
+} from '../../../../../libs/src/__tests__/testUtils';
 
 describe('QueueSheet', () => {
   const defaultProps = {

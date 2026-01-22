@@ -14,7 +14,7 @@ import CollectionFilters from './collection/CollectionFilters';
 import { useAuthHandler } from '../hooks/useAuth/useAuthHandler';
 import { useDiscogsCollection } from '../hooks/useCollection/useDiscogsCollection';
 import { useCollectionFilters } from '../hooks/useCollection/useCollectionFilters';
-import { useQueue } from '../hooks/useQueue';
+import { useQueue } from '@libs';
 import { useMetadataFetcher } from '../hooks/useMetadata/useMetadataFetcher';
 import { applyMetadataCorrections } from '../libs';
 

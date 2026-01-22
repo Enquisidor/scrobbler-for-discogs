@@ -2,8 +2,8 @@ import { useMemo, useCallback, useEffect, useState } from 'react';
 import { useDispatch, useSelector } from 'react-redux';
 import { fetchReleaseTracklist } from '../services/discogsService';
 import { scrobbleTracks as scrobbleLastfmTracks } from '../services/lastfmService';
-import type { Credentials, DiscogsRelease, QueueItem, Settings } from '@libs';
-import { calculateScrobbleTimestamps, prepareTracksForScrobbling } from '@libs';
+import type { Credentials, DiscogsRelease, QueueItem, Settings } from '../types';
+import { calculateScrobbleTimestamps, prepareTracksForScrobbling } from '../utils/queueUtils';
 import type { RootState } from '../../../libs/src/store';
 import { useTrackSelection } from './useTrackSelection';
 import {

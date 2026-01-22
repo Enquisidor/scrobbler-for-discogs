@@ -19,7 +19,7 @@ export {
   createMockCollectionResponse,
   createMockFetch,
   waitForCondition,
-} from '@libs';
+} from './fixtures';
 
 // ==================== Redux Test Helpers ====================
 // Mobile-specific: uses local store slices

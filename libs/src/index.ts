@@ -42,5 +42,13 @@ export * from './services/musicbrainz/musicbrainzService';
 // Adapters
 export * from './adapters';
 
+// Hooks
+export * from './hooks/useSettings';
+export * from './hooks/useStorage';
+export * from './hooks/useCredentials/useCredentials';
+export * from './hooks/useCollection/useDiscogsCollection';
+export * from './hooks/useQueue';
+export * from './hooks/useTrackSelection';
+
 // Test fixtures (for shared testing)
 export * from './__tests__/fixtures';

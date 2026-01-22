@@ -10,7 +10,7 @@ import { renderHook, act, waitFor } from '@testing-library/react-native';
 import * as WebBrowser from 'expo-web-browser';
 import * as AuthSession from 'expo-auth-session';
 import * as SecureStore from 'expo-secure-store';
-import { useAuthHandler } from '../useAuthHandler';
+import { useAuthHandler } from '../';
 import type { Credentials } from '@libs';
 import { STORAGE_KEYS } from '@libs';
 
@@ -26,8 +26,8 @@ jest.mock('../../../services/lastfmService', () => ({
 }));
 
 // Import mocked services
-import { getRequestToken, getAccessToken, getDiscogsIdentity } from '../../../services/discogsService';
-import { getLastfmSession } from '../../../services/lastfmService';
+import { getRequestToken, getAccessToken, getDiscogsIdentity } from '../../../../../libs/src/services/discogsService';
+import { getLastfmSession } from '../../../../../libs/src/services/lastfmService';
 
 // Use the actual storage keys from config
 const DISCOGS_REQUEST_TOKEN_SECRET_KEY = STORAGE_KEYS.DISCOGS_REQUEST_TOKEN_SECRET;

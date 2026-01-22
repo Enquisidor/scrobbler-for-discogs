@@ -1,5 +1,6 @@
-import { useStorage } from '../../../libs/src/hooks/useStorage';
-import type { Settings } from '@libs';
+import { useStorage } from './useStorage';
+import type { Settings } from '../types';
+
 
 const initialSettings: Settings = {
   selectAllTracksPerRelease: true,
@@ -16,17 +17,13 @@ const initialSettings: Settings = {
  */
 export function useSettings() {
   const [settings, setSettings, { isLoading }] = useStorage<Settings>(
-    'vinyl-scrobbler-settings',
+    'scrobbler-for-discogs-settings',
     initialSettings
   );
-
-  const onSettingsChange = async (newSettings: Settings | ((prev: Settings) => Settings)) => {
-    await setSettings(newSettings);
-  };
 
   return {
     settings,
     isLoading,
-    onSettingsChange,
+    onSettingsChange: setSettings,
   };
 }

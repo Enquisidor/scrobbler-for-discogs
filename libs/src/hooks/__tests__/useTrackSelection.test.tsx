@@ -19,7 +19,7 @@ import {
   createMockQueueItemWithFeatures,
   defaultSettings,
 } from '../../__tests__/testUtils';
-import type { QueueItem, Settings } from '@libs';
+import type { QueueItem, Settings } from '../../types';
 
 // Wrapper component for providing Redux store
 const createWrapper = (store: ReturnType<typeof createTestStore>) => {

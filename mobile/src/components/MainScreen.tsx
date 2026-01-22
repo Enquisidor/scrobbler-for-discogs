@@ -7,10 +7,10 @@ import type { DiscogsRelease, SortOption } from '@libs';
 import { applyMetadataCorrections, SortOption as SortOptionEnum } from '@libs';
 
 // Hooks
-import { useCredentials } from '../hooks/useAuth/useCredentials';
+import { useCredentials } from '../../../libs/src/hooks/useCredentials/useCredentials';
 import { useAuthHandler } from '../hooks/useAuth/useAuthHandler';
-import { useSettings } from '../hooks/useSettings';
-import { useDiscogsCollection } from '../hooks/useCollection/useDiscogsCollection';
+import { useSettings } from '@libs';
+import { useDiscogsCollection } from '../../../libs/src/hooks/useCollection/useDiscogsCollection';
 import { useCollectionFilters } from '../hooks/useCollection/useCollectionFilters';
 
 // Components

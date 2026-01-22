@@ -1,6 +1,6 @@
 import { useMemo, useCallback, useEffect } from 'react';
 import { useDispatch, useSelector } from 'react-redux';
-import type { QueueItem, Settings } from '@libs';
+import type { QueueItem, Settings } from '../types';
 import type { RootState } from '../../../libs/src/store';
 import {
   autoUpdateFeatures,

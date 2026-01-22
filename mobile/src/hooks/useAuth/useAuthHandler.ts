@@ -2,10 +2,10 @@ import { useState, useCallback, useRef } from 'react';
 import * as AuthSession from 'expo-auth-session';
 import * as WebBrowser from 'expo-web-browser';
 import * as SecureStore from 'expo-secure-store';
-import { getAccessToken, getDiscogsIdentity, getRequestToken } from '../../services/discogsService';
-import { getLastfmSession } from '../../services/lastfmService';
-import type { Credentials } from '@libs';
-import { getLastfmConfig, STORAGE_KEYS } from '@libs';
+import { getAccessToken, getDiscogsIdentity, getRequestToken } from '../../../../libs/src/services/discogsService';
+import { getLastfmSession } from '../../../../libs/src/services/lastfmService';
+import type { Credentials } from '../../../../libs/src/types';
+import { getLastfmConfig, STORAGE_KEYS } from '../../../../libs/src';
 
 // Ensure browser sessions are properly cleaned up
 WebBrowser.maybeCompleteAuthSession();

@@ -1,5 +1,5 @@
-import { useStorage } from '../../../../libs/src/hooks/useStorage';
-import type { Credentials } from '@libs';
+import { useStorage } from '../useStorage';
+import type { Credentials } from '../../types';
 
 const initialCredentials: Credentials = {
   discogsUsername: '',
