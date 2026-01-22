@@ -38,6 +38,8 @@ export * from './utils/trackGroupUtils';
 // Services
 export * from './services/appleMusic/appleMusicService';
 export * from './services/musicbrainz/musicbrainzService';
+export * from './services/discogsService';
+export * from './services/lastfmService';
 
 // Adapters
 export * from './adapters';

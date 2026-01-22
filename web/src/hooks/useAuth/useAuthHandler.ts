@@ -1,8 +1,6 @@
 import { useState, useEffect, useRef } from 'react';
-import { getAccessToken, getDiscogsIdentity, getRequestToken } from '../../services/discogsService';
-import { getLastfmSession } from '../../services/lastfmService';
+import { getLastfmConfig, STORAGE_KEYS, getLastfmSession, getAccessToken, getDiscogsIdentity, getRequestToken } from '@libs';
 import type { Credentials } from '@libs';
-import { getLastfmConfig, STORAGE_KEYS } from '@libs';
 
 export function useAuthHandler(
   credentials: Credentials,
@@ -85,14 +83,14 @@ export function useAuthHandler(
       effectRan.current = true;
       completeLastfmAuth(lastfmToken);
     }
-  // eslint-disable-next-line react-hooks/exhaustive-deps
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
   const handleDiscogsConnect = async () => {
     setLoadingService('discogs');
     setError(null);
     try {
-      const { requestToken, requestTokenSecret, authorizeUrl } = await getRequestToken();
+      const { requestTokenSecret, authorizeUrl } = await getRequestToken("");
       sessionStorage.setItem(STORAGE_KEYS.DISCOGS_REQUEST_TOKEN_SECRET, requestTokenSecret);
       window.location.href = authorizeUrl;
     } catch (err) {
