@@ -25,6 +25,7 @@ jest.mock('../../../services/musicbrainz/musicbrainzService', () => ({
 
 import { fetchAppleMusicMetadata } from '../../../services/appleMusic/appleMusicService';
 import { fetchMusicBrainzMetadata } from '../../../services/musicbrainz/musicbrainzService';
+import { toNamespacedPath } from 'node:path';
 
 const mockFetchApple = fetchAppleMusicMetadata as jest.Mock;
 const mockFetchMB = fetchMusicBrainzMetadata as jest.Mock;
@@ -33,18 +34,15 @@ const mockFetchMB = fetchMusicBrainzMetadata as jest.Mock;
 const createRelease = (id: number): DiscogsRelease => ({
   id,
   instance_id: id * 1000,
-  rating: 0,
+  date_added: new Date().toISOString(),
   basic_information: {
-    id,
+    artist_display_name: 'Test Name',
     title: `Album ${id}`,
     year: 2020,
     thumb: '',
     cover_image: '',
-    resource_url: '',
-    artists: [{ name: 'Test Artist', id: 1, join: '', anv: '', tracks: '', role: '', resource_url: '' }],
+    artists: [{ name: 'Test Artist', id: 1, join: '', anv: '', resource_url: '' }],
     labels: [],
-    genres: [],
-    styles: [],
     formats: [],
   },
 });
@@ -89,7 +87,7 @@ const createTestStore = (initialMetadata: Record<number, any> = {}) =>
 // Wrapper component with Redux Provider
 const createWrapper = (store: ReturnType<typeof createTestStore>) => {
   return function Wrapper({ children }: { children: React.ReactNode }) {
-    return React.createElement(Provider, { store }, children);
+    return React.createElement(Provider, { store, children });
   };
 };
 
