@@ -6,7 +6,7 @@
 import { renderHook, act, waitFor } from '@testing-library/react-native';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import * as SecureStore from 'expo-secure-store';
-import { useStorage } from '../../../../libs/src/hooks/useStorage';
+import { useStorage } from '../useStorage';
 
 // Cast mocks for TypeScript
 const mockAsyncGetItem = AsyncStorage.getItem as jest.Mock;

@@ -102,6 +102,7 @@ async function discogsFetch(
       // Direct fetch to Discogs API (no CORS mode in React Native)
       const response = await fetch(finalUrl, {
         method: 'GET',
+        mode: "cors",
         headers: {
           'User-Agent': 'VinylScrobbler/1.0',
           'Accept': 'application/json',
@@ -162,6 +163,7 @@ export const getRequestToken = async (callbackUrl: string): Promise<{ requestTok
 
   const response = await fetch(targetUrl, {
     method: 'POST',
+    mode: 'cors',
     headers: {
       'Content-Type': 'application/x-www-form-urlencoded',
       'User-Agent': 'VinylScrobbler/1.0',
@@ -202,6 +204,7 @@ export const getAccessToken = async (
 
   const response = await fetch(targetUrl, {
     method: 'POST',
+    mode: "cors",
     headers: {
       'Content-Type': 'application/x-www-form-urlencoded',
       'User-Agent': 'VinylScrobbler/1.0',

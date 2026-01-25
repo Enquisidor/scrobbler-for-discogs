@@ -46,12 +46,12 @@ export * from './adapters';
 
 // Hooks
 export * from './hooks/useSettings';
-export * from './hooks/useStorage';
+export * from './hooks/useStorage/useStorage';
 export * from './hooks/useCredentials/useCredentials';
 export * from './hooks/useCollection/useDiscogsCollection';
 export * from './hooks/useCollection/useCollectionFilters';
 export * from './hooks/useMetadata/useMetadataFetcher';
 export * from './hooks/useQueue';
 export * from './hooks/useTrackSelection';
-export * from './hooks/useHydrateStore';
-export * from './hooks/useVisibleItems';
+export * from './hooks/useStorage/useHydrateStore';
+export * from './hooks/useMetadata/useVisibleItems';

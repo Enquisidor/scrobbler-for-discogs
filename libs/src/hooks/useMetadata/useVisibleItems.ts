@@ -1,4 +1,10 @@
-import { useState, useCallback, useRef, useMemo } from 'react';
+import { useState, useCallback, useRef } from 'react';
+
+// Hardcoded viewability config for FlatList
+const VIEWABILITY_CONFIG = {
+  itemVisiblePercentThreshold: 50, // Item is "visible" if 50% is on screen
+  minimumViewTime: 100, // Must be visible for 100ms to count
+};
 
 /**
  * Hook to track which items are currently visible on screen.
@@ -32,18 +38,9 @@ export function useVisibleItems() {
     []
   );
 
-  // Memoized config for FlatList
-  const viewabilityConfig = useMemo(
-    () => ({
-      itemVisiblePercentThreshold: 50, // Item is "visible" if 50% is on screen
-      minimumViewTime: 100, // Must be visible for 100ms to count
-    }),
-    []
-  );
-
   return {
     visibleIds,
     onViewableItemsChanged,
-    viewabilityConfig,
+    viewabilityConfig: VIEWABILITY_CONFIG,
   };
 }

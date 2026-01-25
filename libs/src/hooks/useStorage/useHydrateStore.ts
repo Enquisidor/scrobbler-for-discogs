@@ -1,8 +1,8 @@
 import { useEffect, useState } from 'react';
 import { useDispatch } from 'react-redux';
 import AsyncStorage from '@react-native-async-storage/async-storage';
-import { hydrateMetadata } from '../store/metadataSlice';
-import { hydrateCollection, setHydrated } from '../store/collectionSlice';
+import { hydrateMetadata } from '../../store/metadataSlice';
+import { hydrateCollection, setHydrated } from '../../store/collectionSlice';
 
 const METADATA_STORAGE_KEY = 'vinyl-scrobbler-metadata-v2';
 const COLLECTION_STORAGE_KEY = 'vinyl-scrobbler-collection-v1';

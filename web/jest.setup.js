@@ -1,45 +1,44 @@
-// Jest setup file for React Native / Expo
-// Note: jest-expo preset already handles core expo mocks via its setup.js
-// We only need to add mocks for specific modules we're testing
-
+// Jest setup file for Web
 // Enable Immer MapSet plugin for Redux slices that use Set
 const { enableMapSet } = require('immer');
 enableMapSet();
 
-// Mock expo-crypto with working implementations for testing
-jest.mock('expo-crypto', () => ({
-  CryptoDigestAlgorithm: {
-    MD5: 'MD5',
-    SHA1: 'SHA-1',
-    SHA256: 'SHA-256',
-  },
-  CryptoEncoding: {
-    HEX: 'hex',
-    BASE64: 'base64',
-  },
-  digestStringAsync: jest.fn(async (algorithm, message, options) => {
-    // Use crypto-js for actual MD5 computation in tests
-    const CryptoJS = require('crypto-js');
-    if (algorithm === 'MD5') {
-      return CryptoJS.MD5(message).toString();
-    }
-    // Fallback for other algorithms
-    return 'mock-hash';
-  }),
-}));
+// Mock window.location
+const mockLocation = {
+  href: 'http://localhost:3000/',
+  pathname: '/',
+  search: '',
+  replace: jest.fn(),
+};
+delete window.location;
+window.location = mockLocation;
 
-// Mock expo-secure-store with jest.requireActual for partial mocking
-jest.mock('expo-secure-store', () => {
-  const actual = jest.requireActual('expo-secure-store');
-  return {
-    ...actual,
-    getItemAsync: jest.fn(),
-    setItemAsync: jest.fn(),
-    deleteItemAsync: jest.fn(),
-  };
+// Mock window.history
+window.history.replaceState = jest.fn();
+
+// Mock sessionStorage
+const sessionStorageMock = {
+  getItem: jest.fn(),
+  setItem: jest.fn(),
+  removeItem: jest.fn(),
+  clear: jest.fn(),
+};
+Object.defineProperty(window, 'sessionStorage', {
+  value: sessionStorageMock,
 });
 
-// Mock @react-native-async-storage/async-storage
+// Mock localStorage (used by AsyncStorage web implementation)
+const localStorageMock = {
+  getItem: jest.fn(),
+  setItem: jest.fn(),
+  removeItem: jest.fn(),
+  clear: jest.fn(),
+};
+Object.defineProperty(window, 'localStorage', {
+  value: localStorageMock,
+});
+
+// Mock @react-native-async-storage/async-storage for web
 jest.mock('@react-native-async-storage/async-storage', () => ({
   getItem: jest.fn(),
   setItem: jest.fn(),
@@ -48,26 +47,9 @@ jest.mock('@react-native-async-storage/async-storage', () => ({
   getAllKeys: jest.fn(),
 }));
 
-// Mock expo-auth-session with jest.requireActual for partial mocking
-jest.mock('expo-auth-session', () => {
-  const actual = jest.requireActual('expo-auth-session');
-  return {
-    ...actual,
-    makeRedirectUri: jest.fn(() => 'scrobbler-for-discogs://callback'),
-    useAuthRequest: jest.fn(),
-    ResponseType: { Token: 'token' },
-  };
-});
-
-// Mock expo-web-browser with jest.requireActual for partial mocking
-jest.mock('expo-web-browser', () => {
-  const actual = jest.requireActual('expo-web-browser');
-  return {
-    ...actual,
-    maybeCompleteAuthSession: jest.fn(),
-    openAuthSessionAsync: jest.fn(),
-  };
-});
-
-// Silence console warnings during tests (optional)
-// global.console.warn = jest.fn();
+// Mock crypto-js for MD5 hashing
+jest.mock('crypto-js', () => ({
+  MD5: jest.fn((message) => ({
+    toString: () => 'mock-md5-hash',
+  })),
+}));

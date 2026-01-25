@@ -1,4 +1,4 @@
-import { useStorage } from './useStorage';
+import { useStorage } from './useStorage/useStorage';
 import type { Settings } from '../types';
 
 
