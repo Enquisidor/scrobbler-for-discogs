@@ -13,6 +13,7 @@ import {
   useCollectionFilters,
   useMetadataFetcher,
   useQueue,
+  useVisibleItems,
 } from '@libs';
 
 // Hooks
@@ -70,6 +71,9 @@ export const MainScreen: React.FC = () => {
   // Redux selectors
   const metadata = useSelector((state: RootState) => state.metadata.data);
 
+  // Visible items tracking for priority metadata fetching
+  const { visibleIds, onViewableItemsChanged, viewabilityConfig } = useVisibleItems();
+
   // Show notification helper
   const showNotification = useCallback((message: string, type: 'success' | 'error' = 'success') => {
     setNotification({ message, type });
@@ -119,8 +123,8 @@ export const MainScreen: React.FC = () => {
     return applyMetadataCorrections(collection, metadata, settings);
   }, [collection, metadata, settings]);
 
-  // Background metadata fetching
-  useMetadataFetcher(collection, settings);
+  // Background metadata fetching - only for visible items
+  useMetadataFetcher(collection, settings, { visibleIds });
 
   // Collection filters
   const {
@@ -218,6 +222,8 @@ export const MainScreen: React.FC = () => {
           settings={settings}
           metadata={metadata}
           numColumns={albumsPerRow}
+          onViewableItemsChanged={onViewableItemsChanged}
+          viewabilityConfig={viewabilityConfig}
         />
       </View>
 

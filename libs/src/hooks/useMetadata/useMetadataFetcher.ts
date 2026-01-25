@@ -19,6 +19,8 @@ export interface MetadataFetcherOptions {
   checkForceFetch?: () => boolean;
   /** Function to clear the force fetch flag */
   clearForceFetch?: () => void;
+  /** Set of release IDs currently visible on screen - only these will be fetched */
+  visibleIds?: Set<number>;
 }
 
 export function useMetadataFetcher(
@@ -29,6 +31,8 @@ export function useMetadataFetcher(
   const dispatch = useDispatch();
   const metadata = useSelector((state: RootState) => state.metadata.data);
   const isHydrated = useSelector((state: RootState) => state.metadata.isHydrated);
+
+  const visibleIdsRef = useRef<Set<number>>(options.visibleIds || new Set());
 
   const queueRef = useRef<number[]>([]);
   const activeCountRef = useRef(0);
@@ -51,7 +55,8 @@ export function useMetadataFetcher(
     collectionRef.current = collection;
     metadataRef.current = metadata;
     settingsRef.current = settings;
-  }, [collection, metadata, settings]);
+    visibleIdsRef.current = options.visibleIds || new Set();
+  }, [collection, metadata, settings, options.visibleIds]);
 
   useEffect(() => {
     mountedRef.current = true;
@@ -226,8 +231,15 @@ export function useMetadataFetcher(
     const now = Date.now();
     let addedCount = 0;
 
+    // Only process visible items if visibleIds is provided
+    const visibleIds = visibleIdsRef.current;
+    const hasVisibleFilter = visibleIds.size > 0;
+
     collection.forEach(release => {
       const releaseId = release.id;
+
+      // Skip items not currently visible (if visibility tracking is enabled)
+      if (hasVisibleFilter && !visibleIds.has(releaseId)) return;
 
       if (queuedSetRef.current.has(releaseId)) return;
       if (activeSetRef.current.has(releaseId)) return;
@@ -254,5 +266,5 @@ export function useMetadataFetcher(
       dispatcherIntervalRef.current = setInterval(processQueue, DISPATCH_INTERVAL_MS);
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [collection, settings, isHydrated]);
+  }, [collection, settings, isHydrated, options.visibleIds]);
 }

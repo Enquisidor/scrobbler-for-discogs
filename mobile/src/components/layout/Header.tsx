@@ -46,30 +46,6 @@ export const Header: React.FC<HeaderProps> = ({
           <Text style={styles.title}>{STRINGS.APP_NAME}</Text>
           {isSyncing && <ActivityIndicator size="small" color={colors.gray[400]} />}
         </View>
-        <View style={styles.utilityButtons}>
-          {/* Refresh Button */}
-          {isDiscogsConnected && (
-            <Pressable
-              style={[styles.iconButton, (isSyncing || isCollectionLoading) && styles.iconButtonDisabled]}
-              onPress={handleForceReload}
-              disabled={isSyncing || isCollectionLoading}
-            >
-              <RefreshIcon size={24} color={colors.gray[400]} />
-            </Pressable>
-          )}
-          {/* Settings Button */}
-          <Pressable style={styles.iconButton} onPress={onSettingsOpen}>
-            <SettingsIcon size={24} color={colors.gray[400]} />
-          </Pressable>
-          {/* Album count */}
-          {isDiscogsConnected && totalCount !== undefined && (
-            <Text style={styles.albumCount}>
-              {isFiltered && filteredCount !== undefined
-                ? `${filteredCount} / ${totalCount}`
-                : `${totalCount}`}
-            </Text>
-          )}
-        </View>
       </View>
 
       {/* Bottom row: Connection buttons */}
@@ -117,6 +93,31 @@ export const Header: React.FC<HeaderProps> = ({
             </View>
           )}
         </Pressable>
+      </View>
+
+      <View style={styles.utilityButtons}>
+        {/* Refresh Button */}
+        {isDiscogsConnected && (
+          <Pressable
+            style={[styles.iconButton, (isSyncing || isCollectionLoading) && styles.iconButtonDisabled]}
+            onPress={handleForceReload}
+            disabled={isSyncing || isCollectionLoading}
+          >
+            <RefreshIcon size={24} color={colors.gray[400]} />
+          </Pressable>
+        )}
+        {/* Settings Button */}
+        <Pressable style={styles.iconButton} onPress={onSettingsOpen}>
+          <SettingsIcon size={24} color={colors.gray[400]} />
+        </Pressable>\
+        {/* Album count */}
+        {isDiscogsConnected && totalCount !== undefined && (
+          <Text style={styles.albumCount}>
+            {isFiltered && filteredCount !== undefined
+              ? `${filteredCount} / ${totalCount}`
+              : `${totalCount}`}
+          </Text>
+        )}
       </View>
     </View>
   );

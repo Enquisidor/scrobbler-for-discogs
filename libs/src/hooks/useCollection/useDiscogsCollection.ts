@@ -12,7 +12,8 @@ import {
   clearError,
   setAuthError,
   setError,
-  resetCollection
+  resetCollection,
+  setHydrated
 } from '../../store/collectionSlice';
 
 const PAGE_SIZE = 50;
@@ -36,7 +37,7 @@ export function useDiscogsCollection(
   options: DiscogsCollectionOptions = {}
 ) {
   const dispatch = useDispatch();
-  const { collection: fullCollection, isLoading, isSyncing, error, isAuthError } = useSelector(
+  const { collection: fullCollection, isLoading, isSyncing, error, isAuthError, isHydrated, lastSynced } = useSelector(
     (state: RootState) => state.collection
   );
 
@@ -122,6 +123,13 @@ export function useDiscogsCollection(
         return;
       }
 
+      // If we have hydrated collection data from cache, skip the initial API fetch
+      // User can still force reload via pull-to-refresh
+      if (isHydrated && fullCollection.length > 0 && reloadTrigger === 0) {
+        console.log('Collection already hydrated from cache, skipping API fetch');
+        return;
+      }
+
       dispatch(startLoading());
       pagesToFetchRef.current = [];
       activeFetchesRef.current = 0;
@@ -170,7 +178,7 @@ export function useDiscogsCollection(
       aborted = true;
     };
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [isConnected, credentials.discogsUsername, reloadTrigger]);
+  }, [isConnected, credentials.discogsUsername, reloadTrigger, isHydrated]);
 
   const forceReload = useCallback(() => {
     if (!isConnected) return;

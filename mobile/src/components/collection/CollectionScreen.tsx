@@ -1,4 +1,4 @@
-import React, { useMemo, useCallback } from 'react';
+import React, { useMemo, useCallback, useRef } from 'react';
 import {
   View,
   Text,
@@ -8,6 +8,8 @@ import {
   Pressable,
   useWindowDimensions,
   RefreshControl,
+  ViewToken,
+  ViewabilityConfig,
 } from 'react-native';
 import type { DiscogsRelease, QueueItem, Settings, CombinedMetadata } from '@libs';
 import { AlbumCard } from './AlbumCard';
@@ -32,6 +34,8 @@ interface CollectionScreenProps {
   metadata: Record<number, CombinedMetadata>;
   numColumns?: number;
   testID?: string;
+  onViewableItemsChanged?: (info: { viewableItems: ViewToken[]; changed: ViewToken[] }) => void;
+  viewabilityConfig?: ViewabilityConfig;
 }
 
 export const CollectionScreen: React.FC<CollectionScreenProps> = ({
@@ -53,7 +57,15 @@ export const CollectionScreen: React.FC<CollectionScreenProps> = ({
   metadata,
   numColumns = 3,
   testID,
+  onViewableItemsChanged,
+  viewabilityConfig,
 }) => {
+  // Create stable ref for viewability callback (required by FlatList)
+  const viewabilityConfigCallbackPairs = useRef(
+    onViewableItemsChanged && viewabilityConfig
+      ? [{ viewabilityConfig, onViewableItemsChanged }]
+      : undefined
+  );
   const { width } = useWindowDimensions();
 
   // Calculate item dimensions
@@ -187,6 +199,8 @@ export const CollectionScreen: React.FC<CollectionScreenProps> = ({
           colors={['#3b82f6']}
         />
       }
+      // Viewability tracking for metadata fetching
+      viewabilityConfigCallbackPairs={viewabilityConfigCallbackPairs.current}
       // Performance optimizations
       removeClippedSubviews={true}
       maxToRenderPerBatch={10}

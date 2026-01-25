@@ -28,6 +28,7 @@ export const store = configureStore({
 
 // Debounced save to AsyncStorage
 let saveTimeout: NodeJS.Timeout | null = null;
+let lastCollectionLength = 0;
 
 store.subscribe(() => {
   const state = store.getState();
@@ -37,12 +38,26 @@ store.subscribe(() => {
 
   saveTimeout = setTimeout(async () => {
     try {
+      // Save metadata
       await AsyncStorage.setItem(
         'vinyl-scrobbler-metadata-v2',
         JSON.stringify(state.metadata.data)
       );
+
+      // Save collection only when it changes and sync is complete
+      const currentCollectionLength = state.collection.collection.length;
+      if (!state.collection.isSyncing && currentCollectionLength > 0 && currentCollectionLength !== lastCollectionLength) {
+        lastCollectionLength = currentCollectionLength;
+        await AsyncStorage.setItem(
+          'vinyl-scrobbler-collection-v1',
+          JSON.stringify({
+            collection: state.collection.collection,
+            lastSynced: Date.now(),
+          })
+        );
+      }
     } catch (error) {
-      console.error('Failed to save metadata to AsyncStorage:', error);
+      console.error('Failed to save to AsyncStorage:', error);
     }
   }, 1000); // Save 1 second after last change
 });

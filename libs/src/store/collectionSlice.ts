@@ -9,6 +9,8 @@ export interface CollectionState {
   isSyncing: boolean;
   error: string | null;
   isAuthError: boolean;
+  isHydrated: boolean;
+  lastSynced: number | null;
 }
 
 export const initialCollectionState: CollectionState = {
@@ -17,6 +19,8 @@ export const initialCollectionState: CollectionState = {
   isSyncing: false,
   error: null,
   isAuthError: false,
+  isHydrated: false,
+  lastSynced: null,
 };
 
 // Helper to format raw releases before entering the store
@@ -85,7 +89,17 @@ const collectionSlice = createSlice({
       state.isSyncing = false;
     },
     resetCollection() {
-      return { ...initialCollectionState, isLoading: false };
+      return { ...initialCollectionState, isHydrated: true };
+    },
+    // Hydrate collection from AsyncStorage
+    hydrateCollection(state, action: PayloadAction<{ collection: DiscogsRelease[]; lastSynced: number }>) {
+      state.collection = action.payload.collection;
+      state.lastSynced = action.payload.lastSynced;
+      state.isHydrated = true;
+      state.isLoading = false;
+    },
+    setHydrated(state) {
+      state.isHydrated = true;
     },
   },
 });
@@ -100,6 +114,8 @@ export const {
   clearError,
   setAuthError,
   resetCollection,
+  hydrateCollection,
+  setHydrated,
 } = collectionSlice.actions;
 
 export default collectionSlice.reducer;

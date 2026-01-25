@@ -1,8 +1,9 @@
 import React from 'react';
 import { StatusBar } from 'expo-status-bar';
+import { View, ActivityIndicator, StyleSheet } from 'react-native';
 import { Provider } from 'react-redux';
 import { SafeAreaProvider } from 'react-native-safe-area-context';
-import { initConfig } from '@libs';
+import { initConfig, useHydrateStore } from '@libs';
 import {
   DISCOGS_PERSONAL_ACCESS_TOKEN,
   DISCOGS_CONSUMER_KEY,
@@ -22,12 +23,40 @@ initConfig({
   LASTFM_SECRET,
 });
 
+// Inner component that uses hooks (must be inside Provider)
+function AppContent() {
+  const isHydrated = useHydrateStore();
+
+  if (!isHydrated) {
+    return (
+      <View style={styles.loadingContainer}>
+        <ActivityIndicator size="large" color="#3b82f6" />
+      </View>
+    );
+  }
+
+  return (
+    <>
+      <MainScreen />
+      <StatusBar style="light" />
+    </>
+  );
+}
+
+const styles = StyleSheet.create({
+  loadingContainer: {
+    flex: 1,
+    justifyContent: 'center',
+    alignItems: 'center',
+    backgroundColor: '#121212',
+  },
+});
+
 export default function App() {
   return (
     <Provider store={store}>
       <SafeAreaProvider>
-        <MainScreen />
-        <StatusBar style="light" />
+        <AppContent />
       </SafeAreaProvider>
     </Provider>
   );

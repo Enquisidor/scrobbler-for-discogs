@@ -53,3 +53,5 @@ export * from './hooks/useCollection/useCollectionFilters';
 export * from './hooks/useMetadata/useMetadataFetcher';
 export * from './hooks/useQueue';
 export * from './hooks/useTrackSelection';
+export * from './hooks/useHydrateStore';
+export * from './hooks/useVisibleItems';

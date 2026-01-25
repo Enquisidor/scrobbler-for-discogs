@@ -2,10 +2,12 @@
 import React from 'react';
 import MainScreen from './MainScreen';
 import ErrorBoundary from './misc/ErrorBoundary';
-import { useCredentials } from '@libs';
-import { useSettings } from '@libs';
+import { useCredentials, useSettings, useHydrateStore } from '@libs';
+import { Loader } from './misc/Loader';
 
 export default function App() {
+  const isHydrated = useHydrateStore();
+
   const {
     credentials,
     onCredentialsChange,
@@ -14,6 +16,14 @@ export default function App() {
   } = useCredentials();
 
   const { settings, onSettingsChange } = useSettings();
+
+  if (!isHydrated) {
+    return (
+      <div className="min-h-screen bg-gray-900 flex items-center justify-center">
+        <Loader />
+      </div>
+    );
+  }
 
   return (
     <ErrorBoundary>
