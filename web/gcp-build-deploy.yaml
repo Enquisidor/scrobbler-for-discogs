@@ -1,0 +1,42 @@
+steps:
+  # Build the React app
+  - name: "gcr.io/cloud-builders/npm"
+    args: ["install"]
+  - name: "gcr.io/cloud-builders/npm"
+    args: ["run", "build"]
+
+  # Build the Docker image
+  - name: "gcr.io/cloud-builders/docker"
+    args:
+      [
+        "build",
+        "-t",
+        "gcr.io/gen-lang-client-0757852364/scrobbler-for-discogs",
+        ".",
+      ]
+
+  # Push the Docker image
+  - name: "gcr.io/cloud-builders/docker"
+    args:
+      [
+        "push",
+        "gcr.io/gen-lang-client-0757852364/scrobbler-for-discogs-react-app",
+      ]
+
+  # Deploy to Cloud Run
+  - name: "gcr.io/google.com/cloudsdktool/cloud-sdk"
+    entrypoint: gcloud
+    args:
+      - "run"
+      - "deploy"
+      - "scrobbler-for-dicsogs"
+      - "--image"
+      - "gcr.io/gen-lang-client-0757852364/my-react-app"
+      - "--region"
+      - "us-central1"
+      - "--platform"
+      - "managed"
+      - "--allow-unauthenticated"
+
+images:
+  - "gcr.io/gen-lang-client-0757852364/scrobbler-for-discogs-react-app"
