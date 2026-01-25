@@ -3,7 +3,7 @@ import { View, StyleSheet } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { useSelector } from 'react-redux';
 import type { RootState } from '@libs';
-import type { DiscogsRelease, SortOption } from '@libs';
+import type { SortOption } from '@libs';
 import {
   applyMetadataCorrections,
   SortOption as SortOptionEnum,
@@ -12,6 +12,7 @@ import {
   useDiscogsCollection,
   useCollectionFilters,
   useMetadataFetcher,
+  useQueue,
 } from '@libs';
 
 // Hooks
@@ -67,8 +68,6 @@ export const MainScreen: React.FC = () => {
   const [sortOption, setSortOption] = useState<SortOption>(SortOptionEnum.AddedNewest);
 
   // Redux selectors
-  const queue = useSelector((state: RootState) => state.queue.queue);
-  const scrobbledHistory = useSelector((state: RootState) => state.queue.scrobbledHistory);
   const metadata = useSelector((state: RootState) => state.metadata.data);
 
   // Show notification helper
@@ -76,6 +75,33 @@ export const MainScreen: React.FC = () => {
     setNotification({ message, type });
     setTimeout(() => setNotification(null), 5000);
   }, []);
+
+  // Queue management
+  const {
+    queue,
+    scrobbledHistory,
+    selectedTracks,
+    selectedFeatures,
+    artistSelections,
+    isScrobbling,
+    totalSelectedTracks,
+    scrobbleTimestamps,
+    addAlbumToQueue,
+    removeLastInstanceOfAlbumFromQueue,
+    removeAllInstancesOfAlbumFromQueue,
+    removeAlbumInstanceFromQueue,
+    handleScrobbleModeToggle,
+    handleScrobble,
+    handleScrobbleSingleRelease,
+    handleSelectAll,
+    handleDeselectAll,
+    handleToggleGroup,
+    handleTrackToggle,
+    handleFeatureToggle,
+    handleArtistToggle,
+    handleToggleParent,
+    handleSelectParentAsSingle,
+  } = useQueue(credentials, settings, showNotification);
 
   // Queue handlers
   const handleOpenQueue = useCallback(() => {
@@ -112,29 +138,12 @@ export const MainScreen: React.FC = () => {
     setAlbumsPerRow,
   } = useCollectionFilters(collectionWithCorrections, sortOption, setSortOption, { defaultAlbumsPerRow: 3 });
 
-  // Placeholder handlers until full hooks are implemented
-  const handleAddAlbumToQueue = useCallback((release: DiscogsRelease) => {
-    // TODO: Implement via useQueue hook
-    console.log('Add to queue:', release.id);
-  }, []);
-
-  const handleRemoveLastInstance = useCallback((releaseId: number) => {
-    // TODO: Implement via useQueue hook
-    console.log('Remove last instance:', releaseId);
-  }, []);
-
-  const handleRemoveAllInstances = useCallback((releaseId: number) => {
-    // TODO: Implement via useQueue hook
-    console.log('Remove all instances:', releaseId);
-  }, []);
-
   const handleForceReload = useCallback(() => {
     forceDiscogsReload();
   }, [forceDiscogsReload]);
 
   // Calculate queue counts
   const queueCount = queue.length;
-  const totalSelectedTracks = 0; // TODO: Calculate from track selection state
 
   if (isCredentialsLoading) {
     return (
@@ -200,9 +209,9 @@ export const MainScreen: React.FC = () => {
           onLoadMore={() => { }}
           onRefresh={handleForceReload}
           isFiltered={isFiltered}
-          onAddAlbumToQueue={handleAddAlbumToQueue}
-          onRemoveLastInstanceOfAlbumFromQueue={handleRemoveLastInstance}
-          onRemoveAllInstancesOfAlbumFromQueue={handleRemoveAllInstances}
+          onAddAlbumToQueue={addAlbumToQueue}
+          onRemoveLastInstanceOfAlbumFromQueue={removeLastInstanceOfAlbumFromQueue}
+          onRemoveAllInstancesOfAlbumFromQueue={removeAllInstancesOfAlbumFromQueue}
           onConnectDiscogs={handleDiscogsConnect}
           isConnectingDiscogs={loadingService === 'discogs'}
           isDiscogsConnected={isDiscogsConnected}

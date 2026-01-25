@@ -48,8 +48,8 @@ describe('lastfmService', () => {
 
       const result = await getLastfmSession('api_key', 'secret', 'auth_token');
 
-      expect(result.name).toBe('testuser');
-      expect(result.key).toBe('session_key_123');
+      expect(result!.name).toBe('testuser');
+      expect(result!.key).toBe('session_key_123');
     });
 
     it('should call md5 with correct signature string', async () => {

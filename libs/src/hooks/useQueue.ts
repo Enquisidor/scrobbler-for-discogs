@@ -4,7 +4,7 @@ import { fetchReleaseTracklist } from '../services/discogsService';
 import { scrobbleTracks as scrobbleLastfmTracks } from '../services/lastfmService';
 import type { Credentials, DiscogsRelease, QueueItem, Settings } from '../types';
 import { calculateScrobbleTimestamps, prepareTracksForScrobbling } from '../utils/queueUtils';
-import type { RootState } from '../../../libs/src/store';
+import type { RootState } from '../store';
 import { useTrackSelection } from './useTrackSelection';
 import {
   addToQueue,
@@ -18,7 +18,7 @@ import {
   scrobbleSingleSuccess,
   scrobbleSuccess,
   setTimeOffset,
-} from '../../../libs/src/store/queueSlice';
+} from '../store/queueSlice';
 
 export function useQueue(
   credentials: Credentials,

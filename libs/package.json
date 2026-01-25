@@ -20,13 +20,17 @@
   "license": "ISC",
   "devDependencies": {
     "@babel/runtime": "^7.28.6",
+    "@react-native-async-storage/async-storage": "^2.1.2",
+    "@testing-library/react-native": "^13.3.3",
     "@types/crypto-js": "^4.2.2",
     "@types/jest": "^30.0.0",
     "@types/lodash": "^4.17.23",
     "@types/node": "^25.0.6",
     "@types/react": "^19.2.9",
+    "expo-secure-store": "^15.0.1",
     "jest": "^30.2.0",
     "react": "^19.0.0",
+    "react-redux": "^9.2.0",
     "typescript": "^5.9.3"
   },
   "peerDependencies": {

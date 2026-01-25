@@ -132,8 +132,8 @@ async function discogsFetch(
         }
       }
 
-      const errorData = await response.json().catch(() => ({ message: 'Unknown error' }));
-      throw new Error(`Discogs API Error: ${errorData.message} (Status: ${response.status})`);
+      const errorData = await response.json().catch(() => ({ message: 'Unknown error' })) as { message?: string };
+      throw new Error(`Discogs API Error: ${errorData.message || 'Unknown error'} (Status: ${response.status})`);
 
     } catch (error) {
       if (error instanceof DiscogsAuthError || error instanceof DiscogsRateLimitError) {

@@ -127,6 +127,10 @@ export function useAuthHandler(
         // Get session key
         const session = await getLastfmSession(apiKey, secret, token);
 
+        if (!session) {
+          throw new Error('Failed to get Last.fm session');
+        }
+
         // Save credentials
         await onCredentialsChange({
           lastfmApiKey: apiKey,

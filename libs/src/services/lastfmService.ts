@@ -16,7 +16,15 @@ const createLastfmSignature = async (params: Record<string, string>, secret: str
   return await md5(sigString);
 };
 
-const apiCall = async (params: Record<string, string>, secret?: string, method: 'GET' | 'POST' = 'GET') => {
+interface LastfmApiResponse {
+  error?: number;
+  message?: string;
+  session?: { key: string; name: string };
+  scrobbles?: unknown;
+  [key: string]: unknown;
+}
+
+const apiCall = async (params: Record<string, string>, secret?: string, method: 'GET' | 'POST' = 'GET'): Promise<LastfmApiResponse> => {
   const allParams: Record<string, string> = { ...params, format: 'json' };
 
   if (secret) {
@@ -30,7 +38,7 @@ const apiCall = async (params: Record<string, string>, secret?: string, method: 
   console.log('[Last.fm] API call:', method, url);
 
   const response = await fetch(url, { method });
-  const data = await response.json();
+  const data = await response.json() as LastfmApiResponse;
   console.log('[Last.fm] Response:', data);
 
   if (data.error) {
