@@ -1,28 +1,36 @@
-<<<<<<< HEAD
-# Use nginx to serve the static build
-FROM nginx:alpine
+# Multi-stage Dockerfile for monorepo web app
+# Build context should be repo root: docker build -f web/Dockerfile .
 
-# Copy the built app to nginx html directory
-COPY dist/ /usr/share/nginx/html/
-
-# Copy nginx config for SPA routing
-COPY nginx.conf /etc/nginx/conf.d/default.conf
-
-# Expose port 8080 (Cloud Run default)
-EXPOSE 8080
-
-=======
-# Stage 1: Build the React application
-FROM node:20-alpine AS build
-WORKDIR /app
-COPY package*.json ./
-RUN npm install
-COPY . .
+# Stage 1: Build the shared libs
+FROM node:22-alpine AS libs-build
+WORKDIR /app/libs
+COPY libs/package*.json ./
+RUN npm ci
+COPY libs/ ./
 RUN npm run build
 
-# Stage 2: Serve the application with Nginx
+# Stage 2: Build the web application
+FROM node:22-alpine AS web-build
+WORKDIR /app
+
+# Copy built libs
+COPY --from=libs-build /app/libs /app/libs
+
+# Install web dependencies
+WORKDIR /app/web
+COPY web/package*.json ./
+RUN npm ci
+
+# Link the local libs package
+RUN npm install ../libs
+
+# Copy web source and build
+COPY web/ ./
+RUN npm run build
+
+# Stage 3: Serve with nginx
 FROM nginx:stable-alpine
-COPY --from=build /app/build /usr/share/nginx/html
-EXPOSE 80
->>>>>>> a74f72f0d94c604f549ee6d1ad8164f07db3a16e
+COPY --from=web-build /app/web/dist /usr/share/nginx/html
+COPY web/nginx.conf /etc/nginx/conf.d/default.conf
+EXPOSE 8080
 CMD ["nginx", "-g", "daemon off;"]

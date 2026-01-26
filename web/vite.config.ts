@@ -8,10 +8,16 @@ import { config as dotenvConfig } from 'dotenv';
 
 // ESM-compatible __dirname using import.meta.url
 const __filename = fileURLToPath(import.meta.url);
-const __dirname = dirname(__filename);
+let __dirname = dirname(__filename);
 
-// Resolve paths
-const libsSrcPath = path.resolve(__dirname, '../libs/src');
+// Fallback: if __dirname is root '/', use cwd instead (CI environment fix)
+if (__dirname === '/' || __dirname === '') {
+  console.log('[vite.config] __dirname is root, falling back to cwd');
+  __dirname = process.cwd();
+}
+
+// Resolve paths - use path.join to avoid issues with absolute path resolution
+const libsSrcPath = path.join(__dirname, '..', 'libs', 'src');
 
 // Debug logging for CI environments
 console.log('[vite.config] import.meta.url:', import.meta.url);

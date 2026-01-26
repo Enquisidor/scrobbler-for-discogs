@@ -1,41 +1,13 @@
 # Cloud Build configuration for web app deployment
-# This file is automatically detected by GCP Cloud Build triggers
+# Dockerfile handles the multi-stage build (libs -> web -> nginx)
 
 steps:
-  # Install and build libs first (web depends on it)
-  - name: "node:22"
-    dir: "libs"
-    entrypoint: npm
-    args: ["ci"]
-
-  - name: "node:22"
-    dir: "libs"
-    entrypoint: npm
-    args: ["run", "build"]
-
-  # Install web dependencies
-  - name: "node:22"
-    dir: "web"
-    entrypoint: npm
-    args: ["ci"]
-
-  # Link the local libs package
-  - name: "node:22"
-    dir: "web"
-    entrypoint: npm
-    args: ["install", "../libs"]
-
-  # Build the React app
-  - name: "node:22"
-    dir: "web"
-    entrypoint: npm
-    args: ["run", "build"]
-
-  # Build the Docker image
+  # Build the Docker image from repo root with web/Dockerfile
   - name: "gcr.io/cloud-builders/docker"
-    dir: "web"
     args:
       - "build"
+      - "-f"
+      - "web/Dockerfile"
       - "-t"
       - "gcr.io/gen-lang-client-0757852364/scrobbler-for-discogs"
       - "."
