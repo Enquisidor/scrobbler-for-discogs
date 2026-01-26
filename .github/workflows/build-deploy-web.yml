@@ -41,12 +41,10 @@ jobs:
           npm ci
           npm run build
 
-      - name: Install web app dependencies
+      - name: Compile web app
         working-directory: web
-        run: |
-          npm ci
-          npm install ../libs
-
+        run: npx tsc
+        
       - name: Build web app
         working-directory: web
         run: npm run build
@@ -62,9 +60,9 @@ jobs:
             exit 1
           fi
 
-      #- name: Run tests
-      #  working-directory: web
-      #  run: npx test
+      - name: Run tests
+        working-directory: web
+        run: npm test
 
       - name: Upload build artifacts
         uses: actions/upload-artifact@v4
@@ -72,3 +70,30 @@ jobs:
           name: web-dist
           path: web/dist/
           retention-days: 7
+
+      - name: Authenticate to Google Cloud
+        uses: google-github-actions/auth@v1
+        with:
+          credentials_json: ${{ secrets.GCP_SA_KEY }}
+
+      - name: Set up Cloud SDK
+        uses: google-github-actions/setup-gcloud@v1
+
+      - name: Configure Docker to use Artifact Registry
+        run: gcloud auth configure-docker us-central1-docker.pkg.dev
+
+      - name: Build and push Docker image
+        run: |
+          cd web
+          docker build -t northamerica-northeast1-docker.pkg.dev/${{ secrets.GCP_PROJECT_ID }}/artifact-registry-repo/scrobbler-for-discogs:latest .
+          docker push northamerica-northeast1-docker.pkg.dev/${{ secrets.GCP_PROJECT_ID }}/artifact-registry-repo/scrobbler-for-discogs:latest
+
+      - name: Deploy to Cloud Run
+        uses: google-github-actions/deploy-cloudrun@v1
+        with:
+          service: your-react-frontend
+          image: northamerica-northeast1-docker.pkg.dev/${{ secrets.GCP_PROJECT_ID }}/artifact-registry-repo/scorbbler-for-discogs-web:latest
+          region: northamerica-northeast1
+          # Example of allowing public access via a flag, or refer to your service.yaml
+          flags: --allow-unauthenticated
+
