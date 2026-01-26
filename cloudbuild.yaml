@@ -1,0 +1,65 @@
+# Cloud Build configuration for web app deployment
+# This file is automatically detected by GCP Cloud Build triggers
+
+steps:
+  # Install and build libs first (web depends on it)
+  - name: "node:22"
+    dir: "libs"
+    entrypoint: npm
+    args: ["ci"]
+
+  - name: "node:22"
+    dir: "libs"
+    entrypoint: npm
+    args: ["run", "build"]
+
+  # Install web dependencies
+  - name: "node:22"
+    dir: "web"
+    entrypoint: npm
+    args: ["ci"]
+
+  # Link the local libs package
+  - name: "node:22"
+    dir: "web"
+    entrypoint: npm
+    args: ["install", "../libs"]
+
+  # Build the React app
+  - name: "node:22"
+    dir: "web"
+    entrypoint: npm
+    args: ["run", "build"]
+
+  # Build the Docker image
+  - name: "gcr.io/cloud-builders/docker"
+    dir: "web"
+    args:
+      - "build"
+      - "-t"
+      - "gcr.io/gen-lang-client-0757852364/scrobbler-for-discogs"
+      - "."
+
+  # Push the Docker image
+  - name: "gcr.io/cloud-builders/docker"
+    args:
+      - "push"
+      - "gcr.io/gen-lang-client-0757852364/scrobbler-for-discogs"
+
+  # Deploy to Cloud Run
+  - name: "gcr.io/google.com/cloudsdktool/cloud-sdk"
+    entrypoint: gcloud
+    args:
+      - "run"
+      - "deploy"
+      - "scrobbler-for-discogs"
+      - "--image"
+      - "gcr.io/gen-lang-client-0757852364/scrobbler-for-discogs"
+      - "--region"
+      - "us-central1"
+      - "--platform"
+      - "managed"
+      - "--allow-unauthenticated"
+
+images:
+  - "gcr.io/gen-lang-client-0757852364/scrobbler-for-discogs"
