@@ -1,6 +1,9 @@
 # Cloud Build configuration for web app deployment
 # Dockerfile handles the multi-stage build (libs -> web -> nginx)
 
+options:
+  logging: CLOUD_LOGGING_ONLY
+
 steps:
   # Build the Docker image from repo root with web/Dockerfile
   - name: "gcr.io/cloud-builders/docker"
