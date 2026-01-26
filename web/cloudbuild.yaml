@@ -7,7 +7,6 @@ options:
 steps:
   # Build from repo root to include both libs/ and web/
   - name: "gcr.io/cloud-builders/docker"
-    dir: ".."
     args:
       - "build"
       - "-f"
