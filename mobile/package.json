@@ -19,7 +19,12 @@
     "moduleNameMapper": {
       "^@libs$": "<rootDir>/../libs/src/index.ts",
       "^@libs/(.*)$": "<rootDir>/../libs/src/$1",
-      "^scrobbler-for-discogs-libs$": "<rootDir>/../libs/src/index.ts"
+      "^scrobbler-for-discogs-libs$": "<rootDir>/../libs/src/index.ts",
+      "^@react-native-async-storage/async-storage$": "<rootDir>/node_modules/@react-native-async-storage/async-storage",
+      "^expo-secure-store$": "<rootDir>/node_modules/expo-secure-store",
+      "^expo-crypto$": "<rootDir>/node_modules/expo-crypto",
+      "^react-native$": "<rootDir>/node_modules/react-native",
+      "^immer$": "<rootDir>/node_modules/immer"
     },
     "transform": {
       "^.+\\.(js|jsx|ts|tsx)$": "babel-jest",

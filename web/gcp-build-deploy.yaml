@@ -1,12 +1,29 @@
+# Cloud Build configuration for web app
+# Note: Submit this build from the repository ROOT, not from web/
+# gcloud builds submit --config=web/gcp-build-deploy.yaml .
+
 steps:
-  # Build the React app
+  # Install and build libs first (web depends on it)
   - name: "gcr.io/cloud-builders/npm"
+    dir: "libs"
     args: ["install"]
   - name: "gcr.io/cloud-builders/npm"
+    dir: "libs"
     args: ["run", "build"]
 
-  # Build the Docker image
+  # Install web dependencies (including local libs package)
+  - name: "gcr.io/cloud-builders/npm"
+    dir: "web"
+    args: ["install"]
+
+  # Build the React app
+  - name: "gcr.io/cloud-builders/npm"
+    dir: "web"
+    args: ["run", "build"]
+
+  # Build the Docker image from web folder
   - name: "gcr.io/cloud-builders/docker"
+    dir: "web"
     args:
       [
         "build",
@@ -20,7 +37,7 @@ steps:
     args:
       [
         "push",
-        "gcr.io/gen-lang-client-0757852364/scrobbler-for-discogs-react-app",
+        "gcr.io/gen-lang-client-0757852364/scrobbler-for-discogs",
       ]
 
   # Deploy to Cloud Run
@@ -29,9 +46,9 @@ steps:
     args:
       - "run"
       - "deploy"
-      - "scrobbler-for-dicsogs"
+      - "scrobbler-for-discogs"
       - "--image"
-      - "gcr.io/gen-lang-client-0757852364/my-react-app"
+      - "gcr.io/gen-lang-client-0757852364/scrobbler-for-discogs"
       - "--region"
       - "us-central1"
       - "--platform"
@@ -39,4 +56,4 @@ steps:
       - "--allow-unauthenticated"
 
 images:
-  - "gcr.io/gen-lang-client-0757852364/scrobbler-for-discogs-react-app"
+  - "gcr.io/gen-lang-client-0757852364/scrobbler-for-discogs"

@@ -3,6 +3,14 @@
  *
  * Covers: Credential save/load, secure storage, logout flows (Plan Phase 2.6)
  */
+
+// Mock expo-secure-store before any imports
+jest.mock('expo-secure-store', () => ({
+  getItemAsync: jest.fn(),
+  setItemAsync: jest.fn(),
+  deleteItemAsync: jest.fn(),
+}));
+
 import { renderHook, act, waitFor } from '@testing-library/react-native';
 import * as SecureStore from 'expo-secure-store';
 import { useCredentials } from '../useCredentials';

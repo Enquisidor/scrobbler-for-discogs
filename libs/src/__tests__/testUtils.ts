@@ -3,6 +3,10 @@
  *
  * Re-exports shared fixtures from libs and adds mobile-specific helpers
  */
+import { enableMapSet } from 'immer';
+
+// Enable Immer MapSet plugin (needed for trackSelectionSlice which uses Set)
+enableMapSet();
 
 // Re-export all shared fixtures from libs
 export {
