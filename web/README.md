@@ -1,6 +1,6 @@
 # Scrobbler for Discogs - Web Application
 
-A web application for scrobbling your Discogs vinyl collection to Last.fm, built with React, Vite, and TypeScript.
+A web application for scrobbling your Discogs collection to Last.fm, built with React, Vite, and TypeScript.
 
 ## Features
 

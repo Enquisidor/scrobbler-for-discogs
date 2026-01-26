@@ -1,15 +1,24 @@
 import path from 'path';
 import { fileURLToPath } from 'url';
+import { dirname } from 'path';
 import { defineConfig } from 'vite';
 import react from '@vitejs/plugin-react';
 import { config as dotenvConfig } from 'dotenv';
 
-// ESM-compatible __dirname
+// ESM-compatible __dirname using import.meta.url
 const __filename = fileURLToPath(import.meta.url);
-const __dirname = path.dirname(__filename);
+const __dirname = dirname(__filename);
 
-// Load env from libs/.env
-dotenvConfig({ path: path.resolve(__dirname, '../libs/.env') });
+// Debug logging for CI environments
+console.log('[vite.config] Resolved __dirname:', __dirname);
+console.log('[vite.config] Resolved @libs path:', path.resolve(__dirname, '../libs/src'));
+
+// Load env from libs/.env (may not exist in CI)
+try {
+  dotenvConfig({ path: path.resolve(__dirname, '../libs/.env') });
+} catch {
+  console.log('[vite.config] No .env file found, using environment variables');
+}
 
 export default defineConfig(() => {
   return {

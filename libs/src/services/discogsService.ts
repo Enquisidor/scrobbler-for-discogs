@@ -104,7 +104,7 @@ async function discogsFetch(
         method: 'GET',
         mode: "cors",
         headers: {
-          'User-Agent': 'VinylScrobbler/1.0',
+          'User-Agent': 'ScrobblerForDiscogs/1.0',
           'Accept': 'application/json',
           'Content-Type': 'application/json'
         },
@@ -166,7 +166,7 @@ export const getRequestToken = async (callbackUrl: string): Promise<{ requestTok
     mode: 'cors',
     headers: {
       'Content-Type': 'application/x-www-form-urlencoded',
-      'User-Agent': 'VinylScrobbler/1.0',
+      'User-Agent': 'ScrobblerForDiscogs/1.0',
       'Accept': 'application/x-www-form-urlencoded'
     },
   });
@@ -207,7 +207,7 @@ export const getAccessToken = async (
     mode: "cors",
     headers: {
       'Content-Type': 'application/x-www-form-urlencoded',
-      'User-Agent': 'VinylScrobbler/1.0',
+      'User-Agent': 'ScrobblerForDiscogs/1.0',
     },
   });
 

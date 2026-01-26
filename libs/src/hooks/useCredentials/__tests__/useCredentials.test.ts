@@ -72,7 +72,7 @@ describe('useCredentials', () => {
       });
 
       expect(result.current.credentials).toEqual(storedCredentials);
-      expect(mockGetItemAsync).toHaveBeenCalledWith('vinyl-scrobbler-credentials');
+      expect(mockGetItemAsync).toHaveBeenCalledWith('scrobbler-for-discogs-credentials');
     });
   });
 
@@ -190,7 +190,7 @@ describe('useCredentials', () => {
         await result.current.clearAllCredentials();
       });
 
-      expect(mockDeleteItemAsync).toHaveBeenCalledWith('vinyl-scrobbler-credentials');
+      expect(mockDeleteItemAsync).toHaveBeenCalledWith('scrobbler-for-discogs-credentials');
       expect(result.current.credentials).toEqual(initialCredentials);
     });
   });

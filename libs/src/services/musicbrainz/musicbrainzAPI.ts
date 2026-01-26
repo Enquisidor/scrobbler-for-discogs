@@ -1,7 +1,7 @@
 import type { MusicBrainzSearchResponse } from '../../types';
 
 const REQUEST_TIMEOUT_MS = 10000;
-const USER_AGENT = 'VinylScrobbler/1.0 ( https://github.com/your-repo/vinyl-scrobbler )'; // Replace with real info
+const USER_AGENT = 'ScrobblerForDiscogs/1.0 ( https://github.com/your-repo/scrobbler-for-dscogs )'; // Replace with real info
 
 export const fetchFromMusicBrainz = async (
     query: string,
@@ -33,7 +33,7 @@ export const fetchFromMusicBrainz = async (
         return await response.json() as MusicBrainzSearchResponse;
     } catch (e) {
         if (e instanceof DOMException && e.name === 'AbortError') {
-             if (signal?.aborted) {
+            if (signal?.aborted) {
                 throw new DOMException('Aborted by parent', 'AbortError');
             }
             console.warn(`[MusicBrainz API] Request timed out for query: "${query}"`);

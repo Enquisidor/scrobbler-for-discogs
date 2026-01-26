@@ -4,8 +4,8 @@ import AsyncStorage from '@react-native-async-storage/async-storage';
 import { hydrateMetadata } from '../../store/metadataSlice';
 import { hydrateCollection, setHydrated } from '../../store/collectionSlice';
 
-const METADATA_STORAGE_KEY = 'vinyl-scrobbler-metadata-v2';
-const COLLECTION_STORAGE_KEY = 'vinyl-scrobbler-collection-v1';
+const METADATA_STORAGE_KEY = 'scrobbler-for-discogs-metadata-v2';
+const COLLECTION_STORAGE_KEY = 'scrobbl-for-discogs-collection-v1';
 
 /**
  * Hook to hydrate Redux store from AsyncStorage on app startup.

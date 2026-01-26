@@ -17,7 +17,7 @@ const initialCredentials: Credentials = {
  */
 export function useCredentials() {
   const [credentials, setCredentials, { isLoading, removeValue }] = useStorage<Credentials>(
-    'vinyl-scrobbler-credentials',
+    'scrobbler-for-discogs-credentials',
     initialCredentials,
     { secure: true }
   );

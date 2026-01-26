@@ -75,7 +75,7 @@ describe('useSettings', () => {
             });
 
             expect(result.current.settings).toEqual(customSettings);
-            expect(mockGetItem).toHaveBeenCalledWith('vinyl-scrobbler-settings');
+            expect(mockGetItem).toHaveBeenCalledWith('scrobbler-for-discogs-settings');
         });
     });
 
@@ -96,7 +96,7 @@ describe('useSettings', () => {
 
             expect(result.current.settings).toEqual(customSettings);
             expect(mockSetItem).toHaveBeenCalledWith(
-                'vinyl-scrobbler-settings',
+                'scrobbler-for-discogs-settings',
                 JSON.stringify(customSettings)
             );
         });
@@ -284,7 +284,7 @@ describe('useSettings', () => {
 
             // Verify the saved value
             const savedCall = mockSetItem.mock.calls[0];
-            expect(savedCall[0]).toBe('vinyl-scrobbler-settings');
+            expect(savedCall[0]).toBe('scrobbler-for-discogs-settings');
             const savedSettings = JSON.parse(savedCall[1]);
 
             // Verify all settings were saved correctly

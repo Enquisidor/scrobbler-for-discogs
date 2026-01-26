@@ -78,7 +78,7 @@ describe('useHydrateStore', () => {
         123: { apple: { artist: 'Test Artist', lastChecked: Date.now() } },
       };
       mockGetItem.mockImplementation((key: string) => {
-        if (key === 'vinyl-scrobbler-metadata-v2') {
+        if (key === 'scrobbler-for-dscogs-metadata-v2') {
           return Promise.resolve(JSON.stringify(storedMetadata));
         }
         return Promise.resolve(null);
@@ -99,7 +99,7 @@ describe('useHydrateStore', () => {
     it('should handle invalid metadata JSON gracefully', async () => {
       const consoleSpy = jest.spyOn(console, 'error').mockImplementation();
       mockGetItem.mockImplementation((key: string) => {
-        if (key === 'vinyl-scrobbler-metadata-v2') {
+        if (key === 'scrobbler-for-dscogs-metadata-v2') {
           return Promise.resolve('invalid json{');
         }
         return Promise.resolve(null);
@@ -133,7 +133,7 @@ describe('useHydrateStore', () => {
         lastSynced: Date.now(),
       };
       mockGetItem.mockImplementation((key: string) => {
-        if (key === 'vinyl-scrobbler-collection-v1') {
+        if (key === 'scrobbler-for-dscogs-collection-v1') {
           return Promise.resolve(JSON.stringify(storedCollection));
         }
         return Promise.resolve(null);
@@ -172,7 +172,7 @@ describe('useHydrateStore', () => {
         lastSynced: Date.now(),
       };
       mockGetItem.mockImplementation((key: string) => {
-        if (key === 'vinyl-scrobbler-collection-v1') {
+        if (key === 'scrobbler-for-dscogs-collection-v1') {
           return Promise.resolve(JSON.stringify(storedCollection));
         }
         return Promise.resolve(null);
@@ -193,7 +193,7 @@ describe('useHydrateStore', () => {
     it('should handle invalid collection JSON gracefully', async () => {
       const consoleSpy = jest.spyOn(console, 'error').mockImplementation();
       mockGetItem.mockImplementation((key: string) => {
-        if (key === 'vinyl-scrobbler-collection-v1') {
+        if (key === 'scrobbler-for-dscogs-collection-v1') {
           return Promise.resolve('invalid json{');
         }
         return Promise.resolve(null);
@@ -228,10 +228,10 @@ describe('useHydrateStore', () => {
       };
 
       mockGetItem.mockImplementation((key: string) => {
-        if (key === 'vinyl-scrobbler-metadata-v2') {
+        if (key === 'scrobbler-for-dscogs-metadata-v2') {
           return Promise.resolve(JSON.stringify(storedMetadata));
         }
-        if (key === 'vinyl-scrobbler-collection-v1') {
+        if (key === 'scrobbler-for-dscogs-collection-v1') {
           return Promise.resolve(JSON.stringify(storedCollection));
         }
         return Promise.resolve(null);

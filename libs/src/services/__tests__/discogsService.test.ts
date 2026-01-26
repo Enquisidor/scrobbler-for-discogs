@@ -96,7 +96,7 @@ describe('discogsService', () => {
         id: 12345,
         username: 'testuser',
         resource_url: 'https://api.discogs.com/users/testuser',
-        consumer_name: 'VinylScrobbler',
+        consumer_name: 'ScrobblerForDiscogs',
       };
 
       global.fetch = jest.fn().mockResolvedValue({

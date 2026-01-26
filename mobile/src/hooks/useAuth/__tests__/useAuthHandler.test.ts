@@ -14,14 +14,14 @@ import { useAuthHandler } from '../useAuthHandler';
 import type { Credentials } from '@libs';
 import { STORAGE_KEYS } from '@libs';
 
-// Mock the services
-jest.mock('../../../services/discogsService', () => ({
+// Mock the services - must match the import paths used in useAuthHandler
+jest.mock('../../../../../libs/src/services/discogsService', () => ({
   getRequestToken: jest.fn(),
   getAccessToken: jest.fn(),
   getDiscogsIdentity: jest.fn(),
 }));
 
-jest.mock('../../../services/lastfmService', () => ({
+jest.mock('../../../../../libs/src/services/lastfmService', () => ({
   getLastfmSession: jest.fn(),
 }));
 
