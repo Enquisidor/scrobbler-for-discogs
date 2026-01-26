@@ -1,6 +1,7 @@
 import path from 'path';
 import { fileURLToPath } from 'url';
 import { dirname } from 'path';
+import { existsSync } from 'fs';
 import { defineConfig } from 'vite';
 import react from '@vitejs/plugin-react';
 import { config as dotenvConfig } from 'dotenv';
@@ -9,9 +10,17 @@ import { config as dotenvConfig } from 'dotenv';
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = dirname(__filename);
 
+// Resolve paths
+const libsSrcPath = path.resolve(__dirname, '../libs/src');
+
 // Debug logging for CI environments
-console.log('[vite.config] Resolved __dirname:', __dirname);
-console.log('[vite.config] Resolved @libs path:', path.resolve(__dirname, '../libs/src'));
+console.log('[vite.config] import.meta.url:', import.meta.url);
+console.log('[vite.config] __filename:', __filename);
+console.log('[vite.config] __dirname:', __dirname);
+console.log('[vite.config] cwd:', process.cwd());
+console.log('[vite.config] @libs path:', libsSrcPath);
+console.log('[vite.config] @libs exists:', existsSync(libsSrcPath));
+console.log('[vite.config] libs/src/index.ts exists:', existsSync(path.join(libsSrcPath, 'index.ts')));
 
 // Load env from libs/.env (may not exist in CI)
 try {
@@ -38,7 +47,7 @@ export default defineConfig(() => {
     resolve: {
       alias: {
         '@': path.resolve(__dirname, '.'),
-        '@libs': path.resolve(__dirname, '../libs/src'),
+        '@libs': libsSrcPath,
         // Stub out react-native packages for web build
         'react-native': path.resolve(__dirname, 'src/stubs/react-native.ts'),
         '@react-native-async-storage/async-storage': path.resolve(__dirname, 'src/stubs/async-storage.ts'),
