@@ -43,7 +43,9 @@ jobs:
 
       - name: Compile web app
         working-directory: web
-        run: npx tsc
+        run: |
+          npm install typescript
+          npx tsc
         
       - name: Build web app
         working-directory: web
