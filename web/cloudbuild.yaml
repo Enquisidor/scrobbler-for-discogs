@@ -5,15 +5,15 @@ options:
   logging: CLOUD_LOGGING_ONLY
 
 steps:
-  # Build the Docker image from repo root with web/Dockerfile
+  # Build the Docker image - context is parent dir (..) to include both libs/ and web/
   - name: "gcr.io/cloud-builders/docker"
     args:
       - "build"
       - "-f"
-      - "web/Dockerfile"
+      - "Dockerfile"
       - "-t"
       - "gcr.io/gen-lang-client-0757852364/scrobbler-for-discogs"
-      - "."
+      - ".."
 
   # Push the Docker image
   - name: "gcr.io/cloud-builders/docker"
