@@ -27,7 +27,11 @@ export interface AppConfig {
 export const STORAGE_KEYS = {
   DISCOGS_REQUEST_TOKEN: 'discogs-request-token',
   DISCOGS_REQUEST_TOKEN_SECRET: 'discogs-request-token-secret',
+  CREDENTIALS_LAST_ACTIVITY: 'scrobbler-credentials-last-activity',
 } as const;
+
+/** Credential expiry time in milliseconds (7 days) */
+export const CREDENTIALS_EXPIRY_MS = 7 * 24 * 60 * 60 * 1000;
 
 let config: AppConfig = {
   discogs: {
