@@ -14,6 +14,7 @@ steps:
       - "-t"
       - "gcr.io/gen-lang-client-0757852364/scrobbler-for-discogs"
       - "."
+    dir: 'web'
 
   # Push the Docker image
   - name: "gcr.io/cloud-builders/docker"
