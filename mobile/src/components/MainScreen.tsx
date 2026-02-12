@@ -38,6 +38,7 @@ export const MainScreen: React.FC = () => {
     onCredentialsChange,
     handleDiscogsLogout,
     handleLastfmLogout,
+    updateLastActivity,
   } = useCredentials();
 
   const { settings, onSettingsChange } = useSettings();
@@ -78,7 +79,11 @@ export const MainScreen: React.FC = () => {
   const showNotification = useCallback((message: string, type: 'success' | 'error' = 'success') => {
     setNotification({ message, type });
     setTimeout(() => setNotification(null), 5000);
-  }, []);
+    // Update last activity on successful scrobbles to prevent credential expiry
+    if (type === 'success') {
+      updateLastActivity();
+    }
+  }, [updateLastActivity]);
 
   // Queue management
   const {

@@ -12,7 +12,8 @@ export default function App() {
     credentials,
     onCredentialsChange,
     handleDiscogsLogout,
-    handleLastfmLogout
+    handleLastfmLogout,
+    updateLastActivity
   } = useCredentials();
 
   const { settings, onSettingsChange } = useSettings();
@@ -35,6 +36,7 @@ export default function App() {
           onLastfmLogout={handleLastfmLogout}
           settings={settings}
           onSettingsChange={onSettingsChange}
+          updateLastActivity={updateLastActivity}
         />
       </div>
     </ErrorBoundary>

@@ -8,12 +8,9 @@ interface QueueButtonProps {
 }
 
 export default function QueueButton({ queueCount, selectedTrackCount, onClick }: QueueButtonProps) {
-  console.log('[QueueButton] Render check. Props:', { queueCount, selectedTrackCount });
   if (queueCount === 0) {
-    console.log('[QueueButton] queueCount is 0, returning null.');
     return null;
   }
-  console.log('[QueueButton] Rendering button.');
 
   return (
     <button
@@ -23,17 +20,17 @@ export default function QueueButton({ queueCount, selectedTrackCount, onClick }:
     >
       <VinylIcon className="w-6 h-6" />
       <span className="font-bold whitespace-nowrap sr-only">Open Queue</span>
-      
+
       {/* Blue bubble (album count) on the top-left */}
       <span className="absolute -top-1 -left-1 inline-flex rounded-full h-6 w-6 bg-blue-600 items-center justify-center text-xs font-bold ring-2 ring-gray-900">
-          {queueCount}
+        {queueCount}
       </span>
 
       {/* Red bubble (track count) on the top-right */}
       {selectedTrackCount > 0 && (
-          <span className="absolute -top-1 -right-1 inline-flex rounded-full h-6 w-6 bg-red-500 items-center justify-center text-xs font-bold ring-2 ring-gray-900">
-              {selectedTrackCount}
-          </span>
+        <span className="absolute -top-1 -right-1 inline-flex rounded-full h-6 w-6 bg-red-500 items-center justify-center text-xs font-bold ring-2 ring-gray-900">
+          {selectedTrackCount}
+        </span>
       )}
     </button>
   );

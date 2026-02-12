@@ -1,10 +1,12 @@
+// Enable Immer MapSet plugin BEFORE importing store
+import { enableMapSet } from 'immer';
+enableMapSet();
+
 import React from 'react';
 import ReactDOM from 'react-dom/client';
 import { Provider } from 'react-redux';
-import { store } from '@libs';
+import { store, initConfig } from '@libs';
 import App from './src/components/App';
-import { enableMapSet } from 'immer';
-import { initConfig } from '@libs';
 
 // Initialize shared config from libs/.env (loaded via vite.config.ts)
 initConfig({
@@ -19,8 +21,6 @@ const rootElement = document.getElementById('root');
 if (!rootElement) {
   throw new Error("Could not find root element to mount to");
 }
-
-enableMapSet()
 
 const root = ReactDOM.createRoot(rootElement);
 root.render(

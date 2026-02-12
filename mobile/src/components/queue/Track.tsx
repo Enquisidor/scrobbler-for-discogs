@@ -13,11 +13,7 @@ import {
   isVariousArtist,
   getDisplayArtistName,
   getArtistJoiner,
-  colors,
-  spacing,
-  fontSize,
-  fontWeight,
-  borderRadius,
+  trackStyles,
 } from '@libs';
 import IndeterminateCheckbox from './IndeterminateCheckbox';
 
@@ -302,142 +298,7 @@ const Track: React.FC<TrackProps> = ({
   );
 };
 
-const styles = StyleSheet.create({
-  trackRow: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: spacing[3],
-    paddingVertical: spacing[2],
-    paddingHorizontal: spacing[2],
-  },
-  checkboxPlaceholder: {
-    width: 20,
-    height: 20,
-  },
-  position: {
-    fontSize: fontSize.sm,
-    color: colors.gray[400],
-    fontFamily: 'monospace',
-    width: 40,
-    textAlign: 'right',
-  },
-  trackInfo: {
-    flex: 1,
-    minWidth: 0,
-  },
-  titleRow: {
-    flexDirection: 'row',
-    flexWrap: 'wrap',
-    alignItems: 'baseline',
-  },
-  title: {
-    fontSize: fontSize.base,
-    fontWeight: fontWeight.semibold,
-    color: colors.white,
-    marginRight: spacing[1],
-  },
-  subTrackTitle: {
-    fontSize: fontSize.sm,
-    color: colors.white,
-    marginRight: spacing[1],
-  },
-  artistText: {
-    fontSize: fontSize.sm,
-    color: colors.gray[400],
-  },
-  artistCheckContainer: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: spacing[1],
-  },
-  artistName: {
-    color: colors.gray[400],
-  },
-  artistNameSelected: {
-    color: colors.gray[200],
-  },
-  metaRow: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: spacing[2],
-    marginTop: spacing[1],
-  },
-  featureContainer: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: spacing[1],
-  },
-  featureText: {
-    fontSize: fontSize.xs,
-    fontStyle: 'italic',
-    color: colors.gray[500],
-  },
-  scrobbleAsSingleText: {
-    fontSize: fontSize.xs,
-    fontStyle: 'italic',
-    color: colors.primary,
-  },
-  creditsContainer: {
-    marginTop: spacing[1],
-    maxHeight: 80,
-  },
-  creditRow: {
-    flexDirection: 'row',
-    flexWrap: 'wrap',
-    alignItems: 'baseline',
-    marginBottom: spacing[0.5],
-  },
-  creditRole: {
-    fontSize: fontSize.xs,
-    fontWeight: fontWeight.semibold,
-    color: colors.gray[500],
-  },
-  creditArtist: {
-    fontSize: fontSize.xs,
-    color: colors.gray[500],
-  },
-  creditSeparator: {
-    fontSize: fontSize.xs,
-    color: colors.gray[500],
-  },
-  duration: {
-    fontSize: fontSize.sm,
-    color: colors.gray[500],
-    width: 48,
-    textAlign: 'right',
-  },
-  durationScheduled: {
-    color: '#228B22',
-    fontWeight: fontWeight.semibold,
-  },
-  miniCheckbox: {
-    width: 12,
-    height: 12,
-    borderRadius: 2,
-    borderWidth: 1,
-    borderColor: colors.gray[600],
-    backgroundColor: colors.gray[700],
-    justifyContent: 'center',
-    alignItems: 'center',
-  },
-  miniCheckboxChecked: {
-    backgroundColor: colors.primary,
-    borderColor: colors.primary,
-  },
-  miniCheckmark: {
-    width: 6,
-    height: 3,
-    borderLeftWidth: 1.5,
-    borderBottomWidth: 1.5,
-    borderColor: colors.white,
-    transform: [{ rotate: '-45deg' }, { translateY: -1 }],
-  },
-  subTracksContainer: {
-    marginLeft: spacing[8],
-    paddingLeft: spacing[4],
-    borderLeftWidth: 2,
-    borderLeftColor: colors.gray[700],
-  },
-});
+// Use shared styles from libs
+const styles = StyleSheet.create(trackStyles);
 
 export default Track;

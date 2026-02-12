@@ -227,8 +227,8 @@ const QueueItem: React.FC<QueueItemProps> = ({
                                                 <h4 className="font-bold text-sm text-gray-400">{group.heading}</h4>
                                                 {!isHistoryItem && (
                                                     <label className="flex items-center gap-2 text-xs text-blue-400 hover:text-blue-300 cursor-pointer">
-                                                        <IndeterminateCheckbox checked={allInGroupSelected} indeterminate={someInGroupSelected} onChange={() => onToggleGroup(selectableGroupKeys, parentKeysInGroup)} className="form-checkbox h-4 w-4 rounded bg-gray-700 border-gray-600 text-blue-600 focus:ring-blue-500 focus:ring-offset-gray-800" disabled={isHistoryItem || selectableGroupKeys.length === 0} />
                                                         {allInGroupSelected ? 'Deselect All on This Side' : 'Select All on This Side'}
+                                                        <IndeterminateCheckbox checked={allInGroupSelected} indeterminate={someInGroupSelected} onChange={() => onToggleGroup(selectableGroupKeys, parentKeysInGroup)} className="form-checkbox h-4 w-4 rounded bg-gray-700 border-gray-600 text-blue-600 focus:ring-blue-500 focus:ring-offset-gray-800" disabled={isHistoryItem || selectableGroupKeys.length === 0} />
                                                     </label>
                                                 )}
                                             </div>

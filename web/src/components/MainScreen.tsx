@@ -28,6 +28,7 @@ interface MainScreenProps {
   onLastfmLogout: () => void;
   settings: Settings;
   onSettingsChange: (settings: Settings) => void;
+  updateLastActivity: () => Promise<void>;
 }
 
 type Notification = { message: string; type: 'success' | 'error' };
@@ -41,6 +42,7 @@ export default function MainScreen({
   onLastfmLogout,
   settings,
   onSettingsChange,
+  updateLastActivity,
 }: MainScreenProps) {
   const dispatch = useDispatch();
   const isDiscogsConnected = !!credentials.discogsAccessToken;
@@ -78,14 +80,16 @@ export default function MainScreen({
 
   const metadata = useSelector((state: RootState) => state.metadata.data);
 
-  const handleQueueSuccess = (message: string) => {
+  const handleQueueSuccess = useCallback((message: string) => {
     if (!message.startsWith('Scrobbled')) {
       setIsQueueOpen(false);
     }
     setNotification({ message, type: 'success' });
     const timeoutId = setTimeout(() => setNotification(null), 5000);
+    // Update last activity on successful scrobbles to prevent credential expiry
+    updateLastActivity();
     return () => clearTimeout(timeoutId);
-  };
+  }, [updateLastActivity]);
 
   const queueHandler = useQueue(credentials, settings, handleQueueSuccess);
 

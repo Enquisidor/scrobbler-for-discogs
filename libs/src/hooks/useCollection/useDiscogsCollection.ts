@@ -157,8 +157,13 @@ export function useDiscogsCollection(
           const workerCount = Math.min(MAX_CONCURRENT_FETCHES, pagesToFetchRef.current.length);
           activeFetchesRef.current = workerCount;
 
+          // Stagger worker start times to avoid burst requests that hit rate limits
           for (let i = 0; i < workerCount; i++) {
-            worker();
+            setTimeout(() => {
+              if (mountedRef.current && !aborted) {
+                worker();
+              }
+            }, i * REQUEST_DELAY_MS);
           }
         }
       } catch (err) {

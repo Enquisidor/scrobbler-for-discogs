@@ -99,14 +99,12 @@ async function discogsFetch(
   let attempt = 0;
   while (attempt < MAX_RETRIES) {
     try {
-      // Direct fetch to Discogs API (no CORS mode in React Native)
+      // Direct fetch to Discogs API
+      // Note: Avoid Content-Type header on GET requests to prevent CORS preflight
       const response = await fetch(finalUrl, {
         method: 'GET',
-        mode: "cors",
         headers: {
-          'User-Agent': 'ScrobblerForDiscogs/1.0',
           'Accept': 'application/json',
-          'Content-Type': 'application/json'
         },
       });
 

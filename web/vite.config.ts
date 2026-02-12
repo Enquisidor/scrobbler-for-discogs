@@ -54,6 +54,8 @@ export default defineConfig(() => {
       alias: {
         '@': path.resolve(__dirname, '.'),
         '@libs': libsSrcPath,
+        // Deduplicate immer to ensure enableMapSet() works for all imports
+        'immer': path.resolve(__dirname, '..', 'libs', 'node_modules', 'immer'),
         // Stub out react-native packages for web build
         'react-native': path.resolve(__dirname, 'src/stubs/react-native.ts'),
         '@react-native-async-storage/async-storage': path.resolve(__dirname, 'src/stubs/async-storage.ts'),

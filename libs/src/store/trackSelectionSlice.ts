@@ -98,9 +98,9 @@ const trackSelectionSlice = createSlice({
       if (!state.selectedTracks[instanceKey]) state.selectedTracks[instanceKey] = new Set();
 
       const instanceSet = state.selectedTracks[instanceKey];
-      const isAdding = !instanceSet.has(trackKey);
+      const wasSelected = instanceSet.has(trackKey);
 
-      if (isAdding) {
+      if (!wasSelected) {
         instanceSet.add(trackKey);
       } else {
         instanceSet.delete(trackKey);
