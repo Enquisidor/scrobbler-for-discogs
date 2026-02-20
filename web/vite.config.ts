@@ -51,11 +51,11 @@ export default defineConfig(() => {
       'process.env.LASTFM_SECRET': JSON.stringify(process.env.LASTFM_SECRET),
     },
     resolve: {
+      // Deduplicate immer so enableMapSet() applies to all imports
+      dedupe: ['immer'],
       alias: {
         '@': path.resolve(__dirname, '.'),
         '@libs': libsSrcPath,
-        // Deduplicate immer to ensure enableMapSet() works for all imports
-        'immer': path.resolve(__dirname, '..', 'libs', 'node_modules', 'immer', 'dist', 'immer.mjs'),
         // Stub out react-native packages for web build
         'react-native': path.resolve(__dirname, 'src/stubs/react-native.ts'),
         '@react-native-async-storage/async-storage': path.resolve(__dirname, 'src/stubs/async-storage.ts'),
