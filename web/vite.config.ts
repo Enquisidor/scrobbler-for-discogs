@@ -51,8 +51,8 @@ export default defineConfig(() => {
       'process.env.LASTFM_SECRET': JSON.stringify(process.env.LASTFM_SECRET),
     },
     resolve: {
-      // Deduplicate immer so enableMapSet() applies to all imports
-      dedupe: ['immer'],
+      // Deduplicate packages that must be singletons (libs has its own node_modules in CI)
+      dedupe: ['react', 'react-dom', 'react-redux', 'immer'],
       alias: {
         '@': path.resolve(__dirname, '.'),
         '@libs': libsSrcPath,
