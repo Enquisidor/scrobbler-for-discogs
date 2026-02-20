@@ -16,19 +16,19 @@ on:
   workflow_dispatch:
     inputs:
       logLevel:
-        description: 'Log level'
+        description: "Log level"
         required: true
-        default: 'warning'
+        default: "warning"
         type: choice
         options:
-        - info
-        - warning
-        - debug
+          - info
+          - warning
+          - debug
       environment:
-        description: 'Environment to deploy to'
+        description: "Environment to deploy to"
         required: true
         type: string
-        
+
 jobs:
   build:
     runs-on: ubuntu-latest
@@ -94,10 +94,8 @@ jobs:
           path: web/dist/
           retention-days: 7
 
-  firebase_deploy:
-    runs-on: ubuntu-latest
-    steps:
-      - uses: FirebaseExtended/action-hosting-deploy@v0
+      - name: Firebase Deploy
+        uses: FirebaseExtended/action-hosting-deploy@v0
         with:
           repoToken: ${{ secrets.GITHUB_TOKEN }}
           firebaseServiceAccount: ${{ secrets.FIREBASE_SERVICE_ACCOUNT_SCROBBLEDISCOGS }}
