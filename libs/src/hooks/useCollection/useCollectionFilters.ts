@@ -79,7 +79,9 @@ export function useCollectionFilters(
     // Even though we do server-side sort, we sort locally too to ensure
     // the chunks we have are ordered correctly (and to support search relevance)
     return sortCollection(filtered, sortOption, searchTerm);
-  }, [collection, searchTerm, sortOption, selectedFormat, selectedYear]);
+    // collection.length is an explicit primitive signal to ensure recomputation
+    // when new pages arrive during an active search (works around React batching)
+  }, [collection, collection.length, searchTerm, sortOption, selectedFormat, selectedYear]);
 
   const handleResetFilters = () => {
     setSearchTerm('');

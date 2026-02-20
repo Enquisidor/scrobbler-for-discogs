@@ -120,6 +120,14 @@ export default function MainScreen({
     window.scrollTo(0, 0);
   }, [searchTerm, sortOption, selectedFormat, selectedYear]);
 
+  // When filtered results grow (e.g. new collection pages arrive during search),
+  // ensure displayedCount covers all results if they fit within one page
+  useEffect(() => {
+    if (filteredAndSortedCollection.length <= CLIENT_PAGE_SIZE) {
+      setDisplayedCount(CLIENT_PAGE_SIZE);
+    }
+  }, [filteredAndSortedCollection.length]);
+
   const displayedCollection = useMemo(() => {
     return filteredAndSortedCollection.slice(0, displayedCount);
   }, [filteredAndSortedCollection, displayedCount]);
