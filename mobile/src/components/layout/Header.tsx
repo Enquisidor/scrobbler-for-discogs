@@ -15,9 +15,6 @@ interface HeaderProps {
   handleLastfmConnect: () => void;
   onLastfmLogout: () => void;
   onSettingsOpen: () => void;
-  totalCount?: number;
-  filteredCount?: number;
-  isFiltered?: boolean;
 }
 
 export const Header: React.FC<HeaderProps> = ({
@@ -31,26 +28,36 @@ export const Header: React.FC<HeaderProps> = ({
   handleLastfmConnect,
   onLastfmLogout,
   onSettingsOpen,
-  totalCount,
-  filteredCount,
-  isFiltered,
 }) => {
   const isDiscogsConnected = !!credentials.discogsAccessToken;
   const isLastfmConnected = !!credentials.lastfmSessionKey;
 
   return (
     <View style={styles.container}>
-      {/* Top row: Title + utility buttons */}
+      {/* Top row: Title + utility icons */}
       <View style={styles.topRow}>
         <View style={styles.titleRow}>
           <Text style={styles.title}>{STRINGS.APP_NAME}</Text>
           {isSyncing && <ActivityIndicator size="small" color={colors.gray[400]} />}
         </View>
+        <View style={styles.utilityButtons}>
+          {isDiscogsConnected && (
+            <Pressable
+              style={[styles.iconButton, (isSyncing || isCollectionLoading) && styles.iconButtonDisabled]}
+              onPress={handleForceReload}
+              disabled={isSyncing || isCollectionLoading}
+            >
+              <RefreshIcon size={20} color={colors.gray[400]} />
+            </Pressable>
+          )}
+          <Pressable style={styles.iconButton} onPress={onSettingsOpen}>
+            <SettingsIcon size={20} color={colors.gray[400]} />
+          </Pressable>
+        </View>
       </View>
 
-      {/* Bottom row: Connection buttons */}
+      {/* Connection buttons */}
       <View style={styles.buttonsRow}>
-        {/* Discogs Button */}
         <Pressable
           style={[
             styles.connectionButton,
@@ -63,8 +70,8 @@ export const Header: React.FC<HeaderProps> = ({
             <ActivityIndicator size="small" color="#fff" />
           ) : (
             <View style={styles.buttonContent}>
-              <DiscogsIcon size={20} fill="#fff" />
-              {isDiscogsConnected && <CheckIcon size={16} color={colors.success} />}
+              <DiscogsIcon size={18} fill="#fff" />
+              {isDiscogsConnected && <CheckIcon size={14} color={colors.success} />}
               <Text style={styles.buttonText}>
                 {isDiscogsConnected ? credentials.discogsUsername : STRINGS.BUTTONS.DISCOGS}
               </Text>
@@ -72,7 +79,6 @@ export const Header: React.FC<HeaderProps> = ({
           )}
         </Pressable>
 
-        {/* Last.fm Button */}
         <Pressable
           style={[
             styles.connectionButton,
@@ -85,39 +91,14 @@ export const Header: React.FC<HeaderProps> = ({
             <ActivityIndicator size="small" color="#fff" />
           ) : (
             <View style={styles.buttonContent}>
-              <LastfmIcon size={20} fill="#fff" />
-              {isLastfmConnected && <CheckIcon size={16} color={colors.success} />}
+              <LastfmIcon size={18} fill="#fff" />
+              {isLastfmConnected && <CheckIcon size={14} color={colors.success} />}
               <Text style={styles.buttonText}>
                 {isLastfmConnected ? credentials.lastfmUsername : STRINGS.BUTTONS.LASTFM}
               </Text>
             </View>
           )}
         </Pressable>
-      </View>
-
-      <View style={styles.utilityButtons}>
-        {/* Refresh Button */}
-        {isDiscogsConnected && (
-          <Pressable
-            style={[styles.iconButton, (isSyncing || isCollectionLoading) && styles.iconButtonDisabled]}
-            onPress={handleForceReload}
-            disabled={isSyncing || isCollectionLoading}
-          >
-            <RefreshIcon size={24} color={colors.gray[400]} />
-          </Pressable>
-        )}
-        {/* Settings Button */}
-        <Pressable style={styles.iconButton} onPress={onSettingsOpen}>
-          <SettingsIcon size={24} color={colors.gray[400]} />
-        </Pressable>\
-        {/* Album count */}
-        {isDiscogsConnected && totalCount !== undefined && (
-          <Text style={styles.albumCount}>
-            {isFiltered && filteredCount !== undefined
-              ? `${filteredCount} / ${totalCount}`
-              : `${totalCount}`}
-          </Text>
-        )}
       </View>
     </View>
   );
@@ -126,11 +107,11 @@ export const Header: React.FC<HeaderProps> = ({
 const styles = StyleSheet.create({
   container: {
     ...headerStyles.container,
-    gap: 12,
+    paddingVertical: 8,
+    gap: 6,
   },
   topRow: {
     flexDirection: 'row',
-    justifyContent: 'space-between',
     alignItems: 'center',
   },
   titleRow: {
@@ -141,12 +122,12 @@ const styles = StyleSheet.create({
   utilityButtons: {
     flexDirection: 'row',
     alignItems: 'center',
-    gap: 8,
+    gap: 6,
   },
   albumCount: {
     color: colors.gray[400],
-    fontSize: 13,
-    fontWeight: '500',
+    fontSize: 12,
+    fontWeight: '600',
   },
   buttonsRow: {
     ...headerStyles.buttonsRow,
@@ -165,6 +146,10 @@ const styles = StyleSheet.create({
     ...connectionButtonStyles.text,
     flexShrink: 1,
   },
-  iconButton: iconButtonStyles.base,
+  iconButton: {
+    ...iconButtonStyles.base,
+    width: 32,
+    height: 32,
+  },
   iconButtonDisabled: iconButtonStyles.disabled,
 });

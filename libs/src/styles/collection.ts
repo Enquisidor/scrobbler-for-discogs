@@ -77,14 +77,14 @@ export const filterStyles = {
   container: {
     backgroundColor: `rgba(18, 18, 18, 0.95)`,
     paddingHorizontal: spacing[4],
-    paddingVertical: spacing[3],
-    gap: spacing[2.5],
+    paddingVertical: spacing[2],
+    gap: spacing[2],
   },
   searchInput: {
     backgroundColor: colors.gray[800],
     borderRadius: borderRadius.xl,
     paddingHorizontal: spacing[4],
-    paddingVertical: spacing[2.5],
+    paddingVertical: spacing[2],
     color: colors.white,
     fontSize: fontSize.base,
     borderWidth: 1,

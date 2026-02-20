@@ -178,9 +178,6 @@ export const MainScreen: React.FC = () => {
           handleLastfmConnect={handleLastfmConnect}
           onLastfmLogout={handleLastfmLogout}
           onSettingsOpen={() => setIsSettingsOpen(true)}
-          totalCount={collectionWithCorrections.length}
-          filteredCount={filteredAndSortedCollection.length}
-          isFiltered={isFiltered}
         />
 
         {notification && (
@@ -206,6 +203,8 @@ export const MainScreen: React.FC = () => {
             handleResetFilters={handleResetFilters}
             numColumns={albumsPerRow}
             setNumColumns={setAlbumsPerRow}
+            totalCount={collectionWithCorrections.length}
+            filteredCount={filteredAndSortedCollection.length}
           />
         )}
 

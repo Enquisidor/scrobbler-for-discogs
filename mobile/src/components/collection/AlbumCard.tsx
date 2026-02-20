@@ -5,7 +5,6 @@ import {
   Image,
   Pressable,
   StyleSheet,
-  GestureResponderEvent,
 } from 'react-native';
 import type { DiscogsRelease, Settings, CombinedMetadata } from '@libs';
 import { getReleaseDisplayArtist, getReleaseDisplayTitle } from '@libs';
@@ -22,7 +21,7 @@ interface AlbumCardProps {
 }
 
 const DEFAULT_IMAGE = 'https://st.discogs.com/images/default-release.png';
-const LONG_PRESS_DURATION = 5000;
+const LONG_PRESS_DURATION = 500;
 
 export const AlbumCard: React.FC<AlbumCardProps> = ({
   release,
@@ -70,6 +69,8 @@ export const AlbumCard: React.FC<AlbumCardProps> = ({
       testID={testID}
       style={[styles.container, scrobbleCount > 0 && styles.containerSelected]}
       onPress={onAddInstance}
+      onLongPress={onRemoveAllInstances}
+      delayLongPress={LONG_PRESS_DURATION}
     >
       {hasValidImage ? (
         <Image

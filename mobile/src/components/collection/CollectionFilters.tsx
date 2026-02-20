@@ -35,6 +35,8 @@ interface CollectionFiltersProps {
   handleResetFilters: () => void;
   numColumns: number;
   setNumColumns: (value: number) => void;
+  totalCount: number;
+  filteredCount: number;
 }
 
 // Sort option labels for display
