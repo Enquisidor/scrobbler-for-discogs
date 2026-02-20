@@ -42,7 +42,7 @@ export const tokenize = (str: string): string[] => {
     const cleaned = str.toLowerCase()
         .replace(/\s\(\d+\)$/, '') // Remove Discogs suffix like " (2)"
         .trim();
-    
+
     return cleaned.split(/\s+/)
         .map(t => t.replace(/[^a-z0-9]/g, '')) // Strip ALL non-alphanumeric characters from each token.
         .filter(t => t.length > 0 && !STOP_WORDS.has(t)); // Filter out stop words
@@ -79,7 +79,7 @@ export const calculateFuzzyScore = (strA: string, strB: string): number => {
             const distance = getLevenshteinDistance(wordA, wordB);
             const maxLength = Math.max(wordA.length, wordB.length);
             const similarity = maxLength === 0 ? 1 : 1 - (distance / maxLength);
-            
+
             if (similarity > maxWordSimilarity) {
                 maxWordSimilarity = similarity;
             }

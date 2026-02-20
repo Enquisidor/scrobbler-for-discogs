@@ -3,6 +3,7 @@ import type { DiscogsArtist, CombinedMetadata, Settings } from '../types';
 import { MetadataSourceType } from '../types';
 import { calculateFuzzyScore } from './fuzzyUtils';
 
+
 /**
  * Clean the artist name by removing the Discogs numeric suffix (e.g., "Artist (2)")
  * and handling the ", The" suffix (e.g., "Alchemist, The" -> "The Alchemist").
@@ -164,7 +165,23 @@ export function getSmartArtistDisplay(
         return { ...artist, name: bestName, anv: undefined };
     });
 
-    return formatArtistNames(validatedArtists);
+    const reconstructed = formatArtistNames(validatedArtists);
+
+    // Detect capitalization or artist order differences between Discogs and the source.
+    // If the names match case-insensitively but differ in exact casing or order,
+    // prefer the source string (e.g. "KAYTRANADA" vs "Kaytranada", or
+    // "21 Savage & Drake" vs "Drake & 21 Savage").
+    const score = calculateFuzzyScore(reconstructed, sourceString);
+    const hasCaseDifference = reconstructed.toLowerCase() === sourceString.toLowerCase()
+        && reconstructed !== sourceString;
+    const hasOrderDifference = score >= 0.85
+        && reconstructed.toLowerCase() !== sourceString.toLowerCase();
+
+    if (hasCaseDifference || hasOrderDifference) {
+        return sourceString;
+    }
+
+    return reconstructed;
 }
 
 /**
