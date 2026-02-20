@@ -58,6 +58,21 @@ export function initConfig(envConfig: {
   LASTFM_API_KEY?: string;
   LASTFM_SECRET?: string;
 }): void {
+  const required: Array<[keyof typeof envConfig, string]> = [
+    ['DISCOGS_CONSUMER_KEY', 'Discogs'],
+    ['DISCOGS_CONSUMER_SECRET', 'Discogs'],
+    ['LASTFM_API_KEY', 'Last.fm'],
+    ['LASTFM_SECRET', 'Last.fm'],
+  ];
+
+  const missing = required.filter(([key]) => !envConfig[key]);
+  if (missing.length > 0) {
+    console.error(
+      `[Config] Missing API keys: ${missing.map(([key]) => key).join(', ')}. ` +
+      'Ensure these are set as environment variables during the build (e.g. GitHub Actions secrets).'
+    );
+  }
+
   config = {
     discogs: {
       requestSecret: envConfig.DISCOGS_PERSONAL_ACCESS_TOKEN || '',
