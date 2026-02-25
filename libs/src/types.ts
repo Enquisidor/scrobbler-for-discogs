@@ -21,6 +21,7 @@ export enum MetadataSourceType {
   Discogs = 'discogs',
   Apple = 'apple',
   MusicBrainz = 'musicbrainz',
+  Deezer = 'deezer',
 }
 
 // --- Discogs API Types ---
@@ -173,7 +174,7 @@ export interface Credentials {
   lastfmUsername: string;
 }
 
-export type MetadataSource = 'discogs' | 'apple' | 'musicbrainz';
+export type MetadataSource = 'discogs' | 'apple' | 'musicbrainz' | 'deezer';
 
 export interface Settings {
   selectAllTracksPerRelease: boolean;
@@ -210,6 +211,7 @@ export interface AppleMusicMetadata {
 export interface CombinedMetadata {
     apple?: ServiceMetadata;
     musicbrainz?: ServiceMetadata;
+    deezer?: ServiceMetadata;
 }
 
 export interface QueueItem extends DiscogsRelease {

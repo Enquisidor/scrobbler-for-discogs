@@ -2,6 +2,7 @@
 import type { DiscogsArtist, CombinedMetadata, Settings } from '../types';
 import { MetadataSourceType } from '../types';
 import { calculateFuzzyScore } from './fuzzyUtils';
+import { getSourceMetadata } from './metadataUtils';
 
 
 /**
@@ -150,7 +151,7 @@ export function getSmartArtistDisplay(
     metadata: CombinedMetadata | undefined,
     settings: Settings
 ): string {
-    const sourceMeta = settings.artistSource === MetadataSourceType.Apple ? metadata?.apple : metadata?.musicbrainz;
+    const sourceMeta = getSourceMetadata(metadata, settings.artistSource);
     const sourceString = sourceMeta?.artist || '';
 
     // If we are using Discogs source, or no metadata available, standard behavior

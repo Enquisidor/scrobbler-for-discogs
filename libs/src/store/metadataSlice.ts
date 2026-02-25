@@ -21,7 +21,7 @@ const metadataSlice = createSlice({
       state.data = action.payload.data;
       state.isHydrated = true;
     },
-    updateMetadataItem(state, action: PayloadAction<{ releaseId: number; provider: 'apple' | 'musicbrainz'; metadata: ServiceMetadata }>) {
+    updateMetadataItem(state, action: PayloadAction<{ releaseId: number; provider: 'apple' | 'musicbrainz' | 'deezer'; metadata: ServiceMetadata }>) {
       const { releaseId, provider, metadata } = action.payload;
       if (!state.data[releaseId]) {
         state.data[releaseId] = {};

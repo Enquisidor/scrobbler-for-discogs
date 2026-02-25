@@ -2,6 +2,7 @@
 import type { DiscogsRelease, CombinedMetadata, Settings } from '../types';
 import { MetadataSourceType } from '../types';
 import { formatArtistNames, validateArtistName } from './formattingUtils';
+import { getSourceMetadata } from './metadataUtils';
 
 export function applyMetadataCorrections(
   rawCollection: DiscogsRelease[],
@@ -17,7 +18,7 @@ export function applyMetadataCorrections(
 
     // --- Artist Correction Logic ---
     if (settings.artistSource !== MetadataSourceType.Discogs) {
-        const sourceMeta = settings.artistSource === MetadataSourceType.Apple ? meta.apple : meta.musicbrainz;
+        const sourceMeta = getSourceMetadata(meta, settings.artistSource);
         const sourceString = sourceMeta?.artist;
         
         if (sourceString) {
@@ -54,7 +55,7 @@ export function applyMetadataCorrections(
 
     // --- Album Correction Logic ---
     if (settings.albumSource !== MetadataSourceType.Discogs) {
-        const sourceMeta = settings.albumSource === MetadataSourceType.Apple ? meta.apple : meta.musicbrainz;
+        const sourceMeta = getSourceMetadata(meta, settings.albumSource);
         if (sourceMeta && sourceMeta.album && newBasicInfo.title !== sourceMeta.album) {
             newBasicInfo.title = sourceMeta.album;
             hasChanged = true;

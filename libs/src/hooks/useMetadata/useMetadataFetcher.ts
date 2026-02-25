@@ -4,6 +4,7 @@ import type { DiscogsRelease, Settings } from '../../types';
 import { MetadataSourceType } from '../../types';
 import { fetchAppleMusicMetadata } from '../../services/appleMusic/appleMusicService';
 import { fetchMusicBrainzMetadata } from '../../services/musicbrainz/musicbrainzService';
+import { fetchDeezerMetadata } from '../../services/deezer/deezerService';
 import type { RootState } from '../../store/index';
 import { updateMetadataItem } from '../../store/metadataSlice';
 
@@ -125,9 +126,11 @@ export function useMetadataFetcher(
 
       const needsApple = currentSettings.artistSource === MetadataSourceType.Apple || currentSettings.albumSource === MetadataSourceType.Apple;
       const needsMB = currentSettings.artistSource === MetadataSourceType.MusicBrainz || currentSettings.albumSource === MetadataSourceType.MusicBrainz;
+      const needsDeezer = currentSettings.artistSource === MetadataSourceType.Deezer || currentSettings.albumSource === MetadataSourceType.Deezer;
 
       const hasApple = currentMeta?.apple && (now - (currentMeta.apple.lastChecked || 0) < RECHECK_INTERVAL_MS);
       const hasMB = currentMeta?.musicbrainz && (now - (currentMeta.musicbrainz.lastChecked || 0) < RECHECK_INTERVAL_MS);
+      const hasDeezer = currentMeta?.deezer && (now - (currentMeta.deezer.lastChecked || 0) < RECHECK_INTERVAL_MS);
 
       requestTimestampsRef.current.push(Date.now());
       activeCountRef.current++;
@@ -159,6 +162,20 @@ export function useMetadataFetcher(
             })
             .catch(err => {
               if (err.name !== 'AbortError') console.warn(`[MetadataFetcher] MusicBrainz fetch error for ${releaseId}`, err);
+            })
+        );
+      }
+
+      if (needsDeezer && !hasDeezer) {
+        tasks.push(
+          fetchDeezerMetadata(release, signal)
+            .then(result => {
+              if (!mountedRef.current || signal.aborted) return;
+              const finalResult = result || { lastChecked: Date.now() };
+              dispatch(updateMetadataItem({ releaseId, provider: 'deezer', metadata: finalResult }));
+            })
+            .catch(err => {
+              if (err.name !== 'AbortError') console.warn(`[MetadataFetcher] Deezer fetch error for ${releaseId}`, err);
             })
         );
       }
@@ -249,11 +266,13 @@ export function useMetadataFetcher(
 
       const needsApple = currentSettings.artistSource === MetadataSourceType.Apple || currentSettings.albumSource === MetadataSourceType.Apple;
       const needsMB = currentSettings.artistSource === MetadataSourceType.MusicBrainz || currentSettings.albumSource === MetadataSourceType.MusicBrainz;
+      const needsDeezer = currentSettings.artistSource === MetadataSourceType.Deezer || currentSettings.albumSource === MetadataSourceType.Deezer;
 
       const hasApple = meta?.apple && (now - (meta.apple.lastChecked || 0) < RECHECK_INTERVAL_MS);
       const hasMB = meta?.musicbrainz && (now - (meta.musicbrainz.lastChecked || 0) < RECHECK_INTERVAL_MS);
+      const hasDeezer = meta?.deezer && (now - (meta.deezer.lastChecked || 0) < RECHECK_INTERVAL_MS);
 
-      if ((needsApple && !hasApple) || (needsMB && !hasMB)) {
+      if ((needsApple && !hasApple) || (needsMB && !hasMB) || (needsDeezer && !hasDeezer)) {
         queueRef.current.push(releaseId);
         queuedSetRef.current.add(releaseId);
         processedSessionRef.current.add(releaseId);

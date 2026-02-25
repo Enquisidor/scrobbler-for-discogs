@@ -2,6 +2,7 @@
 import type { DiscogsTrack, QueueItem, SelectedTracks, ArtistSelections, CombinedMetadata, DiscogsRelease, LastfmTrackScrobble, DiscogsArtist, Settings } from '../types';
 import { MetadataSourceType } from '../types';
 import { formatArtistNames, getDisplayArtistName, getSmartArtistDisplay } from './formattingUtils';
+import { getSourceMetadata } from './metadataUtils';
 
 export function isVariousArtist(name: string): boolean {
     if (!name) return false;
@@ -27,7 +28,7 @@ export function getReleaseDisplayTitle(
         return release.basic_information.title;
     }
 
-    const sourceMeta = settings.albumSource === MetadataSourceType.Apple ? metadata.apple : metadata.musicbrainz;
+    const sourceMeta = getSourceMetadata(metadata, settings.albumSource);
     return sourceMeta?.album || release.basic_information.title;
 }
 

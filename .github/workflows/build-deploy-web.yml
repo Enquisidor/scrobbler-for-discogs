@@ -50,17 +50,19 @@ jobs:
             web/package-lock.json
             libs/package-lock.json
 
-      - name: Install and build shared library
+      # Install only libs' production dependencies (omit devDependencies to avoid
+      # installing react/react-redux into libs/node_modules, which would create
+      # a duplicate React instance and cause "useContext null" errors at runtime.
+      # Vite reads libs/src directly via the @libs alias — npm run build not needed.
+      - name: Install shared library dependencies (prod only)
         working-directory: libs
-        run: |
-          npm ci
-          npm run build
+        run: npm ci --omit=dev
 
       - name: Install web app dependencies
         working-directory: web
-        run: |
-          npm ci
-          npm install ../libs
+        # npm ci handles the file:../libs dependency automatically from package-lock.json.
+        # No need for a separate npm install ../libs.
+        run: npm ci
 
       - name: Build web app
         working-directory: web
