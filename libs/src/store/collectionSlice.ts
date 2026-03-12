@@ -7,6 +7,7 @@ export interface CollectionState {
   collection: DiscogsRelease[];
   isLoading: boolean;
   isSyncing: boolean;
+  isBackgroundResyncing: boolean;
   error: string | null;
   isAuthError: boolean;
   isHydrated: boolean;
@@ -17,6 +18,7 @@ export const initialCollectionState: CollectionState = {
   collection: [],
   isLoading: false,
   isSyncing: false,
+  isBackgroundResyncing: false,
   error: null,
   isAuthError: false,
   isHydrated: false,
@@ -91,9 +93,14 @@ const collectionSlice = createSlice({
     resetCollection() {
       return { ...initialCollectionState, isHydrated: true };
     },
+    // Prepend newly-added items to the front of the collection (addition-only update)
+    prependItems(state, action: PayloadAction<DiscogsRelease[]>) {
+      state.collection = [...formatReleases(action.payload), ...state.collection];
+    },
     // Start a background resync without clearing the visible collection
     startBackgroundSync(state) {
       state.isSyncing = true;
+      state.isBackgroundResyncing = true;
       state.error = null;
       state.isAuthError = false;
     },
@@ -102,6 +109,7 @@ const collectionSlice = createSlice({
       state.collection = formatReleases(action.payload);
       state.isSyncing = false;
       state.isLoading = false;
+      state.isBackgroundResyncing = false;
     },
     // Hydrate collection from AsyncStorage
     hydrateCollection(state, action: PayloadAction<{ collection: DiscogsRelease[]; lastSynced: number }>) {
@@ -126,6 +134,7 @@ export const {
   clearError,
   setAuthError,
   resetCollection,
+  prependItems,
   startBackgroundSync,
   replaceCollection,
   hydrateCollection,

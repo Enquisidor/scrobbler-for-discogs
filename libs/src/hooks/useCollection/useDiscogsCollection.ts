@@ -13,6 +13,7 @@ import {
   setAuthError,
   setError,
   resetCollection,
+  prependItems,
   startBackgroundSync,
   replaceCollection,
   setHydrated
@@ -143,15 +144,28 @@ export function useDiscogsCollection(
             PAGE_SIZE
           );
           if (!aborted && mountedRef.current) {
-            const countChanged = checkData.pagination.items !== fullCollection.length;
+            const remoteCount = checkData.pagination.items;
+            const countDiff = remoteCount - fullCollection.length;
             const latestRemoteId = checkData.releases[0]?.instance_id;
             const latestCachedId = fullCollection[0]?.instance_id;
-            const latestChanged = latestRemoteId !== latestCachedId;
-            if (countChanged || latestChanged) {
+
+            if (countDiff === 0 && latestRemoteId === latestCachedId) {
+              console.log('Collection up to date, using cached data');
+            } else if (countDiff > 0 && countDiff <= PAGE_SIZE) {
+              // Pure additions and all new items fit on page 1 — use data we already have
+              const cachedIds = new Set(fullCollection.map(r => r.instance_id));
+              const newItems = checkData.releases.filter(r => !cachedIds.has(r.instance_id));
+              if (newItems.length === countDiff) {
+                console.log(`${countDiff} new album(s) added, prepending without full resync`);
+                dispatch(prependItems(newItems));
+              } else {
+                // New items spill across page boundary — fall back to full resync
+                setReloadTrigger(c => c + 1);
+              }
+            } else {
+              // Deletions, swaps, or large additions — full background resync
               console.log('Collection changed, triggering background resync');
               setReloadTrigger(c => c + 1);
-            } else {
-              console.log('Collection up to date, using cached data');
             }
           }
         } catch {

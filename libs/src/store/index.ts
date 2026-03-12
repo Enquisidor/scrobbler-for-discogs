@@ -44,9 +44,14 @@ store.subscribe(() => {
         JSON.stringify(state.metadata.data)
       );
 
-      // Save collection only when it changes and sync is complete
+      // During a background resync, skip saves — we'll write atomically when it completes.
+      // During initial load or normal state, save whenever the collection grows.
       const currentCollectionLength = state.collection.collection.length;
-      if (!state.collection.isSyncing && currentCollectionLength > 0 && currentCollectionLength !== lastCollectionLength) {
+      if (
+        !state.collection.isBackgroundResyncing &&
+        currentCollectionLength > 0 &&
+        currentCollectionLength !== lastCollectionLength
+      ) {
         lastCollectionLength = currentCollectionLength;
         await AsyncStorage.setItem(
           'scrobbler-for-discogs-collection-v1',
