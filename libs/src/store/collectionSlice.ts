@@ -104,9 +104,9 @@ const collectionSlice = createSlice({
       state.error = null;
       state.isAuthError = false;
     },
-    // Atomically replace the entire collection once a background resync is complete
-    replaceCollection(state, action: PayloadAction<DiscogsRelease[]>) {
-      state.collection = formatReleases(action.payload);
+    // Remove items not present in the remote collection (called after background resync completes)
+    removeDeletedItems(state, action: PayloadAction<Set<number>>) {
+      state.collection = state.collection.filter(r => action.payload.has(r.instance_id));
       state.isSyncing = false;
       state.isLoading = false;
       state.isBackgroundResyncing = false;
@@ -136,7 +136,7 @@ export const {
   resetCollection,
   prependItems,
   startBackgroundSync,
-  replaceCollection,
+  removeDeletedItems,
   hydrateCollection,
   setHydrated,
 } = collectionSlice.actions;

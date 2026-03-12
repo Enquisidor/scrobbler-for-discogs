@@ -84,7 +84,7 @@ describe('useDiscogsCollection', () => {
         1,
         'added',
         'desc',
-        50
+        100
       );
     });
 

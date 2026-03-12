@@ -15,11 +15,11 @@ import {
   resetCollection,
   prependItems,
   startBackgroundSync,
-  replaceCollection,
+  removeDeletedItems,
   setHydrated
 } from '../../store/collectionSlice';
 
-const PAGE_SIZE = 50;
+const PAGE_SIZE = 100;
 // Increased concurrency to 3 to parallelize network latency.
 // Delay set to 3100ms per worker prevents hitting the 60 req/min limit (3 reqs / 3.1s ~= 58 req/min).
 const MAX_CONCURRENT_FETCHES = 3;
@@ -205,6 +205,7 @@ export function useDiscogsCollection(
               );
               if (aborted) break;
               buffer.push(...data.releases);
+              if (mountedRef.current) dispatch(syncPageSuccess(data.releases));
             } catch (err) {
               if (err instanceof DiscogsRateLimitError) {
                 if (!isRateLimitedRef.current) {
@@ -225,7 +226,7 @@ export function useDiscogsCollection(
           }
           activeFetchesRef.current -= 1;
           if (activeFetchesRef.current === 0 && !aborted && mountedRef.current) {
-            dispatch(replaceCollection(buffer));
+            dispatch(removeDeletedItems(new Set(buffer.map(r => r.instance_id))));
           }
         };
 
@@ -238,6 +239,7 @@ export function useDiscogsCollection(
           );
           if (aborted) return;
           buffer.push(...page1.releases);
+          if (mountedRef.current) dispatch(syncPageSuccess(page1.releases));
           const totalPages = page1.pagination.pages;
 
           if (totalPages > 1) {
@@ -248,7 +250,7 @@ export function useDiscogsCollection(
               setTimeout(() => { if (mountedRef.current && !aborted) bufferWorker(); }, i * REQUEST_DELAY_MS);
             }
           } else {
-            if (mountedRef.current) dispatch(replaceCollection(buffer));
+            if (mountedRef.current) dispatch(removeDeletedItems(new Set(buffer.map(r => r.instance_id))));
           }
         } catch (err) {
           if (err instanceof DiscogsAuthError) {
