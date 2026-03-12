@@ -11,6 +11,39 @@ export function useAuthHandler(
   const effectRan = useRef(false);
 
   const isLastfmConnected = !!credentials.lastfmSessionKey;
+  const avatarBackfillRan = useRef(false);
+
+  // Backfill avatars for already-connected users who don't have one stored yet
+  useEffect(() => {
+    if (avatarBackfillRan.current) return;
+    avatarBackfillRan.current = true;
+
+    const updates: Partial<Credentials> = {};
+    const fetches: Promise<void>[] = [];
+
+    if (credentials.discogsAccessToken && credentials.discogsUsername && !credentials.discogsAvatarUrl) {
+      fetches.push(
+        getDiscogsAvatarUrl(credentials.discogsUsername, credentials.discogsAccessToken, credentials.discogsAccessTokenSecret ?? '')
+          .then(url => { if (url) updates.discogsAvatarUrl = url; })
+          .catch(() => undefined)
+      );
+    }
+
+    if (credentials.lastfmApiKey && credentials.lastfmUsername && !credentials.lastfmAvatarUrl) {
+      fetches.push(
+        getLastfmAvatarUrl(credentials.lastfmUsername, credentials.lastfmApiKey)
+          .then(url => { if (url) updates.lastfmAvatarUrl = url; })
+          .catch(() => undefined)
+      );
+    }
+
+    if (fetches.length > 0) {
+      Promise.all(fetches).then(() => {
+        if (Object.keys(updates).length > 0) onCredentialsChange(updates);
+      });
+    }
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
 
   useEffect(() => {
     if (effectRan.current) return;

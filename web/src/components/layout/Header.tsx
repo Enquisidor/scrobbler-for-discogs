@@ -42,6 +42,7 @@ const Header: React.FC<HeaderProps> = ({
           service="discogs"
           isConnected={isDiscogsConnected}
           username={credentials.discogsUsername}
+          avatarUrl={credentials.discogsAvatarUrl}
           onConnect={handleDiscogsConnect}
           onDisconnect={onDiscogsLogout}
           isLoading={loadingService === 'discogs'}
@@ -62,6 +63,7 @@ const Header: React.FC<HeaderProps> = ({
           service="lastfm"
           isConnected={!!credentials.lastfmSessionKey}
           username={credentials.lastfmUsername}
+          avatarUrl={credentials.lastfmAvatarUrl}
           onConnect={handleLastfmConnect}
           onDisconnect={onLastfmLogout}
           isLoading={loadingService === 'lastfm'}
