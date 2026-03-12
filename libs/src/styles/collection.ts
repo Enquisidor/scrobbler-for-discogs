@@ -143,6 +143,10 @@ export const filterStyles = {
     fontSize: fontSize.sm,
     fontWeight: fontWeight.semibold,
   },
+  countText: {
+    color: colors.gray[500],
+    fontSize: fontSize.sm,
+  },
   resetButton: {
     backgroundColor: colors.gray[700],
     paddingHorizontal: spacing[3],

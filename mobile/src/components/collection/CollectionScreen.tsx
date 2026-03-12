@@ -33,6 +33,7 @@ interface CollectionScreenProps {
   settings: Settings;
   metadata: Record<number, CombinedMetadata>;
   numColumns?: number;
+  listHeaderComponent?: React.ReactElement;
   testID?: string;
   onViewableItemsChanged?: (info: { viewableItems: ViewToken[]; changed: ViewToken[] }) => void;
   viewabilityConfig?: ViewabilityConfig;
@@ -56,6 +57,7 @@ export const CollectionScreen: React.FC<CollectionScreenProps> = ({
   settings,
   metadata,
   numColumns = 3,
+  listHeaderComponent,
   testID,
   onViewableItemsChanged,
   viewabilityConfig,
@@ -180,6 +182,7 @@ export const CollectionScreen: React.FC<CollectionScreenProps> = ({
   return (
     <FlatList
       testID={testID}
+      style={styles.list}
       data={collection}
       renderItem={renderItem}
       keyExtractor={keyExtractor}
@@ -189,11 +192,12 @@ export const CollectionScreen: React.FC<CollectionScreenProps> = ({
       columnWrapperStyle={numColumns > 1 ? { gap } : undefined}
       onEndReached={handleEndReached}
       onEndReachedThreshold={0.5}
+      ListHeaderComponent={listHeaderComponent}
       ListFooterComponent={renderFooter}
       ListEmptyComponent={renderEmpty}
       refreshControl={
         <RefreshControl
-          refreshing={isSyncing}
+          refreshing={false}
           onRefresh={onRefresh}
           tintColor="#3b82f6"
           colors={['#3b82f6']}
@@ -216,6 +220,9 @@ export const CollectionScreen: React.FC<CollectionScreenProps> = ({
 };
 
 const styles = StyleSheet.create({
+  list: {
+    flex: 1,
+  },
   listContent: {
     padding: 16,
     minHeight: '100%',

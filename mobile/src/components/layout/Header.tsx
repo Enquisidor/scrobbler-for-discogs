@@ -139,6 +139,7 @@ export const Header: React.FC<HeaderProps> = ({
 const styles = StyleSheet.create({
   container: {
     ...headerStyles.container,
+    paddingHorizontal: 16,
     paddingVertical: 8,
     gap: 6,
   },
@@ -148,6 +149,7 @@ const styles = StyleSheet.create({
   },
   titleRow: {
     ...headerStyles.titleRow,
+    flex: 1,
     marginBottom: 0,
   },
   title: headerStyles.title,

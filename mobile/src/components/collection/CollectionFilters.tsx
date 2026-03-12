@@ -78,6 +78,8 @@ export const CollectionFilters: React.FC<CollectionFiltersProps> = ({
   handleResetFilters,
   numColumns,
   setNumColumns,
+  totalCount,
+  filteredCount,
 }) => {
   const [activeModal, setActiveModal] = useState<PickerModalType>(null);
 
@@ -138,6 +140,10 @@ export const CollectionFilters: React.FC<CollectionFiltersProps> = ({
     { value: '2', label: '2 per row' },
     { value: '3', label: '3 per row' },
     { value: '4', label: '4 per row' },
+    { value: '5', label: '5 per row' },
+    { value: '6', label: '6 per row' },
+    { value: '7', label: '7 per row' },
+    { value: '8', label: '8 per row' },
   ];
 
   const renderPickerModal = () => {
@@ -271,6 +277,10 @@ export const CollectionFilters: React.FC<CollectionFiltersProps> = ({
           <Text style={styles.filterArrow}>▼</Text>
         </Pressable>
 
+        <Text style={styles.countText}>
+          {isFiltered ? `${filteredCount} / ${totalCount}` : `${totalCount}`}
+        </Text>
+
         {isFiltered && (
           <Pressable style={styles.resetButton} onPress={handleResetFilters}>
             <Text style={styles.resetButtonText}>Reset</Text>
@@ -293,6 +303,7 @@ const styles = StyleSheet.create({
   statusRow: filterStyles.statusRow,
   columnsButton: filterStyles.columnsButton,
   columnsButtonText: filterStyles.columnsButtonText,
+  countText: filterStyles.countText,
   resetButton: filterStyles.resetButton,
   resetButtonText: filterStyles.resetButtonText,
   // Modal styles

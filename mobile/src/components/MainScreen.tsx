@@ -188,26 +188,6 @@ export const MainScreen: React.FC = () => {
           />
         )}
 
-        {isDiscogsConnected && collection.length > 0 && (
-          <CollectionFilters
-            searchTerm={searchTerm}
-            setSearchTerm={setSearchTerm}
-            sortOption={sortOption}
-            setSortOption={setSortOption}
-            selectedFormat={selectedFormat}
-            setSelectedFormat={setSelectedFormat}
-            selectedYear={selectedYear}
-            setSelectedYear={setSelectedYear}
-            filterOptions={filterOptions}
-            isFiltered={isFiltered}
-            handleResetFilters={handleResetFilters}
-            numColumns={albumsPerRow}
-            setNumColumns={setAlbumsPerRow}
-            totalCount={collectionWithCorrections.length}
-            filteredCount={filteredAndSortedCollection.length}
-          />
-        )}
-
         <CollectionScreen
           collection={filteredAndSortedCollection}
           queue={queue}
@@ -228,6 +208,25 @@ export const MainScreen: React.FC = () => {
           numColumns={albumsPerRow}
           onViewableItemsChanged={onViewableItemsChanged}
           viewabilityConfig={viewabilityConfig}
+          listHeaderComponent={isDiscogsConnected && collection.length > 0 ? (
+            <CollectionFilters
+              searchTerm={searchTerm}
+              setSearchTerm={setSearchTerm}
+              sortOption={sortOption}
+              setSortOption={setSortOption}
+              selectedFormat={selectedFormat}
+              setSelectedFormat={setSelectedFormat}
+              selectedYear={selectedYear}
+              setSelectedYear={setSelectedYear}
+              filterOptions={filterOptions}
+              isFiltered={isFiltered}
+              handleResetFilters={handleResetFilters}
+              numColumns={albumsPerRow}
+              setNumColumns={setAlbumsPerRow}
+              totalCount={collectionWithCorrections.length}
+              filteredCount={filteredAndSortedCollection.length}
+            />
+          ) : undefined}
         />
       </View>
 
@@ -268,7 +267,6 @@ const styles = StyleSheet.create({
   },
   content: {
     flex: 1,
-    paddingHorizontal: 16,
   },
   loadingContainer: {
     flex: 1,

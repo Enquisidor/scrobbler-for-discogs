@@ -79,6 +79,7 @@ const mockSettings: Settings = {
   selectFeaturesByDefault: false,
   artistSource: 'discogs',
   albumSource: 'discogs',
+  showCredits: false,
 };
 
 describe('CollectionScreen', () => {
