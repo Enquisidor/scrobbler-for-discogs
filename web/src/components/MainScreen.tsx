@@ -203,7 +203,6 @@ export default function MainScreen({
             totalScrobbledTracks={queueHandler.totalScrobbledTracks}
             handleOpenHistory={handleOpenHistory}
             totalFilteredCount={filteredAndSortedCollection.length}
-            displayedCount={displayedCollection.length}
           />
         )}
 
@@ -234,6 +233,8 @@ export default function MainScreen({
       />
 
       <QueueButton
+        queue={queueHandler.queue}
+        selectedTracks={queueHandler.selectedTracks}
         queueCount={queueHandler.queue.length}
         selectedTrackCount={queueHandler.totalSelectedTracks}
         onClick={handleOpenQueue}

@@ -24,7 +24,6 @@ interface CollectionFiltersProps {
   totalScrobbledTracks: number;
   handleOpenHistory: () => void;
   totalFilteredCount: number;
-  displayedCount: number;
 }
 
 const CollectionFilters: React.FC<CollectionFiltersProps> = ({
@@ -45,7 +44,6 @@ const CollectionFilters: React.FC<CollectionFiltersProps> = ({
   totalScrobbledTracks,
   handleOpenHistory,
   totalFilteredCount,
-  displayedCount,
 }) => {
   return (
     <div className="sticky top-0 bg-gray-900/80 backdrop-blur-sm z-10 py-4 mb-6 flex flex-col gap-4">
@@ -130,6 +128,9 @@ const CollectionFilters: React.FC<CollectionFiltersProps> = ({
           </button>
         )}
         <div className="ml-auto flex items-center gap-4">
+          {totalFilteredCount > 0 && (
+            <span className="text-sm text-gray-400 font-semibold">Showing: {totalFilteredCount} albums</span>
+          )}
           {totalScrobbledAlbums > 0 && (
             <button
               onClick={handleOpenHistory}
@@ -145,11 +146,6 @@ const CollectionFilters: React.FC<CollectionFiltersProps> = ({
                 </span>
               </div>
             </button>
-          )}
-          {totalFilteredCount > 0 && (
-            <div className="text-sm text-gray-400 font-semibold">
-              Showing {displayedCount} / {totalFilteredCount}
-            </div>
           )}
         </div>
       </div>
