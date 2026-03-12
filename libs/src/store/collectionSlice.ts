@@ -91,6 +91,18 @@ const collectionSlice = createSlice({
     resetCollection() {
       return { ...initialCollectionState, isHydrated: true };
     },
+    // Start a background resync without clearing the visible collection
+    startBackgroundSync(state) {
+      state.isSyncing = true;
+      state.error = null;
+      state.isAuthError = false;
+    },
+    // Atomically replace the entire collection once a background resync is complete
+    replaceCollection(state, action: PayloadAction<DiscogsRelease[]>) {
+      state.collection = formatReleases(action.payload);
+      state.isSyncing = false;
+      state.isLoading = false;
+    },
     // Hydrate collection from AsyncStorage
     hydrateCollection(state, action: PayloadAction<{ collection: DiscogsRelease[]; lastSynced: number }>) {
       state.collection = action.payload.collection;
@@ -114,6 +126,8 @@ export const {
   clearError,
   setAuthError,
   resetCollection,
+  startBackgroundSync,
+  replaceCollection,
   hydrateCollection,
   setHydrated,
 } = collectionSlice.actions;

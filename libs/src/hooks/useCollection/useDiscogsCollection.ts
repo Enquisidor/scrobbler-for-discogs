@@ -13,6 +13,8 @@ import {
   setAuthError,
   setError,
   resetCollection,
+  startBackgroundSync,
+  replaceCollection,
   setHydrated
 } from '../../store/collectionSlice';
 
@@ -146,7 +148,7 @@ export function useDiscogsCollection(
             const latestCachedId = fullCollection[0]?.instance_id;
             const latestChanged = latestRemoteId !== latestCachedId;
             if (countChanged || latestChanged) {
-              console.log('Collection changed, triggering full sync');
+              console.log('Collection changed, triggering background resync');
               setReloadTrigger(c => c + 1);
             } else {
               console.log('Collection up to date, using cached data');
@@ -159,6 +161,93 @@ export function useDiscogsCollection(
         return;
       }
 
+      // reloadTrigger > 0: collection changed — resync in the background without
+      // clearing the visible collection. Collect all pages into a buffer and
+      // atomically replace once complete so the user never sees a blank screen.
+      if (reloadTrigger > 0) {
+        dispatch(startBackgroundSync());
+        const buffer: import('../../types').DiscogsRelease[] = [];
+        pagesToFetchRef.current = [];
+        activeFetchesRef.current = 0;
+        isRateLimitedRef.current = false;
+
+        const bufferWorker = async () => {
+          while (pagesToFetchRef.current.length > 0) {
+            if (aborted) break;
+            if (isRateLimitedRef.current) {
+              await new Promise(resolve => setTimeout(resolve, 1000));
+              continue;
+            }
+            await new Promise(resolve => setTimeout(resolve, REQUEST_DELAY_MS));
+            if (aborted) break;
+            const page = pagesToFetchRef.current.shift();
+            if (typeof page === 'undefined') continue;
+            try {
+              const data = await fetchDiscogsPage(
+                credentials.discogsUsername,
+                credentials.discogsAccessToken,
+                credentials.discogsAccessTokenSecret,
+                page, API_SORT, API_SORT_ORDER, PAGE_SIZE
+              );
+              if (aborted) break;
+              buffer.push(...data.releases);
+            } catch (err) {
+              if (err instanceof DiscogsRateLimitError) {
+                if (!isRateLimitedRef.current) {
+                  isRateLimitedRef.current = true;
+                  pagesToFetchRef.current.unshift(page);
+                  setTimeout(() => { isRateLimitedRef.current = false; }, RATE_LIMIT_PAUSE_MS);
+                } else {
+                  pagesToFetchRef.current.unshift(page);
+                }
+                await new Promise(resolve => setTimeout(resolve, 1000));
+                continue;
+              } else if (err instanceof DiscogsAuthError) {
+                if (mountedRef.current) dispatch(setAuthError());
+                aborted = true;
+                break;
+              }
+            }
+          }
+          activeFetchesRef.current -= 1;
+          if (activeFetchesRef.current === 0 && !aborted && mountedRef.current) {
+            dispatch(replaceCollection(buffer));
+          }
+        };
+
+        try {
+          const page1 = await fetchDiscogsPage(
+            credentials.discogsUsername,
+            credentials.discogsAccessToken,
+            credentials.discogsAccessTokenSecret,
+            1, API_SORT, API_SORT_ORDER, PAGE_SIZE
+          );
+          if (aborted) return;
+          buffer.push(...page1.releases);
+          const totalPages = page1.pagination.pages;
+
+          if (totalPages > 1) {
+            pagesToFetchRef.current = Array.from({ length: totalPages - 1 }, (_, i) => i + 2);
+            const workerCount = Math.min(MAX_CONCURRENT_FETCHES, pagesToFetchRef.current.length);
+            activeFetchesRef.current = workerCount;
+            for (let i = 0; i < workerCount; i++) {
+              setTimeout(() => { if (mountedRef.current && !aborted) bufferWorker(); }, i * REQUEST_DELAY_MS);
+            }
+          } else {
+            if (mountedRef.current) dispatch(replaceCollection(buffer));
+          }
+        } catch (err) {
+          if (err instanceof DiscogsAuthError) {
+            if (mountedRef.current) dispatch(setAuthError());
+          } else if (err instanceof Error) {
+            console.error('Background resync failed:', err);
+            if (mountedRef.current) dispatch(syncComplete()); // clear isSyncing
+          }
+        }
+        return;
+      }
+
+      // Fresh load (no cache): standard path — show loading spinner
       dispatch(startLoading());
       pagesToFetchRef.current = [];
       activeFetchesRef.current = 0;
