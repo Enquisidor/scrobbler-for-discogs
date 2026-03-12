@@ -278,7 +278,7 @@ export const CollectionFilters: React.FC<CollectionFiltersProps> = ({
         </Pressable>
 
         <Text style={styles.countText}>
-          {isFiltered ? `${filteredCount} / ${totalCount}` : `${totalCount}`}
+          Releases Showing: {isFiltered ? `${filteredCount} / ${totalCount}` : `${totalCount}`}
         </Text>
 
         {isFiltered && (

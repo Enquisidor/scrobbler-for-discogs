@@ -255,14 +255,13 @@ describe('CollectionScreen', () => {
       expect(onRefresh).toHaveBeenCalledTimes(1);
     });
 
-    it('should show refresh indicator when syncing', () => {
+    it('should not show native refresh indicator (sync state shown in header)', () => {
       const { getByTestId } = render(
         <CollectionScreen {...defaultProps} isSyncing={true} />
       );
 
-      // The FlatList should have refreshing prop set to true
       const flatList = getByTestId('collection-screen');
-      expect(flatList.props.refreshControl.props.refreshing).toBe(true);
+      expect(flatList.props.refreshControl.props.refreshing).toBe(false);
     });
   });
 

@@ -76,8 +76,7 @@ export const albumCardStyles = {
 export const filterStyles = {
   container: {
     backgroundColor: `rgba(18, 18, 18, 0.95)`,
-    paddingHorizontal: spacing[4],
-    paddingVertical: spacing[2],
+    paddingBottom: spacing[2],
     gap: spacing[2],
   },
   searchInput: {
@@ -144,7 +143,7 @@ export const filterStyles = {
     fontWeight: fontWeight.semibold,
   },
   countText: {
-    color: colors.gray[500],
+    color: colors.white,
     fontSize: fontSize.sm,
   },
   resetButton: {
