@@ -223,7 +223,7 @@ const Track: React.FC<TrackProps> = ({
                         </div>
                     </div>
 
-                    {!hasSubTracks && renderCredits(trackKey, structuredCredits)}
+                    {!hasSubTracks && settings.showCredits && renderCredits(trackKey, structuredCredits)}
 
                 </div>
                 {renderDuration(trackKey, track.duration)}
@@ -275,7 +275,7 @@ const Track: React.FC<TrackProps> = ({
                                             </label>
                                         )}
                                     </div>
-                                    {renderCredits(subTrackKey, subStructuredCredits)}
+                                    {settings.showCredits && renderCredits(subTrackKey, subStructuredCredits)}
                                 </div>
                                 {renderDuration(subTrackKey, subTrack.duration)}
                             </div>

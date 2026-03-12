@@ -129,7 +129,7 @@ const CollectionFilters: React.FC<CollectionFiltersProps> = ({
         )}
         <div className="ml-auto flex items-center gap-4">
           {totalFilteredCount > 0 && (
-            <span className="text-sm text-gray-400 font-semibold">Showing: {totalFilteredCount} albums</span>
+            <span className="text-sm text-gray-400 font-semibold">Releases Showing: {totalFilteredCount}</span>
           )}
           {totalScrobbledAlbums > 0 && (
             <button

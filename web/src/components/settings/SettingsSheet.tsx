@@ -139,6 +139,15 @@ export default function SettingsSheet({ isOpen, onClose, settings, onSettingsCha
                         />
                     </div>
                     <div className="pt-4">
+                        <h3 className="text-xs font-bold uppercase text-gray-500 tracking-wider mb-2">Track Credits</h3>
+                        <SettingsToggle
+                            label="Show credits"
+                            description="Display producers, engineers, and other credits under each track."
+                            checked={settings.showCredits}
+                            onChange={(checked) => onSettingsChange({ ...settings, showCredits: checked })}
+                        />
+                    </div>
+                    <div className="pt-4">
                         <h3 className="text-xs font-bold uppercase text-gray-500 tracking-wider mb-2">Metadata Sources</h3>
                         <p className="text-xs text-gray-400 mb-3">Choose where to fetch improved metadata. External sources can provide cleaner names and fix formatting issues.</p>
 

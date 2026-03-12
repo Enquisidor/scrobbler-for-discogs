@@ -1,5 +1,5 @@
 import { useState, useEffect, useRef } from 'react';
-import { getLastfmConfig, STORAGE_KEYS, getLastfmSession, getAccessToken, getDiscogsIdentity, getRequestToken } from '@libs';
+import { getLastfmConfig, STORAGE_KEYS, getLastfmSession, getAccessToken, getDiscogsIdentity, getDiscogsAvatarUrl, getLastfmAvatarUrl, getRequestToken } from '@libs';
 import type { Credentials } from '@libs';
 
 export function useAuthHandler(
@@ -34,11 +34,13 @@ export function useAuthHandler(
       try {
         const { accessToken, accessTokenSecret } = await getAccessToken(oauthToken, requestTokenSecret, oauthVerifier);
         const identity = await getDiscogsIdentity(accessToken, accessTokenSecret);
+        const discogsAvatarUrl = await getDiscogsAvatarUrl(identity.username, accessToken, accessTokenSecret).catch(() => undefined);
 
         onCredentialsChange({
           discogsUsername: identity.username,
           discogsAccessToken: accessToken,
           discogsAccessTokenSecret: accessTokenSecret,
+          discogsAvatarUrl,
         });
       } catch (err) {
         console.error(err);
@@ -62,11 +64,13 @@ export function useAuthHandler(
       setError(null);
       try {
         const session = await getLastfmSession(apiKey, secret, token);
+        const lastfmAvatarUrl = await getLastfmAvatarUrl(session.name, apiKey).catch(() => undefined);
         onCredentialsChange({
           lastfmApiKey: apiKey,
           lastfmSecret: secret,
           lastfmSessionKey: session.key,
-          lastfmUsername: session.name
+          lastfmUsername: session.name,
+          lastfmAvatarUrl,
         });
       } catch (err) {
         console.error(err);
