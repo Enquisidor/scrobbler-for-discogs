@@ -322,3 +322,189 @@ export const QueueItem: React.FC<QueueItemProps> = ({
     </View>
   );
 };
+
+const styles = StyleSheet.create({
+  container: {
+    backgroundColor: '#1f2937',
+    borderRadius: 8,
+    overflow: 'hidden',
+    marginBottom: 8,
+  },
+  containerError: {
+    borderWidth: 1,
+    borderColor: '#991b1b',
+  },
+  containerHistory: {
+    opacity: 0.7,
+  },
+  header: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    padding: 12,
+  },
+  coverImage: {
+    width: 48,
+    height: 48,
+    borderRadius: 6,
+    backgroundColor: '#374151',
+  },
+  info: {
+    flex: 1,
+    marginLeft: 12,
+    minWidth: 0,
+  },
+  title: {
+    color: '#ffffff',
+    fontSize: 14,
+    fontWeight: 'bold',
+  },
+  artist: {
+    color: '#9ca3af',
+    fontSize: 12,
+    marginTop: 2,
+  },
+  actions: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 8,
+    marginLeft: 8,
+  },
+  errorBadge: {
+    color: '#f87171',
+    fontSize: 10,
+    fontWeight: 'bold',
+    paddingHorizontal: 6,
+  },
+  badge: {
+    backgroundColor: '#2563eb',
+    borderRadius: 12,
+    paddingHorizontal: 8,
+    paddingVertical: 2,
+  },
+  badgeHistory: {
+    backgroundColor: '#4b5563',
+  },
+  badgeText: {
+    color: '#ffffff',
+    fontSize: 11,
+    fontWeight: 'bold',
+  },
+  chevron: {
+    color: '#9ca3af',
+    fontSize: 12,
+    paddingHorizontal: 4,
+  },
+  chevronExpanded: {
+    transform: [{ rotate: '180deg' }],
+  },
+  actionButton: {
+    padding: 8,
+    borderRadius: 20,
+  },
+  actionButtonDisabled: {
+    opacity: 0.5,
+  },
+  scrobbleIcon: {
+    color: '#22c55e',
+    fontSize: 18,
+    fontWeight: 'bold',
+  },
+  removeIcon: {
+    color: '#9ca3af',
+    fontSize: 14,
+  },
+  expandedContent: {
+    paddingHorizontal: 12,
+    paddingBottom: 12,
+    borderTopWidth: 1,
+    borderTopColor: '#374151',
+  },
+  loadingContainer: {
+    alignItems: 'center',
+    paddingVertical: 16,
+  },
+  errorContainer: {
+    backgroundColor: 'rgba(185, 28, 28, 0.2)',
+    borderRadius: 8,
+    padding: 16,
+    alignItems: 'center',
+  },
+  errorTitle: {
+    color: '#f87171',
+    fontSize: 14,
+    fontWeight: '600',
+    marginBottom: 4,
+  },
+  errorMessage: {
+    color: '#fca5a5',
+    fontSize: 12,
+    marginBottom: 12,
+    textAlign: 'center',
+  },
+  removeButton: {
+    backgroundColor: '#b91c1c',
+    paddingHorizontal: 16,
+    paddingVertical: 8,
+    borderRadius: 20,
+  },
+  removeButtonText: {
+    color: '#ffffff',
+    fontSize: 12,
+    fontWeight: 'bold',
+  },
+  tracklistContainer: {
+    marginTop: 8,
+  },
+  controlsRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    marginBottom: 8,
+  },
+  selectAllRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 6,
+  },
+  selectAllText: {
+    color: '#9ca3af',
+    fontSize: 12,
+  },
+  scrobbleModeContainer: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 6,
+  },
+  scrobbleModeLabel: {
+    color: '#9ca3af',
+    fontSize: 12,
+  },
+  groupContainer: {
+    marginBottom: 4,
+  },
+  groupHeader: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    paddingVertical: 6,
+    borderBottomWidth: 1,
+    borderBottomColor: '#374151',
+    marginBottom: 4,
+  },
+  groupHeading: {
+    color: '#6b7280',
+    fontSize: 11,
+    fontWeight: '600',
+    textTransform: 'uppercase',
+    letterSpacing: 0.5,
+  },
+  groupSelectRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 4,
+  },
+  groupSelectText: {
+    color: '#9ca3af',
+    fontSize: 11,
+  },
+});
