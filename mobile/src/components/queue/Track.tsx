@@ -237,7 +237,7 @@ const Track: React.FC<TrackProps> = ({
             )}
           </View>
 
-          {!hasSubTracks && renderCredits(trackKey, structuredCredits)}
+          {!hasSubTracks && settings.showCredits && renderCredits(trackKey, structuredCredits)}
         </View>
 
         {renderDuration(trackKey, track.duration)}
@@ -285,7 +285,7 @@ const Track: React.FC<TrackProps> = ({
                     </TouchableOpacity>
                   )}
 
-                  {renderCredits(subTrackKey, subStructuredCredits)}
+                  {settings.showCredits && renderCredits(subTrackKey, subStructuredCredits)}
                 </View>
 
                 {renderDuration(subTrackKey, subTrack.duration)}
