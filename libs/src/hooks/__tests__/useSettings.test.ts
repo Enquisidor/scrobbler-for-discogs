@@ -11,11 +11,11 @@
 
 // Mock AsyncStorage before any imports
 jest.mock('@react-native-async-storage/async-storage', () => ({
-  getItem: jest.fn(),
-  setItem: jest.fn(),
-  removeItem: jest.fn(),
-  clear: jest.fn(),
-  getAllKeys: jest.fn(),
+    getItem: jest.fn(),
+    setItem: jest.fn(),
+    removeItem: jest.fn(),
+    clear: jest.fn(),
+    getAllKeys: jest.fn(),
 }));
 
 import { renderHook, act, waitFor } from '@testing-library/react-native';
@@ -31,6 +31,7 @@ const initialSettings: Settings = {
     selectAllTracksPerRelease: true,
     selectSubtracksByDefault: true,
     showFeatures: true,
+    showCredits: true,
     selectFeaturesByDefault: false,
     artistSource: 'discogs',
     albumSource: 'discogs',
@@ -40,6 +41,7 @@ const customSettings: Settings = {
     selectAllTracksPerRelease: false,
     selectSubtracksByDefault: false,
     showFeatures: false,
+    showCredits: false,
     selectFeaturesByDefault: true,
     artistSource: 'apple',
     albumSource: 'musicbrainz',

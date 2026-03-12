@@ -1,8 +1,11 @@
 import React from 'react';
-import { View, Text, Pressable, ActivityIndicator, StyleSheet } from 'react-native';
+import { View, Text, Pressable, ActivityIndicator, Image, StyleSheet } from 'react-native';
 import type { Credentials } from '@libs';
 import { STRINGS, colors, headerStyles, connectionButtonStyles, iconButtonStyles } from '@libs';
-import { DiscogsIcon, LastfmIcon, CheckIcon, RefreshIcon, SettingsIcon } from '../misc/Icons';
+import { CheckIcon, RefreshIcon, SettingsIcon } from '../misc/Icons';
+
+const discogsLogo = require('../../../assets/discogs.png') as number;
+const lastfmLogo = require('../../../assets/lastfm.png') as number;
 
 interface HeaderProps {
   isSyncing: boolean;
@@ -17,6 +20,57 @@ interface HeaderProps {
   onSettingsOpen: () => void;
 }
 
+interface ConnectionButtonProps {
+  service: 'discogs' | 'lastfm';
+  isConnected: boolean;
+  username: string;
+  avatarUrl?: string;
+  isLoading: boolean;
+  isDisabled: boolean;
+  onConnect: () => void;
+  onDisconnect: () => void;
+}
+
+const ConnectionButton: React.FC<ConnectionButtonProps> = ({
+  service,
+  isConnected,
+  username,
+  avatarUrl,
+  isLoading,
+  isDisabled,
+  onConnect,
+  onDisconnect,
+}) => {
+  const logo = service === 'discogs' ? discogsLogo : lastfmLogo;
+
+  return (
+    <Pressable
+      style={[
+        styles.connectionButton,
+        isConnected ? styles.connectedButton : (service === 'discogs' ? styles.discogsButton : styles.lastfmButton),
+      ]}
+      onPress={isConnected ? onDisconnect : onConnect}
+      disabled={isDisabled || isLoading}
+    >
+      {isLoading ? (
+        <ActivityIndicator size="small" color="#fff" />
+      ) : (
+        <View style={styles.buttonContent}>
+          {isConnected && avatarUrl ? (
+            <Image source={{ uri: avatarUrl }} style={styles.avatar} />
+          ) : (
+            <Image source={logo} style={styles.logo} resizeMode="contain" />
+          )}
+          {isConnected && <CheckIcon size={14} color={colors.success} />}
+          <Text style={styles.buttonText} numberOfLines={1}>
+            {isConnected ? username : (service === 'discogs' ? STRINGS.BUTTONS.DISCOGS : STRINGS.BUTTONS.LASTFM)}
+          </Text>
+        </View>
+      )}
+    </Pressable>
+  );
+};
+
 export const Header: React.FC<HeaderProps> = ({
   isSyncing,
   credentials,
@@ -30,7 +84,6 @@ export const Header: React.FC<HeaderProps> = ({
   onSettingsOpen,
 }) => {
   const isDiscogsConnected = !!credentials.discogsAccessToken;
-  const isLastfmConnected = !!credentials.lastfmSessionKey;
 
   return (
     <View style={styles.container}>
@@ -58,47 +111,26 @@ export const Header: React.FC<HeaderProps> = ({
 
       {/* Connection buttons */}
       <View style={styles.buttonsRow}>
-        <Pressable
-          style={[
-            styles.connectionButton,
-            isDiscogsConnected ? styles.connectedButton : styles.discogsButton,
-          ]}
-          onPress={isDiscogsConnected ? onDiscogsLogout : handleDiscogsConnect}
-          disabled={!!loadingService}
-        >
-          {loadingService === 'discogs' ? (
-            <ActivityIndicator size="small" color="#fff" />
-          ) : (
-            <View style={styles.buttonContent}>
-              <DiscogsIcon size={18} fill="#fff" />
-              {isDiscogsConnected && <CheckIcon size={14} color={colors.success} />}
-              <Text style={styles.buttonText}>
-                {isDiscogsConnected ? credentials.discogsUsername : STRINGS.BUTTONS.DISCOGS}
-              </Text>
-            </View>
-          )}
-        </Pressable>
-
-        <Pressable
-          style={[
-            styles.connectionButton,
-            isLastfmConnected ? styles.connectedButton : styles.lastfmButton,
-          ]}
-          onPress={isLastfmConnected ? onLastfmLogout : handleLastfmConnect}
-          disabled={!!loadingService}
-        >
-          {loadingService === 'lastfm' ? (
-            <ActivityIndicator size="small" color="#fff" />
-          ) : (
-            <View style={styles.buttonContent}>
-              <LastfmIcon size={18} fill="#fff" />
-              {isLastfmConnected && <CheckIcon size={14} color={colors.success} />}
-              <Text style={styles.buttonText}>
-                {isLastfmConnected ? credentials.lastfmUsername : STRINGS.BUTTONS.LASTFM}
-              </Text>
-            </View>
-          )}
-        </Pressable>
+        <ConnectionButton
+          service="discogs"
+          isConnected={isDiscogsConnected}
+          username={credentials.discogsUsername}
+          avatarUrl={credentials.discogsAvatarUrl}
+          isLoading={loadingService === 'discogs'}
+          isDisabled={!!loadingService}
+          onConnect={handleDiscogsConnect}
+          onDisconnect={onDiscogsLogout}
+        />
+        <ConnectionButton
+          service="lastfm"
+          isConnected={!!credentials.lastfmSessionKey}
+          username={credentials.lastfmUsername}
+          avatarUrl={credentials.lastfmAvatarUrl}
+          isLoading={loadingService === 'lastfm'}
+          isDisabled={!!loadingService}
+          onConnect={handleLastfmConnect}
+          onDisconnect={onLastfmLogout}
+        />
       </View>
     </View>
   );
@@ -124,11 +156,6 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     gap: 6,
   },
-  albumCount: {
-    color: colors.gray[400],
-    fontSize: 12,
-    fontWeight: '600',
-  },
   buttonsRow: {
     ...headerStyles.buttonsRow,
     flexWrap: 'wrap' as const,
@@ -145,6 +172,15 @@ const styles = StyleSheet.create({
   buttonText: {
     ...connectionButtonStyles.text,
     flexShrink: 1,
+  },
+  avatar: {
+    width: 18,
+    height: 18,
+    borderRadius: 9,
+  },
+  logo: {
+    width: 18,
+    height: 18,
   },
   iconButton: {
     ...iconButtonStyles.base,

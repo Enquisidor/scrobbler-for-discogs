@@ -213,6 +213,17 @@ export const SettingsSheet: React.FC<SettingsSheetProps> = ({
           </View>
 
           <View style={settingsStyles.section}>
+            <Text style={settingsStyles.sectionTitle}>Track Credits</Text>
+
+            <SettingsToggle
+              label="Show credits"
+              description="Display producers, engineers, and other credits under each track."
+              checked={settings.showCredits}
+              onChange={(checked) => onSettingsChange({ ...settings, showCredits: checked })}
+            />
+          </View>
+
+          <View style={settingsStyles.section}>
             <Text style={settingsStyles.sectionTitle}>Metadata Sources</Text>
             <Text style={settingsStyles.sectionDescription}>
               Choose where to fetch improved metadata. External sources can provide cleaner names and fix formatting issues.

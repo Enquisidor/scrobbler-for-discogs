@@ -183,6 +183,7 @@ export interface Settings {
   selectSubtracksByDefault: boolean;
   showFeatures: boolean;
   selectFeaturesByDefault: boolean;
+  showCredits: boolean;
   artistSource: MetadataSource;
   albumSource: MetadataSource;
 }

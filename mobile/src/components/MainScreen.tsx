@@ -233,6 +233,8 @@ export const MainScreen: React.FC = () => {
 
       {isDiscogsConnected && (
         <QueueButton
+          queue={queue}
+          selectedTracks={selectedTracks}
           queueCount={queueCount}
           selectedTrackCount={totalSelectedTracks}
           onPress={handleOpenQueue}
