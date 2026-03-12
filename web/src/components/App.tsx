@@ -10,6 +10,7 @@ export default function App() {
 
   const {
     credentials,
+    isLoading: isCredentialsLoading,
     onCredentialsChange,
     handleDiscogsLogout,
     handleLastfmLogout,
@@ -18,7 +19,7 @@ export default function App() {
 
   const { settings, onSettingsChange } = useSettings();
 
-  if (!isHydrated) {
+  if (!isHydrated || isCredentialsLoading) {
     return (
       <div className="min-h-screen bg-gray-900 flex items-center justify-center">
         <Loader />
