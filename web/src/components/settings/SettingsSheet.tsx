@@ -1,7 +1,7 @@
 import React from 'react';
 import type { Settings, MetadataSource } from '../../libs';
 import { MetadataSourceType } from '../../libs';
-import { CloseIcon, SettingsIcon } from '../misc/Icons';
+import { SettingsIcon } from '../misc/Icons';
 
 interface SettingsSheetProps {
     isOpen: boolean;
@@ -63,6 +63,7 @@ const SourceSelect: React.FC<SourceSelectProps> = ({ label, description, value, 
             <option value={MetadataSourceType.Discogs}>Discogs (Default)</option>
             <option value={MetadataSourceType.Apple}>Apple Music</option>
             <option value={MetadataSourceType.MusicBrainz}>MusicBrainz</option>
+            <option value={MetadataSourceType.Deezer}>Deezer</option>
         </select>
     </div>
 );
