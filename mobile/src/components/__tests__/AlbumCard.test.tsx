@@ -38,6 +38,7 @@ const mockSettings: Settings = {
   artistSource: 'discogs',
   albumSource: 'discogs',
   showCredits: false,
+  hideAlbumNames: false,
 };
 
 describe('AlbumCard', () => {
