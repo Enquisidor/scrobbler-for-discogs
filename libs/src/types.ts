@@ -184,6 +184,7 @@ export interface Settings {
   showFeatures: boolean;
   selectFeaturesByDefault: boolean;
   showCredits: boolean;
+  hideAlbumNames: boolean;
   artistSource: MetadataSource;
   albumSource: MetadataSource;
 }

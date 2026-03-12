@@ -111,6 +111,14 @@ const collectionSlice = createSlice({
       state.isLoading = false;
       state.isBackgroundResyncing = false;
     },
+    // Remove specific items by instance_id (early-exit deletion path)
+    removeItems(state, action: PayloadAction<number[]>) {
+      const toRemove = new Set(action.payload);
+      state.collection = state.collection.filter(r => !toRemove.has(r.instance_id));
+      state.isSyncing = false;
+      state.isLoading = false;
+      state.isBackgroundResyncing = false;
+    },
     // Hydrate collection from AsyncStorage
     hydrateCollection(state, action: PayloadAction<{ collection: DiscogsRelease[]; lastSynced: number }>) {
       state.collection = action.payload.collection;
@@ -137,6 +145,7 @@ export const {
   prependItems,
   startBackgroundSync,
   removeDeletedItems,
+  removeItems,
   hydrateCollection,
   setHydrated,
 } = collectionSlice.actions;

@@ -213,6 +213,17 @@ export const SettingsSheet: React.FC<SettingsSheetProps> = ({
           </View>
 
           <View style={settingsStyles.section}>
+            <Text style={settingsStyles.sectionTitle}>Collection</Text>
+
+            <SettingsToggle
+              label="Hide album names"
+              description="Show only cover art in the collection grid. Names are always shown for albums without artwork."
+              checked={settings.hideAlbumNames}
+              onChange={(checked) => onSettingsChange({ ...settings, hideAlbumNames: checked })}
+            />
+          </View>
+
+          <View style={settingsStyles.section}>
             <Text style={settingsStyles.sectionTitle}>Track Credits</Text>
 
             <SettingsToggle

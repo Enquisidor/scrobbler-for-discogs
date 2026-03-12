@@ -41,6 +41,7 @@ export const AlbumCard: React.FC<AlbumCardProps> = ({
   const wasLongPressRef = useRef(false);
 
   const hasValidImage = info.cover_image && info.cover_image !== DEFAULT_IMAGE;
+  const showNames = !settings.hideAlbumNames || !hasValidImage;
 
   const handleBadgePressIn = () => {
     wasLongPressRef.current = false;
@@ -85,14 +86,16 @@ export const AlbumCard: React.FC<AlbumCardProps> = ({
       )}
 
       {/* Info overlay */}
-      <View style={styles.infoOverlay}>
-        <Text style={styles.title} numberOfLines={1}>
-          {title}
-        </Text>
-        <Text style={styles.artist} numberOfLines={1}>
-          {artistName}
-        </Text>
-      </View>
+      {showNames && (
+        <View style={styles.infoOverlay}>
+          <Text style={styles.title} numberOfLines={1}>
+            {title}
+          </Text>
+          <Text style={styles.artist} numberOfLines={1}>
+            {artistName}
+          </Text>
+        </View>
+      )}
 
       {/* Scrobble count badge */}
       {scrobbleCount > 0 && (

@@ -16,6 +16,7 @@ import {
   prependItems,
   startBackgroundSync,
   removeDeletedItems,
+  removeItems,
   setHydrated
 } from '../../store/collectionSlice';
 
@@ -176,24 +177,39 @@ export function useDiscogsCollection(
       }
 
       // reloadTrigger > 0: collection changed — resync in the background without
-      // clearing the visible collection. Collect all pages into a buffer and
-      // atomically replace once complete so the user never sees a blank screen.
+      // clearing the visible collection. Progressive: dispatch syncPageSuccess per
+      // page as it arrives, then remove any deleted items once all surviving items
+      // are identified. Early-exit: once fetched IDs cover the full remote count,
+      // we know exactly which cached items were deleted and can stop fetching.
       if (reloadTrigger > 0) {
         dispatch(startBackgroundSync());
-        const buffer: import('../../types').DiscogsRelease[] = [];
         pagesToFetchRef.current = [];
         activeFetchesRef.current = 0;
         isRateLimitedRef.current = false;
 
+        // Snapshot of cached IDs before resync starts
+        const cachedIds = new Set(fullCollection.map(r => r.instance_id));
+        const fetchedIds = new Set<number>();
+        let remoteCount = 0;
+        let earlyExit = false;
+
+        const checkEarlyExit = () => {
+          if (earlyExit || fetchedIds.size < remoteCount) return;
+          earlyExit = true;
+          pagesToFetchRef.current = []; // drain queue so workers exit
+          const missing = [...cachedIds].filter(id => !fetchedIds.has(id));
+          if (mountedRef.current) dispatch(removeItems(missing));
+        };
+
         const bufferWorker = async () => {
           while (pagesToFetchRef.current.length > 0) {
-            if (aborted) break;
+            if (aborted || earlyExit) break;
             if (isRateLimitedRef.current) {
               await new Promise(resolve => setTimeout(resolve, 1000));
               continue;
             }
             await new Promise(resolve => setTimeout(resolve, REQUEST_DELAY_MS));
-            if (aborted) break;
+            if (aborted || earlyExit) break;
             const page = pagesToFetchRef.current.shift();
             if (typeof page === 'undefined') continue;
             try {
@@ -204,8 +220,9 @@ export function useDiscogsCollection(
                 page, API_SORT, API_SORT_ORDER, PAGE_SIZE
               );
               if (aborted) break;
-              buffer.push(...data.releases);
+              data.releases.forEach(r => fetchedIds.add(r.instance_id));
               if (mountedRef.current) dispatch(syncPageSuccess(data.releases));
+              checkEarlyExit();
             } catch (err) {
               if (err instanceof DiscogsRateLimitError) {
                 if (!isRateLimitedRef.current) {
@@ -225,8 +242,9 @@ export function useDiscogsCollection(
             }
           }
           activeFetchesRef.current -= 1;
-          if (activeFetchesRef.current === 0 && !aborted && mountedRef.current) {
-            dispatch(removeDeletedItems(new Set(buffer.map(r => r.instance_id))));
+          if (activeFetchesRef.current === 0 && !aborted && !earlyExit && mountedRef.current) {
+            // All pages fetched — remove any cached items not in the full response
+            dispatch(removeDeletedItems(fetchedIds));
           }
         };
 
@@ -238,26 +256,26 @@ export function useDiscogsCollection(
             1, API_SORT, API_SORT_ORDER, PAGE_SIZE
           );
           if (aborted) return;
-          buffer.push(...page1.releases);
-          if (mountedRef.current) dispatch(syncPageSuccess(page1.releases));
-          const totalPages = page1.pagination.pages;
 
-          if (totalPages > 1) {
-            pagesToFetchRef.current = Array.from({ length: totalPages - 1 }, (_, i) => i + 2);
-            const workerCount = Math.min(MAX_CONCURRENT_FETCHES, pagesToFetchRef.current.length);
-            activeFetchesRef.current = workerCount;
-            for (let i = 0; i < workerCount; i++) {
-              setTimeout(() => { if (mountedRef.current && !aborted) bufferWorker(); }, i * REQUEST_DELAY_MS);
-            }
-          } else {
-            if (mountedRef.current) dispatch(removeDeletedItems(new Set(buffer.map(r => r.instance_id))));
+          remoteCount = page1.pagination.items;
+          page1.releases.forEach(r => fetchedIds.add(r.instance_id));
+          if (mountedRef.current) dispatch(syncPageSuccess(page1.releases));
+          checkEarlyExit();
+
+          if (earlyExit || page1.pagination.pages <= 1) return;
+
+          pagesToFetchRef.current = Array.from({ length: page1.pagination.pages - 1 }, (_, i) => i + 2);
+          const workerCount = Math.min(MAX_CONCURRENT_FETCHES, pagesToFetchRef.current.length);
+          activeFetchesRef.current = workerCount;
+          for (let i = 0; i < workerCount; i++) {
+            setTimeout(() => { if (mountedRef.current && !aborted) bufferWorker(); }, i * REQUEST_DELAY_MS);
           }
         } catch (err) {
           if (err instanceof DiscogsAuthError) {
             if (mountedRef.current) dispatch(setAuthError());
           } else if (err instanceof Error) {
             console.error('Background resync failed:', err);
-            if (mountedRef.current) dispatch(syncComplete()); // clear isSyncing
+            if (mountedRef.current) dispatch(syncComplete());
           }
         }
         return;

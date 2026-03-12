@@ -52,7 +52,7 @@ const defaultSettings: Settings = {
   selectSubtracksByDefault: true,
   showFeatures: true,
   showCredits: true,
-  
+  hideAlbumNames: false,
   selectFeaturesByDefault: false,
   artistSource: MetadataSourceType.Discogs,
   albumSource: MetadataSourceType.Discogs,

@@ -8,6 +8,7 @@ const initialSettings: Settings = {
   showFeatures: true,
   selectFeaturesByDefault: false,
   showCredits: true,
+  hideAlbumNames: false,
   artistSource: 'discogs',
   albumSource: 'discogs',
 };
