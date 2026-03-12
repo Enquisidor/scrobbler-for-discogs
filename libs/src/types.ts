@@ -168,10 +168,12 @@ export interface Credentials {
   discogsUsername: string;
   discogsAccessToken: string;
   discogsAccessTokenSecret: string;
+  discogsAvatarUrl?: string;
   lastfmApiKey: string;
   lastfmSecret: string;
   lastfmSessionKey: string;
   lastfmUsername: string;
+  lastfmAvatarUrl?: string;
 }
 
 export type MetadataSource = 'discogs' | 'apple' | 'musicbrainz' | 'deezer';
@@ -181,6 +183,7 @@ export interface Settings {
   selectSubtracksByDefault: boolean;
   showFeatures: boolean;
   selectFeaturesByDefault: boolean;
+  showCredits: boolean;
   artistSource: MetadataSource;
   albumSource: MetadataSource;
 }

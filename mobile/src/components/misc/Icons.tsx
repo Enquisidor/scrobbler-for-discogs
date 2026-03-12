@@ -65,3 +65,16 @@ export const CloseIcon: React.FC<IconProps> = ({ size = 24, color = 'currentColo
     />
   </Svg>
 );
+
+// TODO: fill in SVG paths from official brand assets
+export const AppleMusicIcon: React.FC<IconProps> = ({ size = 24, fill = '#FA243C' }) => (
+  <Svg width={size} height={size} viewBox="0 0 24 24" fill={fill} />
+);
+
+export const MusicBrainzIcon: React.FC<IconProps> = ({ size = 24, fill = '#BA478F' }) => (
+  <Svg width={size} height={size} viewBox="0 0 24 24" fill={fill} />
+);
+
+export const DeezerIcon: React.FC<IconProps> = ({ size = 24, fill = '#FEAA2D' }) => (
+  <Svg width={size} height={size} viewBox="0 0 24 24" fill={fill} />
+);

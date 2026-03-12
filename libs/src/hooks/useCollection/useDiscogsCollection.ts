@@ -123,10 +123,39 @@ export function useDiscogsCollection(
         return;
       }
 
-      // If we have hydrated collection data from cache, skip the initial API fetch
-      // User can still force reload via pull-to-refresh
+      // If we have hydrated collection data from cache, do a background check
+      // before deciding whether to skip a full sync. We check both total count
+      // and the most-recent item's instance_id (API sorts by added desc, so
+      // page 1 item 0 is always the newest). This catches cases where the count
+      // is unchanged but an album was removed and a different one added.
       if (isHydrated && fullCollection.length > 0 && reloadTrigger === 0) {
-        console.log('Collection already hydrated from cache, skipping API fetch');
+        console.log('Collection already hydrated from cache, checking for updates...');
+        try {
+          const checkData = await fetchDiscogsPage(
+            credentials.discogsUsername,
+            credentials.discogsAccessToken,
+            credentials.discogsAccessTokenSecret,
+            1,
+            API_SORT,
+            API_SORT_ORDER,
+            PAGE_SIZE
+          );
+          if (!aborted && mountedRef.current) {
+            const countChanged = checkData.pagination.items !== fullCollection.length;
+            const latestRemoteId = checkData.releases[0]?.instance_id;
+            const latestCachedId = fullCollection[0]?.instance_id;
+            const latestChanged = latestRemoteId !== latestCachedId;
+            if (countChanged || latestChanged) {
+              console.log('Collection changed, triggering full sync');
+              setReloadTrigger(c => c + 1);
+            } else {
+              console.log('Collection up to date, using cached data');
+            }
+          }
+        } catch {
+          // Silently keep cached data if check fails (offline, rate limited, etc.)
+          console.log('Background count check failed, keeping cached data');
+        }
         return;
       }
 

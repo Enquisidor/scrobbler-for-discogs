@@ -51,12 +51,14 @@ const SourceSelect: React.FC<SourceSelectProps> = ({ label, description, value, 
     [MetadataSourceType.Discogs]: 'Discogs (Default)',
     [MetadataSourceType.Apple]: 'Apple Music',
     [MetadataSourceType.MusicBrainz]: 'MusicBrainz',
+    [MetadataSourceType.Deezer]: 'Deezer',
   };
 
   const sources: MetadataSource[] = [
     MetadataSourceType.Discogs,
     MetadataSourceType.Apple,
     MetadataSourceType.MusicBrainz,
+    MetadataSourceType.Deezer,
   ];
 
   return (

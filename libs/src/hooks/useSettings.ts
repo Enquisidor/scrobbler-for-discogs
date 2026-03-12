@@ -7,6 +7,7 @@ const initialSettings: Settings = {
   selectSubtracksByDefault: true,
   showFeatures: true,
   selectFeaturesByDefault: false,
+  showCredits: true,
   artistSource: 'discogs',
   albumSource: 'discogs',
 };

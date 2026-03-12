@@ -60,6 +60,13 @@ export const getLastfmSession = async (apiKey: string, secret: string, token: st
   return data.session;
 };
 
+export const getLastfmAvatarUrl = async (username: string, apiKey: string): Promise<string | undefined> => {
+  const data = await apiCall({ method: 'user.getinfo', api_key: apiKey, user: username });
+  const images = (data.user as { image?: { '#text': string; size: string }[] } | undefined)?.image;
+  const large = images?.find(img => img.size === 'large') ?? images?.[images.length - 1];
+  return large?.['#text'] || undefined;
+};
+
 export const scrobbleTracks = async (
   tracks: LastfmTrackScrobble[],
   sessionKey: string,

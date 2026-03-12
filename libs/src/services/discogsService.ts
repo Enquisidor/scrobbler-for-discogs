@@ -37,6 +37,10 @@ interface DiscogsIdentity {
   consumer_name: string;
 }
 
+interface DiscogsUserProfile {
+  avatar_url?: string;
+}
+
 // --- OAuth 1.0a Helpers ---
 
 function generateOauthParams(
@@ -228,6 +232,11 @@ export const getAccessToken = async (
 
 export const getDiscogsIdentity = async (accessToken: string, accessTokenSecret: string): Promise<DiscogsIdentity> => {
   return discogsFetch('/oauth/identity', accessToken, accessTokenSecret);
+};
+
+export const getDiscogsAvatarUrl = async (username: string, accessToken: string, accessTokenSecret: string): Promise<string | undefined> => {
+  const profile: DiscogsUserProfile = await discogsFetch(`/users/${username}`, accessToken, accessTokenSecret);
+  return profile.avatar_url;
 };
 
 export const fetchDiscogsPage = async (
