@@ -65,7 +65,7 @@
     "expo-secure-store": "^15.0.8",
     "expo-status-bar": "~3.0.9",
     "expo-web-browser": "^15.0.10",
-    "react": "19.2.3",
+    "react": "19.2.4",
     "react-native": "0.81.5",
     "react-native-css-interop": "^0.2.1",
     "react-native-dotenv": "^3.4.11",
@@ -83,7 +83,7 @@
     "expo": "^54.0.0",
     "jest": "^29.7.0",
     "jest-expo": "^54.0.16",
-    "react-test-renderer": "19.2.3",
+    "react-test-renderer": "^19.2.4",
     "typescript": "~5.9.2"
   },
   "peerDependencies": {

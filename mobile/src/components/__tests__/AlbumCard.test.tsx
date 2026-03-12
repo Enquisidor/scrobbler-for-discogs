@@ -161,7 +161,7 @@ describe('AlbumCard', () => {
   });
 
   describe('Long Press Detection', () => {
-    it('should call onRemoveAllInstances after 5 second long press on badge', () => {
+    it('should call onRemoveAllInstances after long press on badge', () => {
       const onRemoveAllInstances = jest.fn();
       const onRemoveLastInstance = jest.fn();
       const { getByTestId } = render(
@@ -178,14 +178,14 @@ describe('AlbumCard', () => {
       // Start press
       fireEvent(badge, 'pressIn');
 
-      // Advance time to just before 5 seconds
+      // Advance time to just before threshold
       act(() => {
-        jest.advanceTimersByTime(4999);
+        jest.advanceTimersByTime(499);
       });
 
       expect(onRemoveAllInstances).not.toHaveBeenCalled();
 
-      // Advance to 5 seconds
+      // Advance past threshold
       act(() => {
         jest.advanceTimersByTime(1);
       });
@@ -200,7 +200,7 @@ describe('AlbumCard', () => {
       expect(onRemoveLastInstance).not.toHaveBeenCalled();
     });
 
-    it('should not call onRemoveAllInstances if press is released before 5 seconds', () => {
+    it('should not call onRemoveAllInstances if press is released before threshold', () => {
       const onRemoveAllInstances = jest.fn();
       const { getByTestId } = render(
         <AlbumCard
@@ -215,17 +215,17 @@ describe('AlbumCard', () => {
       // Start press
       fireEvent(badge, 'pressIn');
 
-      // Advance time to 3 seconds
+      // Advance time to 300ms (before threshold)
       act(() => {
-        jest.advanceTimersByTime(3000);
+        jest.advanceTimersByTime(300);
       });
 
-      // Release before 5 seconds
+      // Release before threshold
       fireEvent(badge, 'pressOut');
 
-      // Continue time past 5 seconds
+      // Continue time past threshold
       act(() => {
-        jest.advanceTimersByTime(3000);
+        jest.advanceTimersByTime(300);
       });
 
       expect(onRemoveAllInstances).not.toHaveBeenCalled();
