@@ -13,6 +13,7 @@ const mockLocation = {
 Object.defineProperty(window, 'location', {
   value: mockLocation,
   writable: true,
+  configurable: true,
 });
 
 // Mock window.history
