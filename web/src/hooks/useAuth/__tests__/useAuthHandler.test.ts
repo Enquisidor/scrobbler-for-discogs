@@ -53,21 +53,13 @@ const connectedCredentials: Credentials = {
 
 describe('useAuthHandler (web)', () => {
   const mockOnCredentialsChange = jest.fn();
-  let originalLocation: Location;
 
   beforeEach(() => {
     jest.clearAllMocks();
     mockOnCredentialsChange.mockResolvedValue(undefined);
 
     // Reset window.location.search
-    Object.defineProperty(window, 'location', {
-      value: {
-        href: 'http://localhost:3000/',
-        pathname: '/',
-        search: '',
-      },
-      writable: true,
-    });
+    window.history.pushState({}, '', '/');
 
     // Reset sessionStorage mock
     (sessionStorage.getItem as jest.Mock).mockReset();
@@ -130,14 +122,7 @@ describe('useAuthHandler (web)', () => {
 
     it('should complete Discogs OAuth callback successfully', async () => {
       // Setup URL with OAuth callback params
-      Object.defineProperty(window, 'location', {
-        value: {
-          href: 'http://localhost:3000/?oauth_token=req_token&oauth_verifier=verifier123',
-          pathname: '/',
-          search: '?oauth_token=req_token&oauth_verifier=verifier123',
-        },
-        writable: true,
-      });
+      window.history.pushState({}, '', '?oauth_token=req_token&oauth_verifier=verifier123');
 
       (sessionStorage.getItem as jest.Mock).mockReturnValue('req_secret');
 
@@ -169,14 +154,7 @@ describe('useAuthHandler (web)', () => {
     });
 
     it('should handle expired session (missing stored secret)', async () => {
-      Object.defineProperty(window, 'location', {
-        value: {
-          href: 'http://localhost:3000/?oauth_token=req_token&oauth_verifier=verifier123',
-          pathname: '/',
-          search: '?oauth_token=req_token&oauth_verifier=verifier123',
-        },
-        writable: true,
-      });
+      window.history.pushState({}, '', '?oauth_token=req_token&oauth_verifier=verifier123');
 
       (sessionStorage.getItem as jest.Mock).mockReturnValue(null);
 
@@ -209,14 +187,7 @@ describe('useAuthHandler (web)', () => {
     });
 
     it('should complete Last.fm OAuth callback successfully', async () => {
-      Object.defineProperty(window, 'location', {
-        value: {
-          href: 'http://localhost:3000/?token=lastfm_token_123',
-          pathname: '/',
-          search: '?token=lastfm_token_123',
-        },
-        writable: true,
-      });
+      window.history.pushState({}, '', '?token=lastfm_token_123');
 
       mockGetLastfmSession.mockResolvedValue({
         key: 'session_key_456',
@@ -240,14 +211,7 @@ describe('useAuthHandler (web)', () => {
     });
 
     it('should not complete Last.fm auth if already connected', async () => {
-      Object.defineProperty(window, 'location', {
-        value: {
-          href: 'http://localhost:3000/?token=lastfm_token_123',
-          pathname: '/',
-          search: '?token=lastfm_token_123',
-        },
-        writable: true,
-      });
+      window.history.pushState({}, '', '?token=lastfm_token_123');
 
       const { result } = renderHook(() =>
         useAuthHandler(connectedCredentials, mockOnCredentialsChange)
@@ -262,14 +226,7 @@ describe('useAuthHandler (web)', () => {
     });
 
     it('should handle Last.fm session fetch failure', async () => {
-      Object.defineProperty(window, 'location', {
-        value: {
-          href: 'http://localhost:3000/?token=valid_token',
-          pathname: '/',
-          search: '?token=valid_token',
-        },
-        writable: true,
-      });
+      window.history.pushState({}, '', '?token=valid_token');
 
       mockGetLastfmSession.mockRejectedValue(new Error('Session fetch failed'));
 

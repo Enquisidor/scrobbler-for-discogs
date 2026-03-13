@@ -3,20 +3,6 @@
 const { enableMapSet } = require('immer');
 enableMapSet();
 
-// Mock window.location
-const mockLocation = {
-  href: 'http://localhost:3000/',
-  pathname: '/',
-  search: '',
-  replace: jest.fn(),
-};
-delete window.location;
-Object.defineProperty(window, 'location', {
-  value: mockLocation,
-  writable: true,
-  configurable: true,
-});
-
 // Mock window.history
 window.history.replaceState = jest.fn();
 
