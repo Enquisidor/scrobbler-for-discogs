@@ -47,6 +47,7 @@
       "^@libs/(.*)$": "<rootDir>/../libs/src/$1",
       "^scrobbler-for-discogs-libs$": "<rootDir>/../libs/src/index.ts",
       "^@react-native-async-storage/async-storage$": "<rootDir>/__mocks__/async-storage.js",
+      "^expo-secure-store$": "<rootDir>/__mocks__/expo-secure-store.js",
       "^crypto-js$": "<rootDir>/__mocks__/crypto-js.js"
     },
     "testMatch": [

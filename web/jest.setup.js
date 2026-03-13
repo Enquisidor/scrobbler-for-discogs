@@ -10,8 +10,10 @@ const mockLocation = {
   search: '',
   replace: jest.fn(),
 };
-delete window.location;
-window.location = mockLocation;
+Object.defineProperty(window, 'location', {
+  value: mockLocation,
+  writable: true,
+});
 
 // Mock window.history
 window.history.replaceState = jest.fn();
