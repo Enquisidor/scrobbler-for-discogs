@@ -349,7 +349,7 @@ describe('CollectionScreen', () => {
       // Verify performance props are set
       expect(flatList.props.removeClippedSubviews).toBe(true);
       expect(flatList.props.maxToRenderPerBatch).toBe(10);
-      expect(flatList.props.windowSize).toBe(5);
+      expect(flatList.props.windowSize).toBe(3);
       expect(flatList.props.initialNumToRender).toBe(12);
     });
   });

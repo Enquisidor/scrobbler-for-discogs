@@ -248,11 +248,11 @@ describe('QueueSheet', () => {
         />
       );
 
-      // Text is split in the DOM tree, so we check for singular "album" and "track" forms
-      // The stat text should contain "1 album • 1 track" (singular, not "tracks")
-      expect(screen.getByText(/1/)).toBeTruthy();
-      expect(screen.getByText(/album(?!s)/)).toBeTruthy(); // singular "album", not "albums"
-      expect(screen.getByText(/track/)).toBeTruthy();
+      // Stats renders as separate text nodes; verify singular forms (no trailing 's')
+      expect(screen.queryByText(/albums/)).toBeNull();
+      expect(screen.queryByText(/tracks/)).toBeNull();
+      expect(screen.getByText(/\balbum\b/)).toBeTruthy();
+      expect(screen.getByText(/\btrack\b/)).toBeTruthy();
     });
   });
 });
