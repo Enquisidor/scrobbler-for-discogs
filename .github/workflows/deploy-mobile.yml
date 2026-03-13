@@ -42,6 +42,10 @@ jobs:
                   if [ -f "app.json" ]; then
                     echo "✓ Expo project detected"
                   fi
+
+            - name: Config Expo
+              run: npx expo config --json --type public
+
             - name: Deploy OTA update (EAS Update)
               working-directory: mobile
               run: eas update --branch production --input-dir dist/ --message "${{ github.event.workflow_run.head_commit.message || github.event.inputs.message }}" --non-interactive
