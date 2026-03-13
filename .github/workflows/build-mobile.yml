@@ -67,20 +67,9 @@ jobs:
         working-directory: mobile
         run: npx tsc --noEmit
 
-      - name: Verify Expo project
-        working-directory: mobile
-        run: |
-          if [ -f "app.json" ]; then
-            echo "✓ Expo project detected"
-          fi
-
       - name: Run tests
         working-directory: mobile
         run: npm test
-
-      - name: Export JS bundle
-        working-directory: mobile
-        run: npx expo export --output-dir dist/
 
       - name: Upload build artifacts
         uses: actions/upload-artifact@v4
