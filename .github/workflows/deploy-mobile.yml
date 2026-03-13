@@ -5,17 +5,28 @@ on:
         workflows: ["Build Mobile"]
         branches: [main]
         types: [completed]
+    workflow_dispatch:
+        inputs:
+            run_id:
+                description: "Build workflow run ID to deploy from"
+                required: true
+                type: string
+            message:
+                description: "Deploy message"
+                required: false
+                default: "Manual deploy"
+                type: string
 
 jobs:
     deploy:
         runs-on: ubuntu-latest
-        if: github.event.workflow_run.conclusion == 'success'
+        if: github.event_name == 'workflow_dispatch' || github.event.workflow_run.conclusion == 'success'
 
         steps:
             - name: Checkout code
               uses: actions/checkout@v4
               with:
-                  ref: ${{ github.event.workflow_run.head_sha }}
+                  ref: ${{ github.event.workflow_run.head_sha || github.sha }}
 
             - name: Setup Node.js
               uses: actions/setup-node@v4
@@ -32,8 +43,16 @@ jobs:
                     echo "✓ Expo project detected"
                   fi
 
+            - name: Download build artifacts
+              uses: actions/download-artifact@v4
+              with:
+                  name: mobile-dist
+                  path: mobile/dist/
+                  run-id: ${{ github.event.inputs.run_id || github.event.workflow_run.id }}
+                  github-token: ${{ secrets.GITHUB_TOKEN }}
+
             - name: Deploy OTA update (EAS Update)
               working-directory: mobile
-              run: eas update --branch production --input-dir dist/ --message "${{ github.event.workflow_run.head_commit.message }}" --non-interactive
+              run: eas update --branch production --input-dir dist/ --message "${{ github.event.workflow_run.head_commit.message || github.event.inputs.message }}" --non-interactive
               env:
                   EXPO_TOKEN: ${{ secrets.EXPO_TOKEN }}
