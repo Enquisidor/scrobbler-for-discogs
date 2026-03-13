@@ -42,15 +42,6 @@ jobs:
                   if [ -f "app.json" ]; then
                     echo "✓ Expo project detected"
                   fi
-
-            - name: Download build artifacts
-              uses: actions/download-artifact@v4
-              with:
-                  name: mobile-dist
-                  path: mobile/dist/
-                  run-id: ${{ github.event.inputs.run_id || github.event.workflow_run.id }}
-                  github-token: ${{ secrets.GITHUB_TOKEN }}
-
             - name: Deploy OTA update (EAS Update)
               working-directory: mobile
               run: eas update --branch production --input-dir dist/ --message "${{ github.event.workflow_run.head_commit.message || github.event.inputs.message }}" --non-interactive
