@@ -143,10 +143,7 @@ export const Header: React.FC<HeaderProps> = ({
       >
         <Pressable style={styles.overlay} onPress={() => setShowRefreshConfirm(false)}>
           <View style={styles.dialog}>
-            <Text style={styles.dialogTitle}>Refresh Collection</Text>
-            <Text style={styles.dialogMessage}>
-              This fetches the whole collection a-fresh.
-            </Text>
+            <Text style={styles.dialogTitle}>Reload collection?</Text>
             <View style={styles.dialogButtons}>
               <Pressable
                 style={[styles.dialogButton, styles.dialogButtonCancel]}
@@ -161,7 +158,7 @@ export const Header: React.FC<HeaderProps> = ({
                   handleForceReload();
                 }}
               >
-                <Text style={styles.dialogButtonConfirmText}>Refresh</Text>
+                <Text style={styles.dialogButtonConfirmText}>Reload</Text>
               </Pressable>
             </View>
           </View>
@@ -235,9 +232,9 @@ const styles = StyleSheet.create({
   dialog: {
     backgroundColor: colors.gray[800],
     borderRadius: 14,
-    padding: 20,
-    width: 260,
-    gap: 8,
+    padding: 16,
+    width: 240,
+    gap: 12,
     borderWidth: 1,
     borderColor: colors.gray[700],
   },
@@ -247,16 +244,9 @@ const styles = StyleSheet.create({
     fontWeight: '600',
     textAlign: 'center',
   },
-  dialogMessage: {
-    color: colors.gray[400],
-    fontSize: 13,
-    textAlign: 'center',
-    lineHeight: 18,
-  },
   dialogButtons: {
     flexDirection: 'row',
     gap: 8,
-    marginTop: 4,
   },
   dialogButton: {
     flex: 1,

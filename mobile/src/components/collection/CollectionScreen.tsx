@@ -206,15 +206,9 @@ export const CollectionScreen: React.FC<CollectionScreenProps> = ({
       // Viewability tracking for metadata fetching
       viewabilityConfigCallbackPairs={viewabilityConfigCallbackPairs.current}
       // Performance optimizations
-      removeClippedSubviews={true}
       maxToRenderPerBatch={10}
       windowSize={5}
       initialNumToRender={12}
-      getItemLayout={(_, index) => ({
-        length: itemWidth + gap,
-        offset: (itemWidth + gap) * Math.floor(index / numColumns),
-        index,
-      })}
     />
   );
 };

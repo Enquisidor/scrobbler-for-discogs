@@ -122,6 +122,17 @@ export const theme = {
   zIndex,
 } as const;
 
+// Theme colors for dark/light mode (backgrounds and text only — album cards always stay dark)
+export const getThemeColors = (darkMode: boolean) => ({
+  bg: darkMode ? '#121212' : '#f2f2f7',
+  bgCard: darkMode ? '#181818' : '#ffffff',
+  bgDivider: darkMode ? '#282828' : '#e5e5ea',
+  text: darkMode ? '#ffffff' : '#000000',
+  textSecondary: darkMode ? '#e0e0e0' : '#3c3c43',
+  textMuted: darkMode ? '#b3b3b3' : '#6c6c70',
+  border: darkMode ? '#282828' : '#c6c6c8',
+});
+
 // Type exports for TypeScript
 export type Colors = typeof colors;
 export type Spacing = typeof spacing;

@@ -273,7 +273,7 @@ export const QueueItem: React.FC<QueueItemProps> = ({
                 const someInGroupSelected = numSelectedInGroup > 0 && numSelectedInGroup < selectableGroupKeys.length;
 
                 return (
-                  <View key={group.heading || groupIndex} style={styles.groupContainer}>
+                  <View key={groupIndex} style={styles.groupContainer}>
                     {group.heading && (
                       <View style={styles.groupHeader}>
                         <Text style={styles.groupHeading}>{group.heading}</Text>

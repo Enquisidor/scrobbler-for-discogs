@@ -39,6 +39,7 @@ const mockSettings: Settings = {
   albumSource: 'discogs',
   showCredits: false,
   hideAlbumNames: false,
+  darkMode: true,
 };
 
 describe('AlbumCard', () => {

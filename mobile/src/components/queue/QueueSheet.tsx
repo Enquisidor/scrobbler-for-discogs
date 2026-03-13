@@ -1,4 +1,4 @@
-import React from 'react';
+import React, { useMemo } from 'react';
 import {
   View,
   Text,
@@ -8,7 +8,15 @@ import {
   ScrollView,
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
-import type { QueueItem as QueueItemType, Settings, CombinedMetadata } from '@libs';
+import type {
+  QueueItem as QueueItemType,
+  Settings,
+  CombinedMetadata,
+  SelectedTracks,
+  SelectedFeatures,
+  ArtistSelections,
+} from '@libs';
+import { getThemeColors } from '@libs';
 import { QueueItem } from './QueueItem';
 
 interface QueueSheetProps {
@@ -19,14 +27,25 @@ interface QueueSheetProps {
   scrobbledHistory: QueueItemType[];
   settings: Settings;
   isLastfmConnected: boolean;
-  // Optional props for full functionality (to be wired up later)
   metadata?: Record<number, CombinedMetadata>;
-  selectedTrackKeys?: Map<string, Set<string>>;
+  selectedTracks?: SelectedTracks;
+  selectedFeatures?: SelectedFeatures;
+  artistSelections?: ArtistSelections;
+  scrobbleTimestamps?: Record<string, Record<string, number>>;
   onRemoveItem?: (instanceKey: string) => void;
   onScrobbleItem?: (instanceKey: string) => void;
   onScrobbleAll?: () => void;
   onClearQueue?: () => void;
   isScrobbling?: boolean;
+  onSelectAll?: (instanceKey: string) => void;
+  onDeselectAll?: (instanceKey: string) => void;
+  onToggleGroup?: (instanceKey: string, groupKeys: string[], parentKeysInGroup: string[]) => void;
+  onToggle?: (instanceKey: string, trackKey: string) => void;
+  onFeatureToggle?: (instanceKey: string, trackKey: string) => void;
+  onArtistToggle?: (instanceKey: string, trackKey: string, artistName: string) => void;
+  onToggleParent?: (instanceKey: string, parentIndex: number, subTrackKeys: string[]) => void;
+  onSelectParentAsSingle?: (instanceKey: string, parentKey: string, subTrackKeys: string[]) => void;
+  onScrobbleModeToggle?: (instanceKey: string, useTrackArtist: boolean) => void;
   testID?: string;
 }
 
@@ -39,19 +58,34 @@ export const QueueSheet: React.FC<QueueSheetProps> = ({
   settings,
   isLastfmConnected,
   metadata = {},
-  selectedTrackKeys = new Map(),
-  onRemoveItem = () => { },
-  onScrobbleItem = () => { },
-  onScrobbleAll = () => { },
-  onClearQueue = () => { },
+  selectedTracks = {},
+  selectedFeatures = {},
+  artistSelections = {},
+  scrobbleTimestamps = {},
+  onRemoveItem = () => {},
+  onScrobbleItem = () => {},
+  onScrobbleAll = () => {},
+  onClearQueue = () => {},
   isScrobbling = false,
+  onSelectAll = () => {},
+  onDeselectAll = () => {},
+  onToggleGroup = () => {},
+  onToggle = () => {},
+  onFeatureToggle = () => {},
+  onArtistToggle = () => {},
+  onToggleParent = () => {},
+  onSelectParentAsSingle = () => {},
+  onScrobbleModeToggle = () => {},
   testID,
 }) => {
-  const totalSelectedTracks = Array.from(selectedTrackKeys.values())
+  const totalSelectedTracks = Object.values(selectedTracks)
     .reduce((sum, keys) => sum + keys.size, 0);
 
   const hasQueueItems = queue.length > 0;
   const hasHistory = scrobbledHistory.length > 0;
+
+  const t = getThemeColors(settings.darkMode);
+  const styles = useMemo(() => makeStyles(t), [settings.darkMode]); // eslint-disable-line react-hooks/exhaustive-deps
 
   return (
     <Modal
@@ -119,35 +153,32 @@ export const QueueSheet: React.FC<QueueSheetProps> = ({
           {hasQueueItems && (
             <View style={styles.section}>
               <Text style={styles.sectionTitle}>Ready to Scrobble</Text>
-              {queue.map((item) => {
-                const instanceKey = `${item.id}-${item.instance_id}`;
-                return (
-                  <QueueItem
-                    key={instanceKey}
-                    testID={testID ? `${testID}-item-${item.id}` : undefined}
-                    item={item}
-                    selectedTrackKeys={selectedTrackKeys.get(instanceKey) || new Set()}
-                    selectedFeatures={new Set()}
-                    artistSelections={{}}
-                    scrobbleTimestamps={{}}
-                    settings={settings}
-                    metadata={metadata[item.id]}
-                    onSelectAll={() => {}}
-                    onDeselectAll={() => {}}
-                    onToggleGroup={() => {}}
-                    onToggle={() => {}}
-                    onFeatureToggle={() => {}}
-                    onArtistToggle={() => {}}
-                    onToggleParent={() => {}}
-                    onSelectParentAsSingle={() => {}}
-                    onRemoveAlbumInstanceFromQueue={() => onRemoveItem(instanceKey)}
-                    onScrobbleModeToggle={(useTrackArtist) => useTrackArtist}
-                    onScrobbleSingleRelease={() => onScrobbleItem(instanceKey)}
-                    isScrobbling={isScrobbling}
-                    isHistoryItem={false}
-                  />
-                );
-              })}
+              {queue.map((item) => (
+                <QueueItem
+                  key={item.instanceKey}
+                  testID={testID ? `${testID}-item-${item.instanceKey}` : undefined}
+                  item={item}
+                  selectedTrackKeys={selectedTracks[item.instanceKey] || new Set()}
+                  selectedFeatures={selectedFeatures[item.instanceKey] || new Set()}
+                  artistSelections={artistSelections[item.instanceKey] || {}}
+                  scrobbleTimestamps={scrobbleTimestamps[item.instanceKey] || {}}
+                  settings={settings}
+                  metadata={metadata[item.id]}
+                  onSelectAll={() => onSelectAll(item.instanceKey)}
+                  onDeselectAll={() => onDeselectAll(item.instanceKey)}
+                  onToggleGroup={(groupKeys, parentKeysInGroup) => onToggleGroup(item.instanceKey, groupKeys, parentKeysInGroup)}
+                  onToggle={(trackKey) => onToggle(item.instanceKey, trackKey)}
+                  onFeatureToggle={(trackKey) => onFeatureToggle(item.instanceKey, trackKey)}
+                  onArtistToggle={(trackKey, artistName) => onArtistToggle(item.instanceKey, trackKey, artistName)}
+                  onToggleParent={(parentIndex, subTrackKeys) => onToggleParent(item.instanceKey, parentIndex, subTrackKeys)}
+                  onSelectParentAsSingle={(parentKey, subTrackKeys) => onSelectParentAsSingle(item.instanceKey, parentKey, subTrackKeys)}
+                  onRemoveAlbumInstanceFromQueue={() => onRemoveItem(item.instanceKey)}
+                  onScrobbleModeToggle={(useTrackArtist) => onScrobbleModeToggle(item.instanceKey, useTrackArtist)}
+                  onScrobbleSingleRelease={() => onScrobbleItem(item.instanceKey)}
+                  isScrobbling={isScrobbling}
+                  isHistoryItem={false}
+                />
+              ))}
             </View>
           )}
 
@@ -155,35 +186,32 @@ export const QueueSheet: React.FC<QueueSheetProps> = ({
           {hasHistory && (
             <View style={styles.section}>
               <Text style={styles.sectionTitle}>Recently Scrobbled</Text>
-              {scrobbledHistory.map((item, index) => {
-                const instanceKey = `history-${item.id}-${index}`;
-                return (
-                  <QueueItem
-                    key={instanceKey}
-                    testID={testID ? `${testID}-history-${item.id}` : undefined}
-                    item={item}
-                    selectedTrackKeys={new Set()}
-                    selectedFeatures={new Set()}
-                    artistSelections={{}}
-                    scrobbleTimestamps={{}}
-                    settings={settings}
-                    metadata={metadata[item.id]}
-                    onSelectAll={() => {}}
-                    onDeselectAll={() => {}}
-                    onToggleGroup={() => {}}
-                    onToggle={() => {}}
-                    onFeatureToggle={() => {}}
-                    onArtistToggle={() => {}}
-                    onToggleParent={() => {}}
-                    onSelectParentAsSingle={() => {}}
-                    onRemoveAlbumInstanceFromQueue={() => {}}
-                    onScrobbleModeToggle={(useTrackArtist) => useTrackArtist}
-                    onScrobbleSingleRelease={() => {}}
-                    isScrobbling={false}
-                    isHistoryItem={true}
-                  />
-                );
-              })}
+              {scrobbledHistory.map((item) => (
+                <QueueItem
+                  key={`history-${item.instanceKey}`}
+                  testID={testID ? `${testID}-history-${item.instanceKey}` : undefined}
+                  item={item}
+                  selectedTrackKeys={new Set()}
+                  selectedFeatures={new Set()}
+                  artistSelections={{}}
+                  scrobbleTimestamps={{}}
+                  settings={settings}
+                  metadata={metadata[item.id]}
+                  onSelectAll={() => {}}
+                  onDeselectAll={() => {}}
+                  onToggleGroup={() => {}}
+                  onToggle={() => {}}
+                  onFeatureToggle={() => {}}
+                  onArtistToggle={() => {}}
+                  onToggleParent={() => {}}
+                  onSelectParentAsSingle={() => {}}
+                  onRemoveAlbumInstanceFromQueue={() => {}}
+                  onScrobbleModeToggle={() => {}}
+                  onScrobbleSingleRelease={() => {}}
+                  isScrobbling={false}
+                  isHistoryItem={true}
+                />
+              ))}
             </View>
           )}
         </ScrollView>
@@ -192,10 +220,10 @@ export const QueueSheet: React.FC<QueueSheetProps> = ({
   );
 };
 
-const styles = StyleSheet.create({
+const makeStyles = (t: ReturnType<typeof getThemeColors>) => StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: '#121212', // gray-900
+    backgroundColor: t.bg,
   },
   header: {
     flexDirection: 'row',
@@ -204,10 +232,10 @@ const styles = StyleSheet.create({
     paddingHorizontal: 16,
     paddingVertical: 12,
     borderBottomWidth: 1,
-    borderBottomColor: '#282828', // gray-700
+    borderBottomColor: t.border,
   },
   headerTitle: {
-    color: '#ffffff',
+    color: t.text,
     fontSize: 20,
     fontWeight: 'bold',
   },
@@ -216,7 +244,7 @@ const styles = StyleSheet.create({
     paddingHorizontal: 12,
   },
   closeButtonText: {
-    color: '#3b82f6', // blue-500
+    color: '#3b82f6',
     fontSize: 16,
     fontWeight: '600',
   },
@@ -226,13 +254,15 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     paddingHorizontal: 16,
     paddingVertical: 12,
-    backgroundColor: '#181818', // gray-800
+    backgroundColor: t.bgCard,
+    borderBottomWidth: 1,
+    borderBottomColor: t.border,
   },
   statsContainer: {
     flex: 1,
   },
   statsText: {
-    color: '#b3b3b3', // gray-400
+    color: t.textMuted,
     fontSize: 14,
   },
   actionButtons: {
@@ -242,18 +272,18 @@ const styles = StyleSheet.create({
   clearButton: {
     paddingVertical: 8,
     paddingHorizontal: 16,
-    backgroundColor: '#282828', // gray-700
+    backgroundColor: t.bgDivider,
     borderRadius: 20,
   },
   clearButtonText: {
-    color: '#ffffff',
+    color: t.text,
     fontSize: 14,
     fontWeight: '600',
   },
   scrobbleAllButton: {
     paddingVertical: 8,
     paddingHorizontal: 16,
-    backgroundColor: '#d51007', // brand-lastfm
+    backgroundColor: '#d51007',
     borderRadius: 20,
   },
   scrobbleAllButtonText: {
@@ -277,13 +307,13 @@ const styles = StyleSheet.create({
     paddingVertical: 80,
   },
   emptyTitle: {
-    color: '#ffffff',
+    color: t.text,
     fontSize: 18,
     fontWeight: 'bold',
     marginBottom: 8,
   },
   emptyText: {
-    color: '#535353', // gray-500
+    color: t.textMuted,
     fontSize: 14,
     textAlign: 'center',
     maxWidth: 280,
@@ -292,7 +322,7 @@ const styles = StyleSheet.create({
     marginBottom: 24,
   },
   sectionTitle: {
-    color: '#b3b3b3', // gray-400
+    color: t.textMuted,
     fontSize: 12,
     fontWeight: '600',
     textTransform: 'uppercase',

@@ -2,7 +2,7 @@ import React, { useState } from 'react';
 import { Modal, View, Text, Pressable, Switch, ScrollView, Alert } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import type { Settings, MetadataSource } from '@libs';
-import { MetadataSourceType, colors, settingsStyles, dropdownStyles } from '@libs';
+import { MetadataSourceType, colors, settingsStyles, dropdownStyles, getThemeColors } from '@libs';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import * as SecureStore from 'expo-secure-store';
 import { SettingsIcon } from '../misc/Icons';
@@ -20,13 +20,15 @@ interface SettingsToggleProps {
   checked: boolean;
   onChange: (checked: boolean) => void;
   disabled?: boolean;
+  labelColor?: string;
+  descriptionColor?: string;
 }
 
-const SettingsToggle: React.FC<SettingsToggleProps> = ({ label, description, checked, onChange, disabled }) => (
+const SettingsToggle: React.FC<SettingsToggleProps> = ({ label, description, checked, onChange, disabled, labelColor, descriptionColor }) => (
   <View style={[settingsStyles.settingRow, disabled && settingsStyles.settingRowDisabled]}>
     <View style={settingsStyles.settingInfo}>
-      <Text style={settingsStyles.settingLabel}>{label}</Text>
-      <Text style={settingsStyles.settingDescription}>{description}</Text>
+      <Text style={[settingsStyles.settingLabel, labelColor ? { color: labelColor } : undefined]}>{label}</Text>
+      <Text style={[settingsStyles.settingDescription, descriptionColor ? { color: descriptionColor } : undefined]}>{description}</Text>
     </View>
     <Switch
       value={checked}
@@ -42,9 +44,11 @@ interface SourceSelectProps {
   description: string;
   value: MetadataSource;
   onChange: (value: MetadataSource) => void;
+  labelColor?: string;
+  descriptionColor?: string;
 }
 
-const SourceSelect: React.FC<SourceSelectProps> = ({ label, description, value, onChange }) => {
+const SourceSelect: React.FC<SourceSelectProps> = ({ label, description, value, onChange, labelColor, descriptionColor }) => {
   const [isPickerOpen, setIsPickerOpen] = useState(false);
 
   const sourceLabels: Record<MetadataSource, string> = {
@@ -64,8 +68,8 @@ const SourceSelect: React.FC<SourceSelectProps> = ({ label, description, value, 
   return (
     <View style={settingsStyles.settingRow}>
       <View style={settingsStyles.settingInfo}>
-        <Text style={settingsStyles.settingLabel}>{label}</Text>
-        <Text style={settingsStyles.settingDescription}>{description}</Text>
+        <Text style={[settingsStyles.settingLabel, labelColor ? { color: labelColor } : undefined]}>{label}</Text>
+        <Text style={[settingsStyles.settingDescription, descriptionColor ? { color: descriptionColor } : undefined]}>{description}</Text>
       </View>
       <Pressable
         style={dropdownStyles.trigger}
@@ -122,6 +126,8 @@ export const SettingsSheet: React.FC<SettingsSheetProps> = ({
   settings,
   onSettingsChange,
 }) => {
+  const t = getThemeColors(settings.darkMode);
+
   const handleShowFeaturesChange = (checked: boolean) => {
     onSettingsChange({
       ...settings,
@@ -162,26 +168,41 @@ export const SettingsSheet: React.FC<SettingsSheetProps> = ({
       presentationStyle="pageSheet"
       onRequestClose={onClose}
     >
-      <SafeAreaView style={settingsStyles.container} edges={['top']}>
-        <View style={settingsStyles.header}>
+      <SafeAreaView style={[settingsStyles.container, { backgroundColor: t.bg }]} edges={['top']}>
+        <View style={[settingsStyles.header, { borderBottomColor: t.border }]}>
           <View style={settingsStyles.headerLeft}>
-            <SettingsIcon size={24} color={colors.gray[300]} />
-            <Text style={settingsStyles.title}>Settings</Text>
+            <SettingsIcon size={24} color={t.textSecondary} />
+            <Text style={[settingsStyles.title, { color: t.text }]}>Settings</Text>
           </View>
           <Pressable onPress={onClose} style={settingsStyles.closeButton}>
             <Text style={settingsStyles.closeText}>Done</Text>
           </Pressable>
         </View>
 
-        <ScrollView style={settingsStyles.content}>
-          <View style={settingsStyles.section}>
-            <Text style={settingsStyles.sectionTitle}>Queue Defaults</Text>
+        <ScrollView style={[settingsStyles.content, { backgroundColor: t.bg }]}>
+          <View style={[settingsStyles.section, { borderBottomColor: t.border }]}>
+            <Text style={[settingsStyles.sectionTitle, { color: t.textMuted }]}>Appearance</Text>
+
+            <SettingsToggle
+              label="Dark mode"
+              description="Use a dark background throughout the app."
+              checked={settings.darkMode}
+              onChange={(checked) => onSettingsChange({ ...settings, darkMode: checked })}
+              labelColor={t.textSecondary}
+              descriptionColor={t.textMuted}
+            />
+          </View>
+
+          <View style={[settingsStyles.section, { borderBottomColor: t.border }]}>
+            <Text style={[settingsStyles.sectionTitle, { color: t.textMuted }]}>Queue Defaults</Text>
 
             <SettingsToggle
               label="Auto-select all tracks"
               description="Automatically select all tracks when adding an album to the queue."
               checked={settings.selectAllTracksPerRelease}
               onChange={(checked) => onSettingsChange({ ...settings, selectAllTracksPerRelease: checked })}
+              labelColor={t.textSecondary}
+              descriptionColor={t.textMuted}
             />
 
             <SettingsToggle
@@ -190,17 +211,21 @@ export const SettingsSheet: React.FC<SettingsSheetProps> = ({
               checked={settings.selectSubtracksByDefault}
               onChange={(checked) => onSettingsChange({ ...settings, selectSubtracksByDefault: checked })}
               disabled={!settings.selectAllTracksPerRelease}
+              labelColor={t.textSecondary}
+              descriptionColor={t.textMuted}
             />
           </View>
 
-          <View style={settingsStyles.section}>
-            <Text style={settingsStyles.sectionTitle}>Featured Artists</Text>
+          <View style={[settingsStyles.section, { borderBottomColor: t.border }]}>
+            <Text style={[settingsStyles.sectionTitle, { color: t.textMuted }]}>Featured Artists</Text>
 
             <SettingsToggle
               label="Show featured artists"
               description="Display 'feat.' artists next to track titles in the queue."
               checked={settings.showFeatures}
               onChange={handleShowFeaturesChange}
+              labelColor={t.textSecondary}
+              descriptionColor={t.textMuted}
             />
 
             <SettingsToggle
@@ -209,34 +234,40 @@ export const SettingsSheet: React.FC<SettingsSheetProps> = ({
               checked={settings.selectFeaturesByDefault}
               onChange={(checked) => onSettingsChange({ ...settings, selectFeaturesByDefault: checked })}
               disabled={!settings.showFeatures}
+              labelColor={t.textSecondary}
+              descriptionColor={t.textMuted}
             />
           </View>
 
-          <View style={settingsStyles.section}>
-            <Text style={settingsStyles.sectionTitle}>Collection</Text>
+          <View style={[settingsStyles.section, { borderBottomColor: t.border }]}>
+            <Text style={[settingsStyles.sectionTitle, { color: t.textMuted }]}>Collection</Text>
 
             <SettingsToggle
               label="Hide album names"
               description="Show only cover art in the collection grid. Names are always shown for albums without artwork."
               checked={settings.hideAlbumNames}
               onChange={(checked) => onSettingsChange({ ...settings, hideAlbumNames: checked })}
+              labelColor={t.textSecondary}
+              descriptionColor={t.textMuted}
             />
           </View>
 
-          <View style={settingsStyles.section}>
-            <Text style={settingsStyles.sectionTitle}>Track Credits</Text>
+          <View style={[settingsStyles.section, { borderBottomColor: t.border }]}>
+            <Text style={[settingsStyles.sectionTitle, { color: t.textMuted }]}>Track Credits</Text>
 
             <SettingsToggle
               label="Show credits"
               description="Display producers, engineers, and other credits under each track."
               checked={settings.showCredits}
               onChange={(checked) => onSettingsChange({ ...settings, showCredits: checked })}
+              labelColor={t.textSecondary}
+              descriptionColor={t.textMuted}
             />
           </View>
 
-          <View style={settingsStyles.section}>
-            <Text style={settingsStyles.sectionTitle}>Metadata Sources</Text>
-            <Text style={settingsStyles.sectionDescription}>
+          <View style={[settingsStyles.section, { borderBottomColor: t.border }]}>
+            <Text style={[settingsStyles.sectionTitle, { color: t.textMuted }]}>Metadata Sources</Text>
+            <Text style={[settingsStyles.sectionDescription, { color: t.textMuted }]}>
               Choose where to fetch improved metadata. External sources can provide cleaner names and fix formatting issues.
             </Text>
 
@@ -245,6 +276,8 @@ export const SettingsSheet: React.FC<SettingsSheetProps> = ({
               description="Source for artist names."
               value={settings.artistSource}
               onChange={(val) => onSettingsChange({ ...settings, artistSource: val })}
+              labelColor={t.textSecondary}
+              descriptionColor={t.textMuted}
             />
 
             <SourceSelect
@@ -252,16 +285,18 @@ export const SettingsSheet: React.FC<SettingsSheetProps> = ({
               description="Source for album titles."
               value={settings.albumSource}
               onChange={(val) => onSettingsChange({ ...settings, albumSource: val })}
+              labelColor={t.textSecondary}
+              descriptionColor={t.textMuted}
             />
           </View>
 
-          <View style={[settingsStyles.section, settingsStyles.dangerSection]}>
+          <View style={[settingsStyles.section, settingsStyles.dangerSection, { borderTopColor: t.border }]}>
             <Text style={settingsStyles.dangerSectionTitle}>Danger Zone</Text>
 
             <View style={settingsStyles.settingRow}>
               <View style={settingsStyles.settingInfo}>
-                <Text style={settingsStyles.settingLabel}>Reset Application</Text>
-                <Text style={settingsStyles.settingDescription}>
+                <Text style={[settingsStyles.settingLabel, { color: t.textSecondary }]}>Reset Application</Text>
+                <Text style={[settingsStyles.settingDescription, { color: t.textMuted }]}>
                   Clear all cached data, settings, and credentials.
                 </Text>
               </View>

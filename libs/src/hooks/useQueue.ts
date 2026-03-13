@@ -18,7 +18,10 @@ import {
   scrobbleSingleSuccess,
   scrobbleSuccess,
   setTimeOffset,
+  clearQueue,
 } from '../store/queueSlice';
+
+let instanceKeyCounter = 0;
 
 export function useQueue(
   credentials: Credentials,
@@ -45,7 +48,7 @@ export function useQueue(
 
   const addAlbumToQueue = useCallback(
     async (release: DiscogsRelease) => {
-      const instanceKey = `${release.id}-${Date.now()}-${Math.random()}`;
+      const instanceKey = `${release.id}-${++instanceKeyCounter}`;
       const newItem: QueueItem = {
         ...release,
         instanceKey,
@@ -239,6 +242,11 @@ export function useQueue(
     settings,
   ]);
 
+  const handleClearQueue = useCallback(() => {
+    dispatch(clearQueue());
+    resetSelections();
+  }, [resetSelections, dispatch]);
+
   const setScrobbleTimeOffset = useCallback(
     (offset: number) => {
       dispatch(setTimeOffset(offset));
@@ -282,6 +290,7 @@ export function useQueue(
     handleScrobbleModeToggle,
     handleScrobble,
     handleScrobbleSingleRelease,
+    handleClearQueue,
     totalScrobbledAlbums,
     totalScrobbledTracks,
     ...selectionHandlers,

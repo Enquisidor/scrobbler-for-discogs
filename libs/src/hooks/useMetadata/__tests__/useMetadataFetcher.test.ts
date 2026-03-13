@@ -53,6 +53,7 @@ const defaultSettings: Settings = {
   showFeatures: true,
   showCredits: true,
   hideAlbumNames: false,
+  darkMode: true,
   selectFeaturesByDefault: false,
   artistSource: MetadataSourceType.Discogs,
   albumSource: MetadataSourceType.Discogs,

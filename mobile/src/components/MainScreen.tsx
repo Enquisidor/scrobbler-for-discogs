@@ -14,6 +14,7 @@ import {
   useMetadataFetcher,
   useQueue,
   useVisibleItems,
+  getThemeColors,
 } from '@libs';
 
 // Hooks
@@ -102,6 +103,7 @@ export const MainScreen: React.FC = () => {
     handleScrobbleModeToggle,
     handleScrobble,
     handleScrobbleSingleRelease,
+    handleClearQueue,
     handleSelectAll,
     handleDeselectAll,
     handleToggleGroup,
@@ -164,8 +166,10 @@ export const MainScreen: React.FC = () => {
     );
   }
 
+  const t = getThemeColors(settings.darkMode);
+
   return (
-    <SafeAreaView style={styles.container} edges={['top']}>
+    <SafeAreaView style={[styles.container, { backgroundColor: t.bg }]} edges={['top']}>
       <View style={styles.content}>
         <Header
           isSyncing={isSyncing}
@@ -255,6 +259,25 @@ export const MainScreen: React.FC = () => {
         scrobbledHistory={scrobbledHistory}
         settings={settings}
         isLastfmConnected={!!credentials.lastfmSessionKey}
+        metadata={metadata}
+        selectedTracks={selectedTracks}
+        selectedFeatures={selectedFeatures}
+        artistSelections={artistSelections}
+        scrobbleTimestamps={scrobbleTimestamps}
+        isScrobbling={isScrobbling}
+        onRemoveItem={removeAlbumInstanceFromQueue}
+        onScrobbleItem={handleScrobbleSingleRelease}
+        onScrobbleAll={handleScrobble}
+        onClearQueue={handleClearQueue}
+        onSelectAll={handleSelectAll}
+        onDeselectAll={handleDeselectAll}
+        onToggleGroup={handleToggleGroup}
+        onToggle={handleTrackToggle}
+        onFeatureToggle={handleFeatureToggle}
+        onArtistToggle={handleArtistToggle}
+        onToggleParent={handleToggleParent}
+        onSelectParentAsSingle={handleSelectParentAsSingle}
+        onScrobbleModeToggle={handleScrobbleModeToggle}
       />
     </SafeAreaView>
   );

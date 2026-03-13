@@ -28,7 +28,6 @@ export const store = configureStore({
 
 // Debounced save to AsyncStorage
 let saveTimeout: NodeJS.Timeout | null = null;
-let lastCollectionLength = 0;
 
 store.subscribe(() => {
   const state = store.getState();
@@ -44,15 +43,9 @@ store.subscribe(() => {
         JSON.stringify(state.metadata.data)
       );
 
-      // During a background resync, skip saves — we'll write atomically when it completes.
-      // During initial load or normal state, save whenever the collection grows.
-      const currentCollectionLength = state.collection.collection.length;
-      if (
-        !state.collection.isBackgroundResyncing &&
-        currentCollectionLength > 0 &&
-        currentCollectionLength !== lastCollectionLength
-      ) {
-        lastCollectionLength = currentCollectionLength;
+      // Skip saves during background resync — write atomically when it completes.
+      const collectionLength = state.collection.collection.length;
+      if (!state.collection.isBackgroundResyncing && collectionLength > 0) {
         await AsyncStorage.setItem(
           'scrobbler-for-discogs-collection-v1',
           JSON.stringify({
