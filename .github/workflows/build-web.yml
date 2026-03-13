@@ -64,6 +64,10 @@ jobs:
         # No need for a separate npm install ../libs.
         run: npm ci
 
+      - name: Run tests
+        working-directory: web
+        run: npx jest
+
       - name: Build web app
         working-directory: web
         run: npm run build
@@ -84,10 +88,6 @@ jobs:
             echo "✗ Build output not found"
             exit 1
           fi
-
-      - name: Run tests
-        working-directory: web
-        run: npx test
 
       - name: Upload build artifacts
         uses: actions/upload-artifact@v4

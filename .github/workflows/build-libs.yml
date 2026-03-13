@@ -50,13 +50,14 @@ jobs:
         working-directory: libs
         run: npm ci
 
+      - name: Run tests
+        working-directory: libs
+        run: npm test
+        
       - name: Build library
         working-directory: libs
         run: npm run build
 
-      - name: Run tests
-        working-directory: libs
-        run: npx test
       - name: Upload build artifacts
         uses: actions/upload-artifact@v4
         with:
