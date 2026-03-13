@@ -10,6 +10,7 @@ const mockLocation = {
   search: '',
   replace: jest.fn(),
 };
+delete window.location;
 Object.defineProperty(window, 'location', {
   value: mockLocation,
   writable: true,
