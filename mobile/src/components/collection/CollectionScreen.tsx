@@ -206,8 +206,9 @@ export const CollectionScreen: React.FC<CollectionScreenProps> = ({
       // Viewability tracking for metadata fetching
       viewabilityConfigCallbackPairs={viewabilityConfigCallbackPairs.current}
       // Performance optimizations
+      removeClippedSubviews={true}
       maxToRenderPerBatch={10}
-      windowSize={5}
+      windowSize={3}
       initialNumToRender={12}
     />
   );
