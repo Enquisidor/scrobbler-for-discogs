@@ -1,4 +1,4 @@
-name: Build & Deploy Mobile
+name: Build Mobile
 
 on:
   push:
@@ -78,16 +78,13 @@ jobs:
         working-directory: mobile
         run: npm test
 
+      - name: Export JS bundle
+        working-directory: mobile
+        run: npx expo export --output-dir dist/
+
       - name: Upload build artifacts
         uses: actions/upload-artifact@v4
         with:
           name: mobile-dist
           path: mobile/dist/
           retention-days: 7
-
-      - name: Deploy OTA update (EAS Update)
-        if: github.ref == 'refs/heads/main' && github.event_name == 'push'
-        working-directory: mobile
-        run: npx eas-cli update --branch production --message "${{ github.event.head_commit.message }}" --non-interactive
-        env:
-          EXPO_TOKEN: ${{ secrets.EXPO_TOKEN }}

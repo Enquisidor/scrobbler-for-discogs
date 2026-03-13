@@ -1,0 +1,40 @@
+name: Deploy Mobile
+
+on:
+  workflow_run:
+    workflows: ["Build Mobile"]
+    branches: [main]
+    types: [completed]
+
+jobs:
+  deploy:
+    runs-on: ubuntu-latest
+    if: github.event.workflow_run.conclusion == 'success'
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+        with:
+          ref: ${{ github.event.workflow_run.head_sha }}
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: 22.x
+
+      - name: Install EAS CLI
+        run: npm install -g eas-cli
+
+      - name: Download build artifacts
+        uses: actions/download-artifact@v4
+        with:
+          name: mobile-dist
+          path: mobile/dist/
+          run-id: ${{ github.event.workflow_run.id }}
+          github-token: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Deploy OTA update (EAS Update)
+        working-directory: mobile
+        run: eas update --branch production --input-dir dist/ --message "${{ github.event.workflow_run.head_commit.message }}" --non-interactive
+        env:
+          EXPO_TOKEN: ${{ secrets.EXPO_TOKEN }}
