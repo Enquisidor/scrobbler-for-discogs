@@ -153,7 +153,7 @@ describe('QueueSheet', () => {
     it('should call onScrobbleAll when Scrobble All button is pressed', () => {
       const onScrobbleAll = jest.fn();
       const queue = [createMockQueueItemWithTracks(3)];
-      const selectedTracks = new Map([['test-key', new Set(['0', '1', '2'])]]);
+      const selectedTracks = { 'test-key': new Set(['0', '1', '2']) };
 
       render(
         <QueueSheet
@@ -191,7 +191,7 @@ describe('QueueSheet', () => {
         <QueueSheet
           {...defaultProps}
           queue={queue}
-          selectedTracks={new Map()}
+          selectedTracks={{}}
           testID="queue-sheet"
         />
       );
@@ -203,7 +203,7 @@ describe('QueueSheet', () => {
 
     it('should disable Scrobble All while scrobbling', () => {
       const queue = [createMockQueueItemWithTracks(3)];
-      const selectedTracks = new Map([['test-key', new Set(['0'])]]);
+      const selectedTracks = { 'test-key': new Set(['0']) };
 
       render(
         <QueueSheet
@@ -223,9 +223,7 @@ describe('QueueSheet', () => {
   describe('Track count display', () => {
     it('should display correct track count', () => {
       const queue = [createMockQueueItemWithTracks(3)];
-      const selectedTracks = new Map([
-        [queue[0].instanceKey, new Set(['0', '1'])],
-      ]);
+      const selectedTracks = { [queue[0].instanceKey]: new Set(['0', '1']) };
 
       render(
         <QueueSheet
@@ -240,9 +238,7 @@ describe('QueueSheet', () => {
 
     it('should handle singular "track" text', () => {
       const queue = [createMockQueueItemWithTracks(3)];
-      const selectedTracks = new Map([
-        [queue[0].instanceKey, new Set(['0'])],
-      ]);
+      const selectedTracks = { [queue[0].instanceKey]: new Set(['0']) };
 
       render(
         <QueueSheet
