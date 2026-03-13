@@ -71,6 +71,10 @@ jobs:
         working-directory: mobile
         run: npm test
 
+      - name: Export JS bundle
+        working-directory: mobile
+        run: npx expo export --output-dir dist/
+
       - name: Upload build artifacts
         uses: actions/upload-artifact@v4
         with:
