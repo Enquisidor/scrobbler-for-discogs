@@ -22,7 +22,11 @@
     ],
     "testMatch": [
       "**/__tests__/**/*.test.ts?(x)"
-    ]
+    ],
+    "moduleNameMapper": {
+      "^@react-native-async-storage/async-storage$": "<rootDir>/__mocks__/async-storage.cjs",
+      "^expo-secure-store$": "<rootDir>/__mocks__/expo-secure-store.cjs"
+    }
   },
   "keywords": [
     "discogs",
