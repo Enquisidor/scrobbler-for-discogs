@@ -8,7 +8,20 @@
   "scripts": {
     "build": "tsc",
     "watch": "tsc --watch",
-    "prepublishOnly": "npm run build"
+    "prepublishOnly": "npm run build",
+    "test": "jest"
+  },
+  "jest": {
+    "testEnvironment": "node",
+    "transform": {
+      "^.+\\.(js|jsx|ts|tsx)$": "babel-jest"
+    },
+    "transformIgnorePatterns": [
+      "/node_modules/(?!(react-native|@react-native|@testing-library)/)"
+    ],
+    "testMatch": [
+      "**/__tests__/**/*.test.ts?(x)"
+    ]
   },
   "keywords": [
     "discogs",
