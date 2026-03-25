@@ -13,7 +13,7 @@ export interface TrackPassthroughProps {
     settings: Settings;
     metadata: CombinedMetadata | undefined;
     onToggle: (trackKey: string) => void;
-    onFeatureToggle: (trackKey: string) => void;
+    onFeatureToggle: (trackKey: string, featuredArtistNames: string[]) => void;
     onArtistToggle: (trackKey: string, artistName: string) => void;
     onToggleParent: (parentIndex: number, subTrackKeys: string[]) => void;
     onSelectParentAsSingle: (parentKey: string, subTrackKeys: string[]) => void;
@@ -62,6 +62,9 @@ const Track: React.FC<TrackProps> = ({
     let subTrackKeys: string[] = [];
 
     const featuredArtists = getTrackFeaturedArtists(track);
+    const featuredArtistNames = track.extraartists
+        ?.filter(a => a.role.toLowerCase().includes('feat'))
+        .map(a => getDisplayArtistName(a.name)) ?? [];
     const structuredCredits = getTrackCreditsStructured(track);
 
     if (hasSubTracks) {
@@ -202,7 +205,7 @@ const Track: React.FC<TrackProps> = ({
                                     <input
                                         type="checkbox"
                                         checked={selectedFeatures.has(trackKey)}
-                                        onChange={() => onFeatureToggle(trackKey)}
+                                        onChange={() => onFeatureToggle(trackKey, featuredArtistNames)}
                                         className="form-checkbox h-3 w-3 rounded-sm bg-gray-700 border-gray-600 text-blue-600 focus:ring-blue-500 focus:ring-offset-gray-800"
                                         title={`Include featured artists in scrobble`}
                                     />
@@ -234,6 +237,9 @@ const Track: React.FC<TrackProps> = ({
                     {track.sub_tracks?.map((subTrack, sIndex) => {
                         const subTrackKey = `${parentIndex}-${sIndex}`;
                         const subFeaturedArtists = getTrackFeaturedArtists(subTrack);
+                        const subFeaturedArtistNames = subTrack.extraartists
+                            ?.filter(a => a.role.toLowerCase().includes('feat'))
+                            .map(a => getDisplayArtistName(a.name)) ?? [];
                         const subStructuredCredits = getTrackCreditsStructured(subTrack);
 
                         return (
@@ -267,7 +273,7 @@ const Track: React.FC<TrackProps> = ({
                                                 <input
                                                     type="checkbox"
                                                     checked={selectedFeatures.has(subTrackKey)}
-                                                    onChange={() => onFeatureToggle(subTrackKey)}
+                                                    onChange={() => onFeatureToggle(subTrackKey, subFeaturedArtistNames)}
                                                     className="form-checkbox h-3 w-3 rounded-sm bg-gray-700 border-gray-600 text-blue-600 focus:ring-blue-500 focus:ring-offset-gray-800"
                                                     title={`Include featured artists in scrobble`}
                                                 />

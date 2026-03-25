@@ -12,7 +12,7 @@ interface QueueSelectionProps {
   selectedFeatures: SelectedFeatures;
   artistSelections: ArtistSelections;
   onTrackToggle: (instanceKey: string, trackKey: string) => void;
-  onFeatureToggle: (instanceKey: string, trackKey: string) => void;
+  onFeatureToggle: (instanceKey: string, trackKey: string, featuredArtistNames: string[]) => void;
   onArtistToggle: (instanceKey: string, trackKey: string, artistName: string) => void;
   onToggleParent: (instanceKey: string, parentIndex: number, subTrackKeys: string[]) => void;
   onSelectParentAsSingle: (instanceKey: string, parentKey: string, subTrackKeys: string[]) => void;
@@ -75,7 +75,7 @@ const QueueList: React.FC<QueueListProps> = ({
             settings={settings}
             metadata={metadata[item.id]}
             onToggle={(trackKey) => onTrackToggle(item.instanceKey, trackKey)}
-            onFeatureToggle={(trackKey) => onFeatureToggle(item.instanceKey, trackKey)}
+            onFeatureToggle={(trackKey, featuredArtistNames) => onFeatureToggle(item.instanceKey, trackKey, featuredArtistNames)}
             onArtistToggle={(trackKey, artistName) => onArtistToggle(item.instanceKey, trackKey, artistName)}
             onToggleParent={(parentIndex, subTrackKeys) => onToggleParent(item.instanceKey, parentIndex, subTrackKeys)}
             onSelectParentAsSingle={(parentKey, subTrackKeys) => onSelectParentAsSingle(item.instanceKey, parentKey, subTrackKeys)}

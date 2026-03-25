@@ -111,15 +111,23 @@ const trackSelectionSlice = createSlice({
         }
       }
     },
-    toggleFeature(state, action: PayloadAction<{ instanceKey: string; trackKey: string }>) {
-      const { instanceKey, trackKey } = action.payload;
+    toggleFeature(state, action: PayloadAction<{ instanceKey: string; trackKey: string; featuredArtistNames?: string[] }>) {
+      const { instanceKey, trackKey, featuredArtistNames = [] } = action.payload;
       if (!state.selectedFeatures[instanceKey]) state.selectedFeatures[instanceKey] = new Set();
 
       const instanceSet = state.selectedFeatures[instanceKey];
       if (instanceSet.has(trackKey)) {
         instanceSet.delete(trackKey);
+        if (featuredArtistNames.length > 0 && state.artistSelections[instanceKey]?.[trackKey]) {
+          featuredArtistNames.forEach(name => state.artistSelections[instanceKey][trackKey].delete(name));
+        }
       } else {
         instanceSet.add(trackKey);
+        if (featuredArtistNames.length > 0) {
+          if (!state.artistSelections[instanceKey]) state.artistSelections[instanceKey] = {};
+          if (!state.artistSelections[instanceKey][trackKey]) state.artistSelections[instanceKey][trackKey] = new Set();
+          featuredArtistNames.forEach(name => state.artistSelections[instanceKey][trackKey].add(name));
+        }
       }
     },
     toggleArtist(state, action: PayloadAction<{ instanceKey: string; trackKey: string; artistName: string }>) {
@@ -218,38 +226,43 @@ const trackSelectionSlice = createSlice({
     },
     autoUpdateFeatures(state, action: PayloadAction<{ queue: QueueItem[], settings: Settings, selectedTracks: SelectedTracks }>) {
       const { queue, settings, selectedTracks } = action.payload;
-      // With Immer, we can mutate "state" directly, but since this action completely re-evaluates
-      // the selectedFeatures map based on current settings and selections, we can construct the new map
-      // and assign it.
       const newSelectedFeatures: SelectedFeatures = {};
 
       for (const item of queue) {
         const instanceKey = item.instanceKey;
         const newInstanceFeatures = new Set<string>();
+        const currentSelectedTracks = selectedTracks[instanceKey];
 
-        if (settings.showFeatures && settings.selectFeaturesByDefault) {
-          const currentSelectedTracks = selectedTracks[instanceKey];
-          if (currentSelectedTracks) {
-            for (const trackKey of currentSelectedTracks) {
-              const ids = trackKey.split('-').map(Number);
-              const parentTrack = item.tracklist?.[ids[0]];
-              const track = ids.length > 1 ? parentTrack?.sub_tracks?.[ids[1]] : parentTrack;
+        if (currentSelectedTracks) {
+          for (const trackKey of currentSelectedTracks) {
+            const ids = trackKey.split('-').map(Number);
+            const parentTrack = item.tracklist?.[ids[0]];
+            const track = ids.length > 1 ? parentTrack?.sub_tracks?.[ids[1]] : parentTrack;
 
-              if (track && getTrackFeaturedArtists(track)) {
+            if (track && getTrackFeaturedArtists(track)) {
+              const featArtistNames = track.extraartists
+                ?.filter(a => a.role.toLowerCase().includes('feat'))
+                .map(a => getDisplayArtistName(a.name)) ?? [];
+
+              if (settings.showFeatures && settings.selectFeaturesByDefault) {
                 newInstanceFeatures.add(trackKey);
+                if (featArtistNames.length > 0) {
+                  if (!state.artistSelections[instanceKey]) state.artistSelections[instanceKey] = {};
+                  if (!state.artistSelections[instanceKey][trackKey]) state.artistSelections[instanceKey][trackKey] = new Set();
+                  featArtistNames.forEach(name => state.artistSelections[instanceKey][trackKey].add(name));
+                }
+              } else if (featArtistNames.length > 0 && state.artistSelections[instanceKey]?.[trackKey]) {
+                featArtistNames.forEach(name => state.artistSelections[instanceKey][trackKey].delete(name));
               }
             }
           }
         }
-        // Only add entry if there are actually selected features
+
         if (newInstanceFeatures.size > 0) {
           newSelectedFeatures[instanceKey] = newInstanceFeatures;
         }
       }
 
-      // Optimization: Check if actually different before replacing to avoid re-renders?
-      // Immer handles reference equality checks for us if we mutate. 
-      // Here we just replace the whole object.
       state.selectedFeatures = newSelectedFeatures;
     }
   },
