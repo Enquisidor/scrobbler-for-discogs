@@ -10,7 +10,14 @@
     "preview": {
       "distribution": "internal"
     },
-    "production": {}
+    "production": {
+      "android": {
+        "credentialsSource": "remote"
+      },
+      "ios": {
+        "credentialsSource": "remote"
+      }
+    }
   },
   "submit": {
     "production": {}

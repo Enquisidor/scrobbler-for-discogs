@@ -13,7 +13,7 @@ export interface TrackPassthroughProps {
     settings: Settings;
     metadata: CombinedMetadata | undefined;
     onToggle: (trackKey: string) => void;
-    onFeatureToggle: (trackKey: string, featuredArtistNames: string[]) => void;
+    onFeatureToggle: (trackKey: string, featuredArtistNames: string[], albumArtistNames: string[]) => void;
     onArtistToggle: (trackKey: string, artistName: string) => void;
     onToggleParent: (parentIndex: number, subTrackKeys: string[]) => void;
     onSelectParentAsSingle: (parentKey: string, subTrackKeys: string[]) => void;
@@ -205,7 +205,7 @@ const Track: React.FC<TrackProps> = ({
                                     <input
                                         type="checkbox"
                                         checked={selectedFeatures.has(trackKey)}
-                                        onChange={() => onFeatureToggle(trackKey, featuredArtistNames)}
+                                        onChange={() => onFeatureToggle(trackKey, featuredArtistNames, track.artists?.length ? [] : [albumArtistName].filter(Boolean))}
                                         className="form-checkbox h-3 w-3 rounded-sm bg-gray-700 border-gray-600 text-blue-600 focus:ring-blue-500 focus:ring-offset-gray-800"
                                         title={`Include featured artists in scrobble`}
                                     />
@@ -273,7 +273,7 @@ const Track: React.FC<TrackProps> = ({
                                                 <input
                                                     type="checkbox"
                                                     checked={selectedFeatures.has(subTrackKey)}
-                                                    onChange={() => onFeatureToggle(subTrackKey, subFeaturedArtistNames)}
+                                                    onChange={() => onFeatureToggle(subTrackKey, subFeaturedArtistNames, subTrack.artists?.length ? [] : [albumArtistName].filter(Boolean))}
                                                     className="form-checkbox h-3 w-3 rounded-sm bg-gray-700 border-gray-600 text-blue-600 focus:ring-blue-500 focus:ring-offset-gray-800"
                                                     title={`Include featured artists in scrobble`}
                                                 />

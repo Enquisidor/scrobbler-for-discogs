@@ -57,14 +57,18 @@ const trackSelectionSlice = createSlice({
       }
 
       const newArtistSelections: Record<string, Set<string>> = {};
+      const albumArtists = item.basic_information?.artists || [];
       if (tracklist?.length) {
         tracklist.forEach((track, pIndex) => {
           const processTrack = (t: DiscogsTrack, key: string) => {
             const selectedSet = new Set<string>();
-            if (t.artists) {
-              t.artists.forEach(a => selectedSet.add(getDisplayArtistName(a.name)));
-            }
+            const sourceArtists = t.artists?.length ? t.artists : [];
+            sourceArtists.forEach(a => selectedSet.add(getDisplayArtistName(a.name)));
             if (settings.showFeatures && settings.selectFeaturesByDefault && t.extraartists) {
+              const hasFeat = t.extraartists.some(a => a.role.toLowerCase().includes('feat'));
+              if (hasFeat && !t.artists?.length) {
+                albumArtists.forEach(a => selectedSet.add(getDisplayArtistName(a.name)));
+              }
               t.extraartists
                 .filter(a => a.role.toLowerCase().includes('feat'))
                 .forEach(a => selectedSet.add(getDisplayArtistName(a.name)));
@@ -111,23 +115,23 @@ const trackSelectionSlice = createSlice({
         }
       }
     },
-    toggleFeature(state, action: PayloadAction<{ instanceKey: string; trackKey: string; featuredArtistNames?: string[] }>) {
-      const { instanceKey, trackKey, featuredArtistNames = [] } = action.payload;
+    toggleFeature(state, action: PayloadAction<{ instanceKey: string; trackKey: string; featuredArtistNames?: string[]; albumArtistNames?: string[] }>) {
+      const { instanceKey, trackKey, featuredArtistNames = [], albumArtistNames = [] } = action.payload;
       if (!state.selectedFeatures[instanceKey]) state.selectedFeatures[instanceKey] = new Set();
 
       const instanceSet = state.selectedFeatures[instanceKey];
       if (instanceSet.has(trackKey)) {
         instanceSet.delete(trackKey);
-        if (featuredArtistNames.length > 0 && state.artistSelections[instanceKey]?.[trackKey]) {
+        if (state.artistSelections[instanceKey]?.[trackKey]) {
           featuredArtistNames.forEach(name => state.artistSelections[instanceKey][trackKey].delete(name));
+          albumArtistNames.forEach(name => state.artistSelections[instanceKey][trackKey].delete(name));
         }
       } else {
         instanceSet.add(trackKey);
-        if (featuredArtistNames.length > 0) {
-          if (!state.artistSelections[instanceKey]) state.artistSelections[instanceKey] = {};
-          if (!state.artistSelections[instanceKey][trackKey]) state.artistSelections[instanceKey][trackKey] = new Set();
-          featuredArtistNames.forEach(name => state.artistSelections[instanceKey][trackKey].add(name));
-        }
+        if (!state.artistSelections[instanceKey]) state.artistSelections[instanceKey] = {};
+        if (!state.artistSelections[instanceKey][trackKey]) state.artistSelections[instanceKey][trackKey] = new Set();
+        albumArtistNames.forEach(name => state.artistSelections[instanceKey][trackKey].add(name));
+        featuredArtistNames.forEach(name => state.artistSelections[instanceKey][trackKey].add(name));
       }
     },
     toggleArtist(state, action: PayloadAction<{ instanceKey: string; trackKey: string; artistName: string }>) {
@@ -249,6 +253,11 @@ const trackSelectionSlice = createSlice({
                 if (featArtistNames.length > 0) {
                   if (!state.artistSelections[instanceKey]) state.artistSelections[instanceKey] = {};
                   if (!state.artistSelections[instanceKey][trackKey]) state.artistSelections[instanceKey][trackKey] = new Set();
+                  if (!track.artists?.length) {
+                    (item.basic_information?.artists || []).forEach(a =>
+                      state.artistSelections[instanceKey][trackKey].add(getDisplayArtistName(a.name))
+                    );
+                  }
                   featArtistNames.forEach(name => state.artistSelections[instanceKey][trackKey].add(name));
                 }
               } else if (featArtistNames.length > 0 && state.artistSelections[instanceKey]?.[trackKey]) {

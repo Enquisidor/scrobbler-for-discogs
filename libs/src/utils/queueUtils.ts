@@ -59,7 +59,9 @@ export function getTrackFeaturedArtists(track: DiscogsTrack): string {
     if (!track.extraartists) return '';
     const featArtists = track.extraartists.filter(a => a.role.toLowerCase().includes('feat'));
     if (featArtists.length === 0) return '';
-    return `feat. ${formatArtistNames(featArtists)}`;
+    // Featured artists are always distinct people; normalize missing/empty joins to comma
+    const normalized = featArtists.map(a => ({ ...a, join: a.join || ',' }));
+    return `feat. ${formatArtistNames(normalized)}`;
 }
 
 export function getTrackCreditsStructured(track: DiscogsTrack): { role: string; artists: DiscogsArtist[] }[] {
@@ -155,7 +157,10 @@ export function prepareTracksForScrobbling(
             if (!track) return [];
 
             const selectedArtistNames = artistSelections[release.instanceKey]?.[key] || new Set();
-            const allPotentialArtists = [...(track.artists || []), ...(track.extraartists || [])];
+            const releaseArtists = release.basic_information?.artists || [];
+            const trackArtists = track.artists || [];
+            const effectiveArtists = trackArtists.length > 0 ? trackArtists : releaseArtists;
+            const allPotentialArtists = [...effectiveArtists, ...(track.extraartists || [])];
             
             // Filter artists based on user selection
             const finalArtists = allPotentialArtists.filter(a => selectedArtistNames.has(getDisplayArtistName(a.name)));

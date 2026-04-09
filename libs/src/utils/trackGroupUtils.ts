@@ -22,6 +22,16 @@ const getPrefix = (track: DiscogsTrack): string => {
   return _.chain(track.sub_tracks).map(getPrefix).find(Boolean).value() || '';
 };
 
+const getSideLetter = (tracksWithIndices: TrackWithIndex[]): string => {
+  for (const { track } of tracksWithIndices) {
+    const match = track.position?.match(/^([A-Z]+)\d/);
+    if (match) return match[1];
+    const subMatch = _.chain(track.sub_tracks).map(s => s.position?.match(/^([A-Z]+)\d/)?.[1]).find(Boolean).value();
+    if (subMatch) return subMatch;
+  }
+  return '';
+};
+
 /**
  * Assigns tracks to groups based on headings or position prefixes.
  * Handles vinyl sides (A1, A2, B1...), multi-disc releases (1-01, 2-01...),
@@ -59,7 +69,11 @@ export const assignGroups = (tracklist: DiscogsTrack[] | null): TrackGroup[] => 
 
   return _.flatMap(rawGroups, (rawGroup: RawGroup) => {
     if (rawGroup.heading) {
-      return [{ heading: rawGroup.heading, tracks: rawGroup.tracksWithIndices }];
+      const sideLetter = getSideLetter(rawGroup.tracksWithIndices);
+      const heading = sideLetter && rawGroup.heading !== sideLetter
+        ? `${sideLetter} - ${rawGroup.heading}`
+        : rawGroup.heading;
+      return [{ heading, tracks: rawGroup.tracksWithIndices }];
     }
 
     const positionGroups = _.groupBy(rawGroup.tracksWithIndices, ({ track }) => getPrefix(track));
@@ -70,6 +84,13 @@ export const assignGroups = (tracklist: DiscogsTrack[] | null): TrackGroup[] => 
         heading: heading || 'Tracks',
         tracks,
       }));
+    }
+
+    if (entries.length === 1) {
+      const [prefix, tracks] = entries[0];
+      if (prefix && /^[A-Z]+$/.test(prefix)) {
+        return [{ heading: prefix, tracks }];
+      }
     }
 
     return [{ heading: '', tracks: rawGroup.tracksWithIndices }];

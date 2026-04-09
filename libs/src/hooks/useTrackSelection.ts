@@ -54,8 +54,8 @@ export function useTrackSelection(queue: QueueItem[], settings: Settings) {
   );
 
   const handleFeatureToggle = useCallback(
-    (instanceKey: string, trackKey: string, featuredArtistNames: string[] = []) => {
-      dispatch(toggleFeature({ instanceKey, trackKey, featuredArtistNames }));
+    (instanceKey: string, trackKey: string, featuredArtistNames: string[] = [], albumArtistNames: string[] = []) => {
+      dispatch(toggleFeature({ instanceKey, trackKey, featuredArtistNames, albumArtistNames }));
     },
     [dispatch]
   );

@@ -7,8 +7,6 @@ node_modules/
 
 # Expo / React Native
 mobile/.expo/
-mobile/android/
-mobile/ios/
 *.jks
 *.p8
 *.p12
