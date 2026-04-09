@@ -222,7 +222,7 @@ const QueueItem: React.FC<QueueItemProps> = ({
 
                                 return (
                                     <div key={`${group.heading || ''}-${group.subHeading ?? groupIndex}`} className="mt-2">
-                                        {group.heading && (groupIndex === 0 || trackGroups[groupIndex - 1].heading !== group.heading) && (
+                                        {group.heading && (trackGroups[groupIndex - 1].heading !== group.heading) && (
                                             <div className="flex justify-between items-baseline mb-1 px-2">
                                                 <h4 className="font-bold text-sm text-gray-400">
                                                     {group.heading}
@@ -235,7 +235,7 @@ const QueueItem: React.FC<QueueItemProps> = ({
                                                 )}
                                             </div>
                                         )}
-                                        <div className="flex justify-between items-baseline mb-1">
+                                        {group.subHeading && <div className="flex justify-between items-baseline mb-1">
                                             <h4 className="font-bold text-sm text-gray-400">
                                                 {group.subHeading && <span className="ml-2 font-bold text-sm text-gray-400">Side {group.subHeading}</span>}
                                             </h4>
@@ -245,8 +245,7 @@ const QueueItem: React.FC<QueueItemProps> = ({
                                                     <IndeterminateCheckbox checked={allInGroupSelected} indeterminate={someInGroupSelected} onChange={() => onToggleGroup(selectableGroupKeys, parentKeysInGroup)} className="form-checkbox h-4 w-4 rounded bg-gray-700 border-gray-600 text-blue-600 focus:ring-blue-500 focus:ring-offset-gray-800" disabled={isHistoryItem || selectableGroupKeys.length === 0} />
                                                 </label>
                                             )}
-                                        </div>
-
+                                        </div>}
                                         <div className="space-y-1">
                                             {group.tracks.map(({ track, originalIndex }) => track.type_ !== 'heading' && (
                                                 <Track
