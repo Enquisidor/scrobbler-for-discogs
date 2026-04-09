@@ -186,12 +186,12 @@ const Track: React.FC<TrackProps> = ({
                     <div className="w-5 h-5 flex-shrink-0" />
                 )}
 
-                <span className="text-sm text-gray-400 font-mono w-10 text-right flex-shrink-0">{scrubbedPosition(track.position)}</span>
+                <span className="text-sm text-gray-400 gap-2 font-mono text-right flex-shrink-0">{scrubbedPosition(track.position)}</span>
 
                 <div className="flex-grow flex flex-col min-w-0">
                     <div className="flex flex-col sm:flex-row sm:items-baseline gap-x-2 min-w-0">
                         <div className="flex flex-wrap items-baseline min-w-0">
-                            <span className="font-semibold truncate mr-1" title={track.title}>{track.title}</span>
+                            <span className="font-semibold truncate mr-1 text-wrap" title={track.title}>{track.title}</span>
 
                             {/* Main Artist Display */}
                             {(!hasSubTracks && (isVariousArtist(albumArtistName) || (track.artists && track.artists.length > 0))) &&
@@ -199,7 +199,7 @@ const Track: React.FC<TrackProps> = ({
                             }
                         </div>
 
-                        <div className="flex items-center gap-2">
+                        <div className="flex items-center">
                             {!isHistoryItem && settings.showFeatures && featuredArtists && !hasSubTracks && (
                                 <label className="text-xs italic text-gray-500 flex-shrink-0 flex items-center gap-1 cursor-pointer" onClick={e => e.stopPropagation()}>
                                     <input
@@ -245,7 +245,7 @@ const Track: React.FC<TrackProps> = ({
                         return (
                             <div key={sIndex} className={`flex items-center gap-3 p-2 rounded-md ${!isHistoryItem ? 'hover:bg-gray-700/50' : ''}`}>
                                 {!isHistoryItem ? (
-                                    <label className="flex items-center gap-3 cursor-pointer flex-grow">
+                                    <label className="flex items-center gap-3 cursor-pointer">
                                         <input
                                             type="checkbox"
                                             checked={selectedTrackKeys.has(subTrackKey)}

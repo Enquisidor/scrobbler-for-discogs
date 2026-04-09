@@ -4,6 +4,8 @@ import { MetadataSourceType } from '../types';
 import { formatArtistNames, getDisplayArtistName, getSmartArtistDisplay } from './formattingUtils';
 import { getSourceMetadata } from './metadataUtils';
 
+export const isFeaturedArtist = (role: string): boolean => role.toLowerCase().includes('feat');
+
 export function isVariousArtist(name: string): boolean {
     if (!name) return false;
     const lower = name.toLowerCase().trim();
@@ -57,16 +59,16 @@ export function getTrackDisplayArtist(
 
 export function getTrackFeaturedArtists(track: DiscogsTrack): string {
     if (!track.extraartists) return '';
-    const featArtists = track.extraartists.filter(a => a.role.toLowerCase().includes('feat'));
+    const featArtists = track.extraartists.filter(a => isFeaturedArtist(a.role));
     if (featArtists.length === 0) return '';
-    // Featured artists are always distinct people; normalize missing/empty joins to comma
+    // Discogs extraartists often omit the join field; default to comma so multiple featured artists are separated
     const normalized = featArtists.map(a => ({ ...a, join: a.join || ',' }));
     return `feat. ${formatArtistNames(normalized)}`;
 }
 
 export function getTrackCreditsStructured(track: DiscogsTrack): { role: string; artists: DiscogsArtist[] }[] {
     if (!track.extraartists?.length) return [];
-    const creditArtists = track.extraartists.filter(a => !a.role.toLowerCase().includes('feat'));
+    const creditArtists = track.extraartists.filter(a => !isFeaturedArtist(a.role));
     if (creditArtists.length === 0) return [];
 
     const roleMap = new Map<string, DiscogsArtist[]>();
@@ -149,6 +151,7 @@ export function prepareTracksForScrobbling(
         });
         
         const metadata = metadataMap[release.id];
+        const releaseArtists = release.basic_information?.artists || [];
 
         return sortedKeys.flatMap(key => {
             const [pIndex, sIndex] = key.split('-').map(Number);
@@ -157,10 +160,11 @@ export function prepareTracksForScrobbling(
             if (!track) return [];
 
             const selectedArtistNames = artistSelections[release.instanceKey]?.[key] || new Set();
-            const releaseArtists = release.basic_information?.artists || [];
-            const trackArtists = track.artists || [];
-            const effectiveArtists = trackArtists.length > 0 ? trackArtists : releaseArtists;
-            const allPotentialArtists = [...effectiveArtists, ...(track.extraartists || [])];
+            const effectiveArtists = track.artists?.length ? track.artists : releaseArtists;
+            const extraArtists = (track.extraartists || []).map(a =>
+                isFeaturedArtist(a.role) && !a.join ? { ...a, join: ',' } : a
+            );
+            const allPotentialArtists = [...effectiveArtists, ...extraArtists];
             
             // Filter artists based on user selection
             const finalArtists = allPotentialArtists.filter(a => selectedArtistNames.has(getDisplayArtistName(a.name)));

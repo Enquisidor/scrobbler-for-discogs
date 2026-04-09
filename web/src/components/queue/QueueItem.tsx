@@ -221,18 +221,32 @@ const QueueItem: React.FC<QueueItemProps> = ({
                                 const someInGroupSelected = numSelectedInGroup > 0 && numSelectedInGroup < selectableGroupKeys.length;
 
                                 return (
-                                    <div key={group.heading || groupIndex} className="mt-2">
-                                        {group.heading && (
+                                    <div key={`${group.heading || ''}-${group.subHeading ?? groupIndex}`} className="mt-2">
+                                        {group.heading && (groupIndex === 0 || trackGroups[groupIndex - 1].heading !== group.heading) && (
                                             <div className="flex justify-between items-baseline mb-1 px-2">
-                                                <h4 className="font-bold text-sm text-gray-400">{group.heading}</h4>
+                                                <h4 className="font-bold text-sm text-gray-400">
+                                                    {group.heading}
+                                                </h4>
                                                 {!isHistoryItem && (
                                                     <label className="flex items-center gap-2 text-xs text-blue-400 hover:text-blue-300 cursor-pointer">
-                                                        {allInGroupSelected ? 'Deselect All on This Side' : 'Select All on This Side'}
+                                                        {allInGroupSelected ? 'Deselect All in This Section' : 'Select All in This Sect'}
                                                         <IndeterminateCheckbox checked={allInGroupSelected} indeterminate={someInGroupSelected} onChange={() => onToggleGroup(selectableGroupKeys, parentKeysInGroup)} className="form-checkbox h-4 w-4 rounded bg-gray-700 border-gray-600 text-blue-600 focus:ring-blue-500 focus:ring-offset-gray-800" disabled={isHistoryItem || selectableGroupKeys.length === 0} />
                                                     </label>
                                                 )}
                                             </div>
                                         )}
+                                        <div className="flex justify-between items-baseline mb-1">
+                                            <h4 className="font-bold text-sm text-gray-400">
+                                                {group.subHeading && <span className="ml-2 font-bold text-sm text-gray-400">Side {group.subHeading}</span>}
+                                            </h4>
+                                            {!isHistoryItem && (
+                                                <label className="flex items-center gap-2 text-xs text-blue-400 hover:text-blue-300 cursor-pointer">
+                                                    {allInGroupSelected ? 'Deselect All on This Side' : 'Select All on This Side'}
+                                                    <IndeterminateCheckbox checked={allInGroupSelected} indeterminate={someInGroupSelected} onChange={() => onToggleGroup(selectableGroupKeys, parentKeysInGroup)} className="form-checkbox h-4 w-4 rounded bg-gray-700 border-gray-600 text-blue-600 focus:ring-blue-500 focus:ring-offset-gray-800" disabled={isHistoryItem || selectableGroupKeys.length === 0} />
+                                                </label>
+                                            )}
+                                        </div>
+
                                         <div className="space-y-1">
                                             {group.tracks.map(({ track, originalIndex }) => track.type_ !== 'heading' && (
                                                 <Track
@@ -240,7 +254,7 @@ const QueueItem: React.FC<QueueItemProps> = ({
                                                     track={track}
                                                     release={item}
                                                     parentIndex={originalIndex}
-                                                    groupHeading={group.heading}
+                                                    groupHeading={group.subHeading || group.heading}
                                                     albumArtistName={artistName}
                                                     useTrackArtist={item.useTrackArtist}
                                                     {...trackPassthroughProps}

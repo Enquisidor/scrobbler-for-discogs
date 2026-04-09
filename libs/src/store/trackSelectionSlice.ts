@@ -1,6 +1,6 @@
 import { createSlice, PayloadAction } from '@reduxjs/toolkit';
 import type { QueueItem, SelectedTracks, SelectedFeatures, ArtistSelections, Settings, DiscogsTrack } from '../types';
-import { getTrackFeaturedArtists } from '../utils/queueUtils';
+import { getTrackFeaturedArtists, isFeaturedArtist } from '../utils/queueUtils';
 import { getDisplayArtistName } from '../utils/formattingUtils';
 
 export interface TrackSelectionState {
@@ -65,13 +65,11 @@ const trackSelectionSlice = createSlice({
             const sourceArtists = t.artists?.length ? t.artists : [];
             sourceArtists.forEach(a => selectedSet.add(getDisplayArtistName(a.name)));
             if (settings.showFeatures && settings.selectFeaturesByDefault && t.extraartists) {
-              const hasFeat = t.extraartists.some(a => a.role.toLowerCase().includes('feat'));
-              if (hasFeat && !t.artists?.length) {
+              const featArtists = t.extraartists.filter(a => isFeaturedArtist(a.role));
+              if (featArtists.length > 0 && !t.artists?.length) {
                 albumArtists.forEach(a => selectedSet.add(getDisplayArtistName(a.name)));
               }
-              t.extraartists
-                .filter(a => a.role.toLowerCase().includes('feat'))
-                .forEach(a => selectedSet.add(getDisplayArtistName(a.name)));
+              featArtists.forEach(a => selectedSet.add(getDisplayArtistName(a.name)));
             }
             if (selectedSet.size > 0) newArtistSelections[key] = selectedSet;
           };
@@ -128,10 +126,12 @@ const trackSelectionSlice = createSlice({
         }
       } else {
         instanceSet.add(trackKey);
-        if (!state.artistSelections[instanceKey]) state.artistSelections[instanceKey] = {};
-        if (!state.artistSelections[instanceKey][trackKey]) state.artistSelections[instanceKey][trackKey] = new Set();
-        albumArtistNames.forEach(name => state.artistSelections[instanceKey][trackKey].add(name));
-        featuredArtistNames.forEach(name => state.artistSelections[instanceKey][trackKey].add(name));
+        const allNames = [...albumArtistNames, ...featuredArtistNames];
+        if (allNames.length > 0) {
+          if (!state.artistSelections[instanceKey]) state.artistSelections[instanceKey] = {};
+          if (!state.artistSelections[instanceKey][trackKey]) state.artistSelections[instanceKey][trackKey] = new Set();
+          allNames.forEach(name => state.artistSelections[instanceKey][trackKey].add(name));
+        }
       }
     },
     toggleArtist(state, action: PayloadAction<{ instanceKey: string; trackKey: string; artistName: string }>) {
@@ -245,7 +245,7 @@ const trackSelectionSlice = createSlice({
 
             if (track && getTrackFeaturedArtists(track)) {
               const featArtistNames = track.extraartists
-                ?.filter(a => a.role.toLowerCase().includes('feat'))
+                ?.filter(a => isFeaturedArtist(a.role))
                 .map(a => getDisplayArtistName(a.name)) ?? [];
 
               if (settings.showFeatures && settings.selectFeaturesByDefault) {

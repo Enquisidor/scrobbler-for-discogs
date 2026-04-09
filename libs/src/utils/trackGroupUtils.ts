@@ -8,6 +8,7 @@ import type { DiscogsTrack } from '../types';
 
 export interface TrackGroup {
   heading: string;
+  subHeading?: string;
   tracks: { track: DiscogsTrack; originalIndex: number }[];
 }
 
@@ -69,11 +70,20 @@ export const assignGroups = (tracklist: DiscogsTrack[] | null): TrackGroup[] => 
 
   return _.flatMap(rawGroups, (rawGroup: RawGroup) => {
     if (rawGroup.heading) {
+      const prefixGroups = _.groupBy(rawGroup.tracksWithIndices, ({ track }) => getPrefix(track));
+      const entries = Object.entries(prefixGroups);
+      // If tracks span multiple letter-prefixed sides, split into sub-groups
+      if (entries.length > 1 && entries.every(([prefix]) => /^[A-Z]+$/.test(prefix))) {
+        return _.map(entries, ([prefix, tracks]) => ({
+          heading: rawGroup.heading,
+          subHeading: prefix,
+          tracks,
+        }));
+      }
+      // Single side or no prefix — carry side letter as subHeading if distinct from heading
       const sideLetter = getSideLetter(rawGroup.tracksWithIndices);
-      const heading = sideLetter && rawGroup.heading !== sideLetter
-        ? `${sideLetter} - ${rawGroup.heading}`
-        : rawGroup.heading;
-      return [{ heading, tracks: rawGroup.tracksWithIndices }];
+      const subHeading = sideLetter && sideLetter !== rawGroup.heading ? sideLetter : undefined;
+      return [{ heading: rawGroup.heading, subHeading, tracks: rawGroup.tracksWithIndices }];
     }
 
     const positionGroups = _.groupBy(rawGroup.tracksWithIndices, ({ track }) => getPrefix(track));
