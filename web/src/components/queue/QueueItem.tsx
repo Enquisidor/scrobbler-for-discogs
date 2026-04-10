@@ -222,7 +222,7 @@ const QueueItem: React.FC<QueueItemProps> = ({
 
                                 return (
                                     <div key={`${group.heading || ''}-${group.subHeading ?? groupIndex}`} className="mt-2">
-                                        {group.heading && (trackGroups[groupIndex - 1].heading !== group.heading) && (
+                                        {group.heading && (groupIndex === 0 || trackGroups[groupIndex - 1].heading !== group.heading) && (
                                             <div className="flex justify-between items-baseline mb-1 px-2">
                                                 <h4 className="font-bold text-sm text-gray-400">
                                                     {group.heading}
