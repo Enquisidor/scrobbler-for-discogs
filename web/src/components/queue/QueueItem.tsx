@@ -220,6 +220,23 @@ const QueueItem: React.FC<QueueItemProps> = ({
                                 const allInGroupSelected = selectableGroupKeys.length > 0 && numSelectedInGroup === selectableGroupKeys.length;
                                 const someInGroupSelected = numSelectedInGroup > 0 && numSelectedInGroup < selectableGroupKeys.length;
 
+                                const sectionGroups = trackGroups.filter(g => g.heading === group.heading);
+                                const selectableSectionKeys = sectionGroups.flatMap(g =>
+                                    g.tracks.flatMap(({ track, originalIndex: pIndex }) => {
+                                        if (track.sub_tracks?.length) return track.sub_tracks.map((_, sIndex) => `${pIndex}-${sIndex}`);
+                                        if (track.type_ !== 'heading') return [String(pIndex)];
+                                        return [];
+                                    })
+                                );
+                                const parentKeysInSection = sectionGroups.flatMap(g =>
+                                    g.tracks
+                                        .filter(({ track }) => track.sub_tracks && track.sub_tracks.length > 0)
+                                        .map(({ originalIndex }) => String(originalIndex))
+                                );
+                                const numSelectedInSection = selectableSectionKeys.filter(key => selectedTrackKeys.has(key)).length;
+                                const allInSectionSelected = selectableSectionKeys.length > 0 && numSelectedInSection === selectableSectionKeys.length;
+                                const someInSectionSelected = numSelectedInSection > 0 && numSelectedInSection < selectableSectionKeys.length;
+
                                 return (
                                     <div key={`${group.heading || ''}-${group.subHeading ?? groupIndex}`} className="mt-2">
                                         {group.heading && (groupIndex === 0 || trackGroups[groupIndex - 1].heading !== group.heading) && (
@@ -229,8 +246,8 @@ const QueueItem: React.FC<QueueItemProps> = ({
                                                 </h4>
                                                 {!isHistoryItem && (
                                                     <label className="flex items-center gap-2 text-xs text-blue-400 hover:text-blue-300 cursor-pointer">
-                                                        {allInGroupSelected ? 'Deselect All in This Section' : 'Select All in This Sect'}
-                                                        <IndeterminateCheckbox checked={allInGroupSelected} indeterminate={someInGroupSelected} onChange={() => onToggleGroup(selectableGroupKeys, parentKeysInGroup)} className="form-checkbox h-4 w-4 rounded bg-gray-700 border-gray-600 text-blue-600 focus:ring-blue-500 focus:ring-offset-gray-800" disabled={isHistoryItem || selectableGroupKeys.length === 0} />
+                                                        {allInSectionSelected ? 'Deselect All in This Section' : 'Select All in This Section'}
+                                                        <IndeterminateCheckbox checked={allInSectionSelected} indeterminate={someInSectionSelected} onChange={() => onToggleGroup(selectableSectionKeys, parentKeysInSection)} className="form-checkbox h-4 w-4 rounded bg-gray-700 border-gray-600 text-blue-600 focus:ring-blue-500 focus:ring-offset-gray-800" disabled={isHistoryItem || selectableSectionKeys.length === 0} />
                                                     </label>
                                                 )}
                                             </div>
