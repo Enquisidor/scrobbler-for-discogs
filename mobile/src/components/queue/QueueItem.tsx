@@ -65,6 +65,10 @@ export const QueueItem: React.FC<QueueItemProps> = ({
     return item.basic_information.artists?.some(a => isVariousArtist(a.name)) ?? false;
   }, [artistName, item.basic_information.artists]);
 
+  const hasTrackArtists = useMemo(() =>
+    item.tracklist?.some(t => t.type_ !== 'heading' && t.artists && t.artists.length > 0) ?? false,
+  [item.tracklist]);
+
   const processedTracklist = useMemo(() => {
     if (!isHistoryItem || !item.scrobbledTrackKeys || !item.tracklist) {
       return item.tracklist;
@@ -244,7 +248,7 @@ export const QueueItem: React.FC<QueueItemProps> = ({
                   </TouchableOpacity>
                 )}
 
-                {!isHistoryItem && isVarious && (
+                {!isHistoryItem && (isVarious || hasTrackArtists) && (
                   <View style={styles.scrobbleModeContainer}>
                     <Text style={styles.scrobbleModeLabel}>Track Artists</Text>
                     <Switch

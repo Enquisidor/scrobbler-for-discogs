@@ -51,6 +51,10 @@ const QueueItem: React.FC<QueueItemProps> = ({
         return item.basic_information.artists?.some(a => isVariousArtist(a.name)) ?? false;
     }, [artistName, item.basic_information.artists]);
 
+    const hasTrackArtists = useMemo(() =>
+        item.tracklist?.some(t => t.type_ !== 'heading' && t.artists && t.artists.length > 0) ?? false,
+    [item.tracklist]);
+
     const processedTracklist = useMemo(() => {
         if (!isHistoryItem || !item.scrobbledTrackKeys || !item.tracklist) {
             return item.tracklist;
@@ -189,7 +193,7 @@ const QueueItem: React.FC<QueueItemProps> = ({
                                     </label>
                                 )}
 
-                                {!isHistoryItem && isVarious && (
+                                {!isHistoryItem && (isVarious || hasTrackArtists) && (
                                     <div className="flex items-center bg-gray-900/50 rounded-full px-3 py-1">
                                         <label className="flex items-center gap-2 text-xs text-gray-300 cursor-pointer">
                                             <span className="text-gray-500 uppercase font-bold tracking-wider" style={{ fontSize: '0.65rem' }}>Scrobble Mode:</span>
