@@ -41,6 +41,10 @@ export function useMetadataFetcher(
   const queuedSetRef = useRef<Set<number>>(new Set());
   const activeSetRef = useRef<Set<number>>(new Set());
   const sessionQueryCountRef = useRef(0);
+  const forceFetchActiveRef = useRef(false);
+  // Tracks artist display name strings already searched this session so releases sharing
+  // the same artist combination don't trigger redundant API calls.
+  const searchedArtistCombinationsRef = useRef<Set<string>>(new Set());
   const mountedRef = useRef(true);
   const prevSettingsRef = useRef(settings);
 
@@ -86,6 +90,7 @@ export function useMetadataFetcher(
     if (queueRef.current.length === 0 && activeCountRef.current === 0) {
       if (dispatcherIntervalRef.current) clearInterval(dispatcherIntervalRef.current);
       dispatcherIntervalRef.current = null;
+      forceFetchActiveRef.current = false;
       return;
     }
 
@@ -138,9 +143,14 @@ export function useMetadataFetcher(
 
       const tasks: Promise<void>[] = [];
 
-      if (needsApple && !hasApple) {
+      const artistKey = release.basic_information?.artist_display_name ?? '';
+      const isArtistOnlyCorrection = currentSettings.artistSource === MetadataSourceType.Apple && currentSettings.albumSource !== MetadataSourceType.Apple;
+      const artistCombinationAlreadySearched = isArtistOnlyCorrection && searchedArtistCombinationsRef.current.has(artistKey);
+
+      if ((needsApple && (!hasApple || forceFetchActiveRef.current)) && !artistCombinationAlreadySearched) {
+        if (isArtistOnlyCorrection) searchedArtistCombinationsRef.current.add(artistKey);
         tasks.push(
-          fetchAppleMusicMetadata(release, currentSettings, signal)
+          fetchAppleMusicMetadata(release, currentSettings, signal, currentMeta)
             .then(result => {
               if (!mountedRef.current || signal.aborted) return;
               const finalResult = result ? { ...result, rawResult: result.rawItunesResult, lastChecked: Date.now() } : { lastChecked: Date.now() };
@@ -152,7 +162,7 @@ export function useMetadataFetcher(
         );
       }
 
-      if (needsMB && !hasMB) {
+      if (needsMB && (!hasMB || forceFetchActiveRef.current)) {
         tasks.push(
           fetchMusicBrainzMetadata(release, signal)
             .then(result => {
@@ -166,7 +176,7 @@ export function useMetadataFetcher(
         );
       }
 
-      if (needsDeezer && !hasDeezer) {
+      if (needsDeezer && (!hasDeezer || forceFetchActiveRef.current)) {
         tasks.push(
           fetchDeezerMetadata(release, signal)
             .then(result => {
@@ -201,9 +211,11 @@ export function useMetadataFetcher(
       queuedSetRef.current.clear();
       activeSetRef.current.clear();
       processedSessionRef.current.clear();
+      searchedArtistCombinationsRef.current.clear();
       sessionQueryCountRef.current = 0;
       activeCountRef.current = 0;
       requestTimestampsRef.current = [];
+      forceFetchActiveRef.current = true;
 
       if (dispatcherIntervalRef.current) {
         clearInterval(dispatcherIntervalRef.current);
@@ -242,21 +254,15 @@ export function useMetadataFetcher(
 
     if (settingsChanged) {
       processedSessionRef.current.clear();
+      searchedArtistCombinationsRef.current.clear();
       sessionQueryCountRef.current = 0;
     }
 
     const now = Date.now();
     let addedCount = 0;
 
-    // Only process visible items if visibleIds is provided
-    const visibleIds = visibleIdsRef.current;
-    const hasVisibleFilter = visibleIds.size > 0;
-
     collection.forEach(release => {
       const releaseId = release.id;
-
-      // Skip items not currently visible (if visibility tracking is enabled)
-      if (hasVisibleFilter && !visibleIds.has(releaseId)) return;
 
       if (queuedSetRef.current.has(releaseId)) return;
       if (activeSetRef.current.has(releaseId)) return;
@@ -272,7 +278,7 @@ export function useMetadataFetcher(
       const hasMB = meta?.musicbrainz && (now - (meta.musicbrainz.lastChecked || 0) < RECHECK_INTERVAL_MS);
       const hasDeezer = meta?.deezer && (now - (meta.deezer.lastChecked || 0) < RECHECK_INTERVAL_MS);
 
-      if ((needsApple && !hasApple) || (needsMB && !hasMB) || (needsDeezer && !hasDeezer)) {
+      if (forceFetch || (needsApple && !hasApple) || (needsMB && !hasMB) || (needsDeezer && !hasDeezer)) {
         queueRef.current.push(releaseId);
         queuedSetRef.current.add(releaseId);
         processedSessionRef.current.add(releaseId);
@@ -285,5 +291,5 @@ export function useMetadataFetcher(
       dispatcherIntervalRef.current = setInterval(processQueue, DISPATCH_INTERVAL_MS);
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [collection, settings, isHydrated, options.visibleIds]);
+  }, [collection, settings, isHydrated]);
 }

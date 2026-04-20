@@ -1,7 +1,7 @@
 import React from 'react';
 import type { DiscogsTrack, Settings, DiscogsArtist, CombinedMetadata, DiscogsRelease } from '../../libs';
 import IndeterminateCheckbox from './IndeterminateCheckbox';
-import { getTrackFeaturedArtists, getTrackCreditsStructured, isVariousArtist } from '../../libs';
+import { getTrackFeaturedArtists, getTrackCreditsStructured, isVariousArtist, inferJoinersFromSource, getSourceMetadata } from '../../libs';
 import { getDisplayArtistName, getArtistJoiner } from '../../libs';
 
 // Exported for use in QueueItem to allow polymorphic prop passing
@@ -110,28 +110,30 @@ const Track: React.FC<TrackProps> = ({
     const renderArtistList = (currentKey: string, artists: DiscogsArtist[] | undefined) => {
         if (!artists || artists.length === 0) return null;
 
+        const sourceString = getSourceMetadata(metadata, settings.artistSource)?.artist ?? '';
+        const correctedArtists = inferJoinersFromSource(artists, sourceString) ?? artists;
         const selectedSet = artistSelections[currentKey] || new Set();
 
         return (
-            <span className="ml-2 text-sm text-gray-400 truncate">
-                by
-                {artists.map((artist, index) => {
+            <span className="text-sm text-gray-400 truncate">
+                {"by "}
+                {correctedArtists.map((artist, index) => {
                     const displayName = getDisplayArtistName(artist.name);
                     const isSelected = selectedSet.has(displayName);
-                    const joiner = index > 0 ? getArtistJoiner(artists[index - 1].join) : '';
+                    const joiner = index > 0 ? getArtistJoiner(correctedArtists[index - 1].join) : '';
 
                     return (
                         <React.Fragment key={index}>
                             {joiner}
                             {!isHistoryItem ? (
-                                <label className="inline-flex items-center gap-1 cursor-pointer hover:text-gray-200" onClick={e => e.stopPropagation()}>
+                                <label className="flex-wrap items-center gap-1 cursor-pointer hover:text-gray-200" onClick={e => e.stopPropagation()}>
                                     <input
                                         type="checkbox"
                                         checked={isSelected}
                                         onChange={() => onArtistToggle(currentKey, displayName)}
                                         className="form-checkbox h-3 w-3 rounded-sm bg-gray-700 border-gray-600 text-blue-500 focus:ring-blue-500"
                                     />
-                                    <span>{displayName}</span>
+                                    <span>{" " + displayName}</span>
                                 </label>
                             ) : (
                                 <span>{displayName}</span>

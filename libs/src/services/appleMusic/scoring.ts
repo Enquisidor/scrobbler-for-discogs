@@ -2,6 +2,7 @@
 import type { DiscogsRelease, ITunesResult, AppleSearchStrategy, Settings } from '../../types';
 import { AppleSearchStrategyType, ReleaseType } from '../../types';
 import { calculateFuzzyScore } from '../../utils/fuzzyUtils';
+import { formatArtistNames } from '../../utils/formattingUtils';
 
 export function getDiscogsReleaseType(release: DiscogsRelease): ReleaseType {
   const descriptions = release.basic_information.formats
@@ -38,24 +39,31 @@ export function getScores(discogs: DiscogsRelease, apple: ITunesResult): { artis
     const info = discogs.basic_information;
     const appleArtist = apple.artistName;
 
-    // Start with the score against the full, formatted display name.
+    // Score against the full combined artist string first.
     let finalArtistScore = calculateFuzzyScore(info.artist_display_name, appleArtist);
 
-    // Score against individual artists and their ANVs
+    // For single-artist releases also check the ANV.
     const individualArtists = info.artists;
-    if (individualArtists && individualArtists.length > 0) {
-        for (const artist of individualArtists) {
-            // Check standard name
-            const individualScore = calculateFuzzyScore(artist.name, appleArtist);
-            if (individualScore > finalArtistScore) {
-                finalArtistScore = individualScore;
-            }
-            
-            // Check ANV (Artist Name Variation) if present
-            if (artist.anv) {
-                const anvScore = calculateFuzzyScore(artist.anv, appleArtist);
-                if (anvScore > finalArtistScore) {
-                    finalArtistScore = anvScore;
+    if (individualArtists?.length === 1 && individualArtists[0].anv) {
+        const anvScore = calculateFuzzyScore(individualArtists[0].anv, appleArtist);
+        if (anvScore > finalArtistScore) finalArtistScore = anvScore;
+    }
+
+    // For multi-artist releases, Apple Music may credit the album to a subset of the artists
+    // (e.g. "Mike, Surf Gang" for a release by "Mike, Surf Gang, Earl Sweatshirt").
+    // Score against each unique track-level artist combination so those matches aren't rejected.
+    if (individualArtists && individualArtists.length > 1 && discogs.tracklist) {
+        const seen = new Set<string>();
+        for (const track of discogs.tracklist) {
+            const candidates = [track, ...(track.sub_tracks ?? [])];
+            for (const t of candidates) {
+                if (t.artists?.length) {
+                    const combo = formatArtistNames(t.artists);
+                    if (!seen.has(combo)) {
+                        seen.add(combo);
+                        const s = calculateFuzzyScore(combo, appleArtist);
+                        if (s > finalArtistScore) finalArtistScore = s;
+                    }
                 }
             }
         }

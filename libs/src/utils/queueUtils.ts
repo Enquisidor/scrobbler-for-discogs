@@ -1,7 +1,7 @@
 
 import type { DiscogsTrack, QueueItem, SelectedTracks, ArtistSelections, CombinedMetadata, DiscogsRelease, LastfmTrackScrobble, DiscogsArtist, Settings } from '../types';
 import { MetadataSourceType } from '../types';
-import { formatArtistNames, getDisplayArtistName, getSmartArtistDisplay } from './formattingUtils';
+import { formatArtistNames, getDisplayArtistName, getSmartArtistDisplay, getTrackArtistDisplay } from './formattingUtils';
 import { getSourceMetadata } from './metadataUtils';
 
 export const isFeaturedArtist = (role: string): boolean => role.toLowerCase().includes('feat');
@@ -172,10 +172,7 @@ export function prepareTracksForScrobbling(
             let artistString = '';
             
             if (finalArtists.length > 0) {
-                // If specific artists are selected (e.g. "feat. X"), we format them.
-                // NOTE: We do not currently apply metadata correction to Track Artists because metadata is Album-level.
-                // We rely on Discogs data here.
-                artistString = formatArtistNames(finalArtists);
+                artistString = getTrackArtistDisplay(finalArtists, metadata, settings);
             } else {
                 // Fallback to Release Artist (which DOES use metadata/smart display)
                 artistString = getReleaseDisplayArtist(release, metadata, settings);

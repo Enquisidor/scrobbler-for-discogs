@@ -5,10 +5,9 @@ import { generateSearchStrategies } from './strategies';
 import { calculateTruthScore, isBetterTieBreak, getScores, getDiscogsReleaseType, getAppleReleaseType } from './scoring';
 import { AppleSearchStrategyType, ReleaseType } from '../../types';
 import { calculateFuzzyScore } from '../../utils/fuzzyUtils';
-import { formatArtistNames } from '../../utils/formattingUtils';
+import { formatArtistNames, getDisplayArtistName } from '../../utils/formattingUtils';
 import { fetchFromAppleMusic } from './appleMusicAPI';
-// FIX: Imported the newly defined AppleMusicMetadata type.
-import type { AppleMusicMetadata } from '../../types';
+import type { AppleMusicMetadata, CombinedMetadata } from '../../types';
 
 // Strict threshold for acceptance
 const ACCEPTANCE_THRESHOLD = 0.85;
@@ -23,9 +22,10 @@ const findBestMatch = async (
     releaseForSearch: DiscogsRelease,
     settingsForThisRun: Settings,
     parentSignal: AbortSignal | undefined,
-    releaseForScoring: DiscogsRelease
+    releaseForScoring: DiscogsRelease,
+    metadata?: CombinedMetadata
 ): Promise<{ bestMatch: ITunesResult | null, bestScore: number, bestStrategy: AppleSearchStrategy | null }> => {
-    const strategies = generateSearchStrategies(releaseForSearch, settingsForThisRun);
+    const strategies = generateSearchStrategies(releaseForSearch, settingsForThisRun, metadata);
     
     let overallBestMatch: ITunesResult | null = null;
     let overallBestScore = 0;
@@ -122,18 +122,19 @@ const findBestMatch = async (
 
 const processFinalResult = (
     result: { bestMatch: ITunesResult | null, bestScore: number, bestStrategy: AppleSearchStrategy | null },
-    release: DiscogsRelease
+    release: DiscogsRelease,
+    settings: Settings
 ): AppleMusicMetadata | null => {
-    
+
     if (!result.bestMatch || result.bestScore < ACCEPTANCE_THRESHOLD) {
         console.log(`[Apple Music] No acceptable match found for "${release.basic_information.artist_display_name} - ${release.basic_information.title}". Best score: ${(result.bestScore * 100).toFixed(1)}%`);
         return null;
     }
 
     const finalArtist = result.bestMatch.artistName;
-    const finalAlbum = result.bestStrategy?.type === AppleSearchStrategyType.ARTIST_ONLY 
-        ? undefined 
-        : result.bestMatch.collectionName;
+    const isArtistOnly = result.bestStrategy?.type === AppleSearchStrategyType.ARTIST_ONLY;
+    const albumSourceIsApple = settings.albumSource === 'apple';
+    const finalAlbum = (isArtistOnly || !albumSourceIsApple) ? undefined : result.bestMatch.collectionName;
 
     const discogsArtist = release.basic_information.artist_display_name;
     const discogsTitle = release.basic_information.title;
@@ -179,17 +180,20 @@ const handleCollaborationFallback = async (
         if (parentSignal?.aborted) break;
         
         // --- Step A: Find a potential correction for the current artist ---
+        const displayName = getDisplayArtistName(artistToCorrect.anv || artistToCorrect.name);
         const artistLookupRelease: DiscogsRelease = {
             ...release,
-            basic_information: { ...release.basic_information, artists: [artistToCorrect], artist_display_name: artistToCorrect.name, title: "Artist Correction Search" }
+            basic_information: { ...release.basic_information, artists: [artistToCorrect], artist_display_name: displayName, title: "Artist Correction Search" }
         };
         const artistCorrectionResult = await findBestMatch(artistLookupRelease, artistCorrectionSettings, parentSignal, artistLookupRelease);
 
         const correctedName = artistCorrectionResult.bestMatch?.artistName;
-        const hasFoundCorrection = correctedName && artistCorrectionResult.bestScore >= ACCEPTANCE_THRESHOLD && correctedName.toLowerCase() !== artistToCorrect.name.toLowerCase();
+        const nonAlphanumCount = (s: string) => (s.match(/[^a-zA-Z0-9\s]/g) || []).length;
+        const correctedAddsPunctuation = correctedName ? nonAlphanumCount(correctedName) > nonAlphanumCount(displayName) : false;
+        const hasFoundCorrection = correctedName && artistCorrectionResult.bestScore >= ACCEPTANCE_THRESHOLD && correctedName.toLowerCase() !== displayName.toLowerCase() && !correctedAddsPunctuation;
 
         if (hasFoundCorrection) {
-            console.log(`[Apple Music] Correction found: "${artistToCorrect.name}" -> "${correctedName}".`);
+            console.log(`[Apple Music] Correction found: "${displayName}" -> "${correctedName}".`);
             corrections.set(i, correctedName!);
 
             // --- Step B: Re-run the main search for releases, anchored on the corrected artist name ---
@@ -278,17 +282,19 @@ const handleCollaborationFallback = async (
  * The main exported function that orchestrates the entire metadata fetching process for a single release.
  */
 export const fetchAppleMusicMetadata = async (
-    release: DiscogsRelease, 
+    release: DiscogsRelease,
     settings: Settings,
-    parentSignal?: AbortSignal
+    parentSignal?: AbortSignal,
+    metadata?: CombinedMetadata
 ): Promise<AppleMusicMetadata | null> => {
     if (!release || !release.basic_information) return null;
 
     // --- 1. Initial Search ---
-    let bestResultSoFar = await findBestMatch(release, settings, parentSignal, release);
+    let bestResultSoFar = await findBestMatch(release, settings, parentSignal, release, metadata);
 
     // --- 2. Collaboration Fallback (if necessary) ---
-    const isCollaboration = release.basic_information.artists && release.basic_information.artists.length > 1;
+    const artists = release.basic_information.artists ?? [];
+    const isCollaboration = artists.length > 1;
     const shouldFallback = isCollaboration && bestResultSoFar.bestScore < ACCEPTANCE_THRESHOLD;
 
     if (shouldFallback) {
@@ -296,5 +302,5 @@ export const fetchAppleMusicMetadata = async (
     }
 
     // --- 3. Final Result Construction ---
-    return processFinalResult(bestResultSoFar, release);
+    return processFinalResult(bestResultSoFar, release, settings);
 };

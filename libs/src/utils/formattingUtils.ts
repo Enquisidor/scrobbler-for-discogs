@@ -28,15 +28,10 @@ export const getDisplayArtistName = (name: string): string => {
  * Helper to determine the string used to join two artists based on the 'join' property.
  */
 export const getArtistJoiner = (join?: string): string => {
-  // If join is undefined or null, standard list behavior is comma-space.
-  if (join === undefined || join === null) {
+  // If join is missing or empty, Discogs has not specified a joiner — default to comma-space.
+  // (Track-level artists in particular always arrive with join: "" rather than a real value.)
+  if (!join) {
       return ', ';
-  }
-
-  // If join is explicitly an empty string "", Discogs usually implies a space (e.g. "Run" + "" + "D.M.C.").
-  // Previous logic defaulted this to a comma, which was incorrect for these cases.
-  if (join === '') {
-      return ' ';
   }
 
   const trimmed = join.trim();
@@ -55,6 +50,75 @@ export const getArtistJoiner = (join?: string): string => {
   // e.g. " & " -> " & "
   return ` ${trimmed} `;
 };
+
+/**
+ * Infers the join characters between artists from an external source string when Discogs
+ * leaves the join field blank. Sequentially searches for each artist name in the source and
+ * extracts whatever text sits between consecutive names as the joiner.
+ * Falls back to the original artists untouched if any artist name cannot be located.
+ */
+// Returns null when any artist name cannot be found sequentially in the source.
+export function inferJoinersFromSource<T extends { name: string; anv?: string; join?: string }>(
+    artists: T[],
+    sourceString: string
+): T[] | null {
+    if (artists.length <= 1 || !sourceString) return null;
+
+    const sourceLower = sourceString.toLowerCase();
+    let searchFrom = 0;
+    const positions: { start: number; end: number }[] = [];
+
+    for (const artist of artists) {
+        const name = getDisplayArtistName(artist.anv || artist.name).toLowerCase();
+        const pos = sourceLower.indexOf(name, searchFrom);
+        if (pos === -1) return null;
+        positions.push({ start: pos, end: pos + name.length });
+        searchFrom = pos + name.length;
+    }
+
+    return artists.map((artist, i) => {
+        if (i >= positions.length - 1) return artist;
+        if (artist.join) return artist;
+        const rawJoiner = sourceString.substring(positions[i].end, positions[i + 1].start);
+        const joiner = rawJoiner.trim();
+        return joiner ? { ...artist, join: joiner } : artist;
+    });
+}
+
+// Extracts the dominant separator from a metadata artist string (prefers & over ,).
+function extractSourceJoiner(sourceString: string): string | null {
+    if (sourceString.includes('&')) return '&';
+    if (sourceString.includes(',')) return ',';
+    return null;
+}
+
+/**
+ * Formats track-level artists using the metadata source to fill in missing Discogs join chars.
+ * Tries sequential position inference first; falls back to the dominant separator in the source.
+ */
+export function getTrackArtistDisplay(
+    trackArtists: DiscogsArtist[],
+    metadata: CombinedMetadata | undefined,
+    settings: Settings
+): string {
+    if (!trackArtists?.length) return '';
+    const sourceMeta = getSourceMetadata(metadata, settings.artistSource);
+    const sourceString = sourceMeta?.artist || '';
+
+    if (!sourceString) return formatArtistNames(trackArtists);
+
+    const sequential = inferJoinersFromSource(trackArtists, sourceString);
+    if (sequential) return formatArtistNames(sequential);
+
+    // Artists not found sequentially (e.g. track subset doesn't match source order).
+    // Apply the dominant separator from the source to all unspecified joins.
+    const joiner = extractSourceJoiner(sourceString);
+    if (!joiner) return formatArtistNames(trackArtists);
+    const withJoiners = trackArtists.map((a, i) =>
+        i < trackArtists.length - 1 && !a.join ? { ...a, join: joiner } : a
+    );
+    return formatArtistNames(withJoiners);
+}
 
 /**
  * Formats a list of artists into a single string using the 'join' attribute provided by Discogs.
@@ -138,8 +202,14 @@ export function validateArtistName(artist: DiscogsArtist, sourceString: string):
         return anv;
     }
 
-    // Case 2: No ANV in Discogs.
-    // We just return the standard name.
+    // Case 2: No ANV — use the source's form only when names differ purely in casing.
+    // Fuzzy scoring alone can't distinguish 'mike.' from 'MIKE' (both tokenize to 'mike'),
+    // so we require a case-insensitive exact match to avoid overwriting stylized names.
+    const standardLower = standard.toLowerCase();
+    for (const chunk of chunks) {
+        if (chunk.toLowerCase() === standardLower && chunk !== standard) return chunk;
+    }
+    if (sourceString.toLowerCase() === standardLower && sourceString !== standard) return sourceString;
     return standard;
 }
 
@@ -159,14 +229,14 @@ export function getSmartArtistDisplay(
         return formatArtistNames(artists);
     }
 
-    // We have external metadata. Validate each artist against it.
+    // We have external metadata. Validate each artist name and infer missing joiners.
     const validatedArtists = artists.map(artist => {
         const bestName = validateArtistName(artist, sourceString);
-        // We return a new object with the chosen name as the 'name' property, removing ANV to prevent formatArtistNames from overriding it.
         return { ...artist, name: bestName, anv: undefined };
     });
+    const withJoiners = inferJoinersFromSource(validatedArtists, sourceString) ?? validatedArtists;
 
-    const reconstructed = formatArtistNames(validatedArtists);
+    const reconstructed = formatArtistNames(withJoiners);
 
     // Detect capitalization or artist order differences between Discogs and the source.
     // If the names match case-insensitively but differ in exact casing or order,
