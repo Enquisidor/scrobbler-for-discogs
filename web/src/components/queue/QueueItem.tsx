@@ -194,18 +194,19 @@ const QueueItem: React.FC<QueueItemProps> = ({
                                 )}
 
                                 {!isHistoryItem && (isVarious || hasTrackArtists) && (
-                                    <div className="flex items-center bg-gray-900/50 rounded-full px-3 py-1">
-                                        <label className="flex items-center gap-2 text-xs text-gray-300 cursor-pointer">
-                                            <span className="text-gray-500 uppercase font-bold tracking-wider" style={{ fontSize: '0.65rem' }}>Scrobble Mode:</span>
-                                            <input
-                                                type="checkbox"
-                                                checked={item.useTrackArtist}
-                                                onChange={(e) => onScrobbleModeToggle(e.target.checked)}
-                                                className="form-checkbox h-3 w-3 rounded-sm bg-gray-700 border-gray-600 text-blue-600 focus:ring-blue-500 focus:ring-offset-gray-800"
-                                            />
-                                            {item.useTrackArtist ? 'Use Track Artists' : `Use "${artistName}"`}
-                                        </label>
-                                    </div>
+                                    <label className="flex items-center gap-2 text-xs text-gray-300 cursor-pointer select-none">
+                                        <span className="text-gray-500 uppercase font-bold tracking-wider" style={{ fontSize: '0.65rem' }}>
+                                            {item.useTrackArtist ? 'Track Artists' : `Album Artist`}
+                                        </span>
+                                        <button
+                                            role="switch"
+                                            aria-checked={item.useTrackArtist}
+                                            onClick={() => onScrobbleModeToggle(!item.useTrackArtist)}
+                                            className={`relative inline-flex h-5 w-9 flex-shrink-0 cursor-pointer rounded-full border-2 border-transparent transition-colors duration-200 focus:outline-none ${item.useTrackArtist ? 'bg-blue-600' : 'bg-gray-600'}`}
+                                        >
+                                            <span className={`pointer-events-none inline-block h-4 w-4 transform rounded-full bg-white shadow transition duration-200 ${item.useTrackArtist ? 'translate-x-4' : 'translate-x-0'}`} />
+                                        </button>
+                                    </label>
                                 )}
                             </div>
 

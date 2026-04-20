@@ -36,9 +36,9 @@ export const getArtistJoiner = (join?: string): string => {
 
   const trimmed = join.trim();
   
-  // If the join is just whitespace, preserve it (e.g. " ")
+  // Whitespace-only join — normalize to a single space
   if (trimmed.length === 0) {
-      return join;
+      return ' ';
   }
   
   // If it's a comma, standard formatting is comma+space
