@@ -1,7 +1,7 @@
 import React from 'react';
 import type { DiscogsTrack, Settings, DiscogsArtist, CombinedMetadata, DiscogsRelease } from '../../libs';
 import IndeterminateCheckbox from './IndeterminateCheckbox';
-import { getTrackFeaturedArtists, getTrackCreditsStructured, isVariousArtist, inferJoinersFromSource, getSourceMetadata } from '../../libs';
+import { getTrackCreditsStructured, isVariousArtist, inferJoinersFromSource, getSourceMetadata, isFeaturedArtist } from '../../libs';
 import { getDisplayArtistName, getArtistJoiner } from '../../libs';
 
 // Exported for use in QueueItem to allow polymorphic prop passing
@@ -41,13 +41,11 @@ const Track: React.FC<TrackProps> = ({
     // Destructure the passthrough props needed locally
     const {
         selectedTrackKeys,
-        selectedFeatures,
         artistSelections,
         scrobbleTimestamps,
         settings,
         metadata,
         onToggle,
-        onFeatureToggle,
         onArtistToggle,
         onToggleParent,
         onSelectParentAsSingle,
@@ -61,10 +59,6 @@ const Track: React.FC<TrackProps> = ({
     let isIndeterminate: boolean;
     let subTrackKeys: string[] = [];
 
-    const featuredArtists = getTrackFeaturedArtists(track);
-    const featuredArtistNames = track.extraartists
-        ?.filter(a => a.role.toLowerCase().includes('feat'))
-        .map(a => getDisplayArtistName(a.name)) ?? [];
     const structuredCredits = getTrackCreditsStructured(track);
 
     if (hasSubTracks) {
@@ -115,8 +109,8 @@ const Track: React.FC<TrackProps> = ({
         const selectedSet = artistSelections[currentKey] || new Set();
 
         return (
-            <span className="text-sm text-gray-400 truncate">
-                {"by "}
+            <span className="text-sm text-gray-400 flex flex-wrap items-baseline gap-x-0.5">
+                <span className="mr-0.5">{"by"}</span>
                 {correctedArtists.map((artist, index) => {
                     const displayName = getDisplayArtistName(artist.name);
                     const isSelected = selectedSet.has(displayName);
@@ -124,16 +118,51 @@ const Track: React.FC<TrackProps> = ({
 
                     return (
                         <React.Fragment key={index}>
-                            {joiner}
+                            {joiner && <span>{joiner}</span>}
                             {!isHistoryItem ? (
-                                <label className="flex-wrap items-center gap-1 cursor-pointer hover:text-gray-200" onClick={e => e.stopPropagation()}>
+                                <label className="inline-flex items-center gap-1 cursor-pointer hover:text-gray-200 whitespace-nowrap" onClick={e => e.stopPropagation()}>
                                     <input
                                         type="checkbox"
                                         checked={isSelected}
                                         onChange={() => onArtistToggle(currentKey, displayName)}
                                         className="form-checkbox h-3 w-3 rounded-sm bg-gray-700 border-gray-600 text-blue-500 focus:ring-blue-500"
                                     />
-                                    <span>{" " + displayName}</span>
+                                    <span>{displayName}</span>
+                                </label>
+                            ) : (
+                                <span>{displayName}</span>
+                            )}
+                        </React.Fragment>
+                    );
+                })}
+            </span>
+        );
+    };
+
+    const renderFeaturedArtistList = (currentKey: string, track: DiscogsTrack) => {
+        const featArtists = track.extraartists?.filter(a => isFeaturedArtist(a.role)) ?? [];
+        if (featArtists.length === 0) return null;
+        const selectedSet = artistSelections[currentKey] || new Set();
+
+        return (
+            <span className="text-xs italic text-gray-500 flex flex-wrap items-baseline gap-x-0.5">
+                <span className="mr-0.5">feat.</span>
+                {featArtists.map((artist, index) => {
+                    const displayName = getDisplayArtistName(artist.name);
+                    const isSelected = selectedSet.has(displayName);
+                    const joiner = index > 0 ? getArtistJoiner(featArtists[index - 1].join || ',') : '';
+                    return (
+                        <React.Fragment key={index}>
+                            {joiner && <span>{joiner}</span>}
+                            {!isHistoryItem ? (
+                                <label className="inline-flex items-center gap-1 cursor-pointer hover:text-gray-300 whitespace-nowrap" onClick={e => e.stopPropagation()}>
+                                    <input
+                                        type="checkbox"
+                                        checked={isSelected}
+                                        onChange={() => onArtistToggle(currentKey, displayName)}
+                                        className="form-checkbox h-3 w-3 rounded-sm bg-gray-700 border-gray-600 text-blue-500 focus:ring-blue-500"
+                                    />
+                                    <span>{displayName}</span>
                                 </label>
                             ) : (
                                 <span>{displayName}</span>
@@ -147,7 +176,6 @@ const Track: React.FC<TrackProps> = ({
 
     const renderCredits = (currentKey: string, credits: { role: string; artists: DiscogsArtist[] }[]) => {
         if (!credits || credits.length === 0) return null;
-        const selectedSet = artistSelections[currentKey] || new Set();
 
         return (
             <div className="text-xs text-gray-500 mt-1 max-h-[80px] overflow-y-auto pr-2 scrollbar-thin scrollbar-thumb-gray-600 scrollbar-track-gray-800">
@@ -202,18 +230,7 @@ const Track: React.FC<TrackProps> = ({
                         </div>
 
                         <div className="flex items-center">
-                            {!isHistoryItem && settings.showFeatures && featuredArtists && !hasSubTracks && (
-                                <label className="text-xs italic text-gray-500 flex-shrink-0 flex items-center gap-1 cursor-pointer" onClick={e => e.stopPropagation()}>
-                                    <input
-                                        type="checkbox"
-                                        checked={selectedFeatures.has(trackKey)}
-                                        onChange={() => onFeatureToggle(trackKey, featuredArtistNames, track.artists?.length ? [] : [albumArtistName].filter(Boolean))}
-                                        className="form-checkbox h-3 w-3 rounded-sm bg-gray-700 border-gray-600 text-blue-600 focus:ring-blue-500 focus:ring-offset-gray-800"
-                                        title={`Include featured artists in scrobble`}
-                                    />
-                                    {featuredArtists}
-                                </label>
-                            )}
+                            {settings.showFeatures && !hasSubTracks && renderFeaturedArtistList(trackKey, track)}
                             {!isHistoryItem && hasSubTracks && (
                                 <span
                                     className="text-xs italic text-blue-400 hover:text-blue-300 cursor-pointer flex-shrink-0"
@@ -238,10 +255,6 @@ const Track: React.FC<TrackProps> = ({
                 <div className="ml-8 space-y-1 mt-1 pl-4 border-l-2 border-gray-700">
                     {track.sub_tracks?.map((subTrack, sIndex) => {
                         const subTrackKey = `${parentIndex}-${sIndex}`;
-                        const subFeaturedArtists = getTrackFeaturedArtists(subTrack);
-                        const subFeaturedArtistNames = subTrack.extraartists
-                            ?.filter(a => a.role.toLowerCase().includes('feat'))
-                            .map(a => getDisplayArtistName(a.name)) ?? [];
                         const subStructuredCredits = getTrackCreditsStructured(subTrack);
 
                         return (
@@ -270,18 +283,7 @@ const Track: React.FC<TrackProps> = ({
                                                 renderArtistList(subTrackKey, subTrack.artists)
                                             }
                                         </div>
-                                        {!isHistoryItem && settings.showFeatures && subFeaturedArtists && (
-                                            <label className="text-xs italic text-gray-500 flex-shrink-0 flex items-center gap-1 cursor-pointer" onClick={e => e.stopPropagation()}>
-                                                <input
-                                                    type="checkbox"
-                                                    checked={selectedFeatures.has(subTrackKey)}
-                                                    onChange={() => onFeatureToggle(subTrackKey, subFeaturedArtistNames, subTrack.artists?.length ? [] : [albumArtistName].filter(Boolean))}
-                                                    className="form-checkbox h-3 w-3 rounded-sm bg-gray-700 border-gray-600 text-blue-600 focus:ring-blue-500 focus:ring-offset-gray-800"
-                                                    title={`Include featured artists in scrobble`}
-                                                />
-                                                {subFeaturedArtists}
-                                            </label>
-                                        )}
+                                        {settings.showFeatures && renderFeaturedArtistList(subTrackKey, subTrack)}
                                     </div>
                                     {settings.showCredits && renderCredits(subTrackKey, subStructuredCredits)}
                                 </div>

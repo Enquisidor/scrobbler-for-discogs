@@ -50,15 +50,16 @@ export function useCollectionFilters(
   }, [collection]);
 
   const filteredAndSortedCollection = useMemo(() => {
-    const lowerSearchTerm = searchTerm.toLowerCase();
+    const normalize = (str: string) => str.normalize('NFD').replace(/[\u0300-\u036f]/g, '').toLowerCase();
+    const lowerSearchTerm = normalize(searchTerm);
 
     const filtered = collection.filter(release => {
       if (selectedFormat && !release.basic_information.formats?.some(f => f.name === selectedFormat)) return false;
       if (selectedYear && release.basic_information.year?.toString() !== selectedYear) return false;
 
       if (lowerSearchTerm) {
-        const title = release.basic_information.title.toLowerCase();
-        const artist = release.basic_information.artist_display_name.toLowerCase();
+        const title = normalize(release.basic_information.title);
+        const artist = normalize(release.basic_information.artist_display_name);
 
         // 1. Exact match (Fast)
         if (title.includes(lowerSearchTerm) || artist.includes(lowerSearchTerm)) {
