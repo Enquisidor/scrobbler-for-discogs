@@ -2,7 +2,7 @@
 
 import type { DiscogsRelease, Settings, AppleSearchStrategy, CombinedMetadata } from '../../types';
 import { AppleSearchStrategyType } from '../../types';
-import { normalizeSearchTerm, formatArtistNames } from '../../utils/formattingUtils';
+import { normalizeSearchTerm, generateMetadataSearchArtistQueries, formatArtistNames } from '../../utils/formattingUtils';
 import { cleanForSearch } from '../../utils/fuzzyUtils';
 
 export function generateSearchStrategies(release: DiscogsRelease, settings: Settings, metadata?: CombinedMetadata): AppleSearchStrategy[] {
@@ -52,10 +52,12 @@ export function generateSearchStrategies(release: DiscogsRelease, settings: Sett
     if (isCorrectingArtist) {
         // Search by artist name — Apple search is approximate, and for artist correction
         // we want to find what Apple calls this artist, not locate the exact album.
-        const searchArtistName = formatArtistNames(info.artists) || artistDisplayName;
-        const cleanedArtist = cleanForSearch(searchArtistName);
-        strategies.push({ query: cleanedArtist, type: AppleSearchStrategyType.ARTIST_PLUS_YEAR, attribute: 'artistTerm', entity: 'album' });
-        strategies.push({ query: cleanedArtist, type: AppleSearchStrategyType.ARTIST_PLUS_YEAR, omitEntity: true });
+        const searchQueries = generateMetadataSearchArtistQueries(info.artists);
+        searchQueries.forEach(query => {
+            const cleaned = cleanForSearch(query);
+            strategies.push({ query: cleaned, type: AppleSearchStrategyType.ARTIST_PLUS_YEAR, attribute: 'artistTerm', entity: 'album' });
+            strategies.push({ query: cleaned, type: AppleSearchStrategyType.ARTIST_PLUS_YEAR, omitEntity: true });
+        });
 
         // When ANV exists, also search by the ANV directly
         info.artists.filter(a => !!a.anv).forEach(artist => {
@@ -80,9 +82,8 @@ export function generateSearchStrategies(release: DiscogsRelease, settings: Sett
             strategies.push({ query: cleaned, type: AppleSearchStrategyType.ARTIST_PLUS_YEAR, omitEntity: true });
         };
 
-        // Use formatArtistNames directly to ensure ANVs are interpolated into the search query.
-        const searchArtistName = formatArtistNames(info.artists) || artistDisplayName;
-        addArtistStrategies(searchArtistName);
+        const searchQueries = generateMetadataSearchArtistQueries(info.artists);
+        searchQueries.forEach(query => addArtistStrategies(query));
 
         // For collabs, Apple Music may attribute the album to only one primary artist.
         // Always add individual artist searches so we can find the album regardless.

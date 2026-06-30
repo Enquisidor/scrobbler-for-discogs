@@ -1,6 +1,7 @@
 import type { DiscogsRelease, ServiceMetadata, MusicBrainzRelease } from '../../types';
 import { fetchFromMusicBrainz } from './musicbrainzAPI';
 import { calculateFuzzyScore, cleanForSearch } from '../../utils/fuzzyUtils';
+import { formatArtistsForMetadataSearch } from '../../utils/formattingUtils';
 
 const MB_ACCEPTANCE_THRESHOLD = 0.8;
 
@@ -22,7 +23,9 @@ const calculateMBScore = (discogs: DiscogsRelease, mbRelease: MusicBrainzRelease
     }
 
     const discogsTitle = discogs.basic_information.title;
-    const discogsArtist = discogs.basic_information.artist_display_name;
+    const discogsArtist = discogs.basic_information.artists?.length
+        ? formatArtistsForMetadataSearch(discogs.basic_information.artists)
+        : discogs.basic_information.artist_display_name;
     const mbTitle = mbRelease.title;
     const mbArtist = formatMBArtists(mbRelease);
 
@@ -56,7 +59,11 @@ export const fetchMusicBrainzMetadata = async (
     // 2. If no barcode results, search by Artist AND Release Name
     if (searchResults.length === 0) {
         try {
-            const artist = cleanForSearch(release.basic_information.artist_display_name);
+            const artist = cleanForSearch(
+                release.basic_information.artists?.length
+                    ? formatArtistsForMetadataSearch(release.basic_information.artists)
+                    : release.basic_information.artist_display_name
+            );
             const title = cleanForSearch(release.basic_information.title);
             // Boost exact matches if possible in Lucene syntax, here we just do AND
             const query = `release:"${title}" AND artist:"${artist}"`;

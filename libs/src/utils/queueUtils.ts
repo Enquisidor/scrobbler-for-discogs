@@ -80,6 +80,17 @@ export function getTrackCreditsStructured(track: DiscogsTrack): { role: string; 
     return Array.from(roleMap.entries()).map(([role, artists]) => ({ role, artists }));
 }
 
+/** Drop duplicate artists that share the same display name (e.g. album + feat. overlap). */
+function dedupeArtistsByDisplayName(artists: DiscogsArtist[]): DiscogsArtist[] {
+    const seen = new Set<string>();
+    return artists.filter(a => {
+        const key = getDisplayArtistName(a.name).toLowerCase();
+        if (seen.has(key)) return false;
+        seen.add(key);
+        return true;
+    });
+}
+
 const parseDuration = (durationStr: string): number => {
     if (!durationStr) return 180;
     const parts = durationStr.split(':').map(Number);
@@ -164,7 +175,7 @@ export function prepareTracksForScrobbling(
             const extraArtists = (track.extraartists || []).map(a =>
                 isFeaturedArtist(a.role) && !a.join ? { ...a, join: ',' } : a
             );
-            const allPotentialArtists = [...effectiveArtists, ...extraArtists];
+            const allPotentialArtists = dedupeArtistsByDisplayName([...effectiveArtists, ...extraArtists]);
             
             // Filter artists based on user selection
             const finalArtists = allPotentialArtists.filter(a => selectedArtistNames.has(getDisplayArtistName(a.name)));

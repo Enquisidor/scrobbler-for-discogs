@@ -2,7 +2,7 @@
 import type { DiscogsRelease, ITunesResult, AppleSearchStrategy, Settings } from '../../types';
 import { AppleSearchStrategyType, ReleaseType } from '../../types';
 import { calculateFuzzyScore } from '../../utils/fuzzyUtils';
-import { formatArtistNames } from '../../utils/formattingUtils';
+import { formatArtistNames, formatArtistsForMetadataSearch } from '../../utils/formattingUtils';
 
 export function getDiscogsReleaseType(release: DiscogsRelease): ReleaseType {
   const descriptions = release.basic_information.formats
@@ -39,8 +39,14 @@ export function getScores(discogs: DiscogsRelease, apple: ITunesResult): { artis
     const info = discogs.basic_information;
     const appleArtist = apple.artistName;
 
-    // Score against the full combined artist string first.
-    let finalArtistScore = calculateFuzzyScore(info.artist_display_name, appleArtist);
+    // Score against the ANV-aware collab search string first, then the raw display name.
+    const searchArtist = info.artists?.length
+        ? formatArtistsForMetadataSearch(info.artists)
+        : info.artist_display_name;
+    let finalArtistScore = Math.max(
+        calculateFuzzyScore(searchArtist, appleArtist),
+        calculateFuzzyScore(info.artist_display_name, appleArtist)
+    );
 
     // For single-artist releases also check the ANV.
     const individualArtists = info.artists;

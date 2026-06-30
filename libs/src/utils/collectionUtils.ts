@@ -1,7 +1,7 @@
 
 import type { DiscogsRelease, CombinedMetadata, Settings } from '../types';
 import { MetadataSourceType } from '../types';
-import { formatArtistNames, validateArtistName } from './formattingUtils';
+import { getSmartArtistDisplay, alignArtistsWithSource } from './formattingUtils';
 import { getSourceMetadata } from './metadataUtils';
 
 export function applyMetadataCorrections(
@@ -23,22 +23,8 @@ export function applyMetadataCorrections(
         
         if (sourceString) {
             const originalArtists = newBasicInfo.artists;
-
-            // Map each artist to their best validated name (ANV vs Standard vs Source)
-            const updatedArtists = originalArtists.map(artist => {
-                const bestName = validateArtistName(artist, sourceString);
-
-                // IMPORTANT: We clear 'anv' here because we have resolved the best name into 'name'.
-                // If we left 'anv', formatArtistNames might prefer it over our carefully chosen 'name'.
-                return {
-                    ...artist,
-                    name: bestName,
-                    anv: undefined // Clear ANV
-                };
-            });
-
-            // Reconstruct the display name using the validated artists
-            const reconstructedDisplayName = formatArtistNames(updatedArtists);
+            const updatedArtists = alignArtistsWithSource(originalArtists, sourceString);
+            const reconstructedDisplayName = getSmartArtistDisplay(originalArtists, meta, settings);
 
             // If the name changed, or the artist objects changed (deep check approximated), update.
             if (reconstructedDisplayName !== newBasicInfo.artist_display_name) {

@@ -1,7 +1,7 @@
-
 import type { DiscogsRelease, ServiceMetadata } from '../../types';
 import { fetchFromDeezer } from './deezerAPI';
 import { calculateFuzzyScore, cleanForSearch } from '../../utils/fuzzyUtils';
+import { formatArtistsForMetadataSearch } from '../../utils/formattingUtils';
 
 const ACCEPTANCE_THRESHOLD = 0.8;
 
@@ -11,7 +11,11 @@ export const fetchDeezerMetadata = async (
 ): Promise<ServiceMetadata | null> => {
     if (!release.basic_information) return null;
 
-    const artist = cleanForSearch(release.basic_information.artist_display_name);
+    const artist = cleanForSearch(
+        release.basic_information.artists?.length
+            ? formatArtistsForMetadataSearch(release.basic_information.artists)
+            : release.basic_information.artist_display_name
+    );
     const title = cleanForSearch(release.basic_information.title);
 
     let searchResults;
@@ -47,7 +51,9 @@ export const fetchDeezerMetadata = async (
             result.title
         );
         const artistScore = calculateFuzzyScore(
-            release.basic_information.artist_display_name,
+            release.basic_information.artists?.length
+                ? formatArtistsForMetadataSearch(release.basic_information.artists)
+                : release.basic_information.artist_display_name,
             result.artist.name
         );
         const score = (titleScore * 0.6) + (artistScore * 0.4);

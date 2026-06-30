@@ -51,6 +51,158 @@ export const getArtistJoiner = (join?: string): string => {
   return ` ${trimmed} `;
 };
 
+/** Discogs often sends "," as a placeholder; treat it as unspecified so source joiners can win. */
+const isUnspecifiedJoin = (join?: string): boolean => {
+    if (!join) return true;
+    const trimmed = join.trim();
+    return trimmed.length === 0 || trimmed === ',';
+};
+
+/** Lowercase alphanumeric-only form for matching names that differ only in casing/punctuation. */
+const normalizeAlphanumeric = (s: string): string =>
+    s.toLowerCase().replace(/[^a-z0-9]/g, '');
+
+/** Split a metadata artist string into individual artist chunks. */
+export const splitSourceArtistChunks = (sourceString: string): string[] =>
+    sourceString
+        .split(/\s*(?:,|&|\bfeat\.|\bvs\.|\band\b)\s*/i)
+        .map(s => s.trim())
+        .filter(s => s.length > 0);
+
+/** Prefer ANV over standard name when building search/display strings. */
+export function getArtistSearchName(artist: { name: string; anv?: string }): string {
+    return getDisplayArtistName(artist.anv || artist.name);
+}
+
+/**
+ * Merge consecutive single-word artists that Discogs split (e.g. "Earl" + "Sweatshirt").
+ * Stops at artists with an ANV or multi-word names so "MIKE" stays distinct.
+ */
+export function mergeAdjacentSingleWordArtists<T extends { name: string; anv?: string; join?: string }>(
+    artists: T[]
+): T[] {
+    if (artists.length <= 1) return artists;
+
+    const result: T[] = [];
+    let i = 0;
+
+    while (i < artists.length) {
+        const curr = artists[i];
+        const currName = getArtistSearchName(curr);
+        const next = artists[i + 1];
+
+        if (
+            next
+            && !curr.anv
+            && !next.anv
+            && !currName.includes(' ')
+            && !getArtistSearchName(next).includes(' ')
+            && isUnspecifiedJoin(curr.join)
+        ) {
+            const mergedName = `${currName} ${getArtistSearchName(next)}`;
+            result.push({ ...curr, name: mergedName, anv: undefined, join: next.join });
+            i += 2;
+            continue;
+        }
+
+        result.push(curr);
+        i += 1;
+    }
+
+    return result;
+}
+
+/** Use & between artists when Discogs left the join unspecified (comma placeholder). */
+function applyCollabAmpersandBeforeLast<T extends { name: string; anv?: string; join?: string }>(
+    artists: T[]
+): T[] {
+    if (artists.length < 2) return artists;
+    return artists.map((artist, i) =>
+        i === artists.length - 2 && isUnspecifiedJoin(artist.join)
+            ? { ...artist, join: '&' }
+            : artist
+    );
+}
+
+/** Prepare artist array for metadata search: merge split names, apply collab joiners, keep ANVs. */
+export function prepareArtistsForMetadataSearch<T extends { name: string; anv?: string; join?: string }>(
+    artists: T[]
+): T[] {
+    if (!artists?.length) return [];
+    return applyCollabAmpersandBeforeLast(mergeAdjacentSingleWordArtists(artists));
+}
+
+/** Combined artist string for metadata search, using ANVs and collab formatting heuristics. */
+export function formatArtistsForMetadataSearch(
+    artists: { name: string; anv?: string; join?: string }[]
+): string {
+    return formatArtistNames(prepareArtistsForMetadataSearch(artists));
+}
+
+/** Distinct artist query strings to try when fetching external metadata. */
+export function generateMetadataSearchArtistQueries(
+    artists: { name: string; anv?: string; join?: string }[]
+): string[] {
+    if (!artists?.length) return [];
+
+    const queries = [
+        formatArtistsForMetadataSearch(artists),
+        formatArtistNames(artists),
+    ];
+
+    return [...new Set(queries.filter(q => q.length > 0))];
+}
+
+/**
+ * When Discogs splits one artist into multiple entries (e.g. "Earl" + "Sweatshirt"),
+ * merge consecutive entries to match the source chunks (e.g. "Earl Sweatshirt").
+ */
+export function mergeArtistsToMatchSource<T extends { name: string; anv?: string; join?: string }>(
+    artists: T[],
+    sourceString: string
+): T[] | null {
+    const chunks = splitSourceArtistChunks(sourceString);
+    if (chunks.length >= artists.length) return null;
+
+    const result: T[] = [];
+    let artistIdx = 0;
+
+    for (const chunk of chunks) {
+        const chunkNorm = normalizeAlphanumeric(chunk);
+        const group: T[] = [];
+        let combinedNorm = '';
+
+        while (artistIdx < artists.length) {
+            const artist = artists[artistIdx];
+            const partNorm = normalizeAlphanumeric(getDisplayArtistName(artist.name));
+            const nextNorm = combinedNorm + partNorm;
+
+            if (group.length === 0 && nextNorm !== chunkNorm && !chunkNorm.startsWith(nextNorm)) {
+                if (calculateFuzzyScore(artist.name, chunk) < 0.85) return null;
+                group.push(artist);
+                artistIdx++;
+                break;
+            }
+
+            group.push(artist);
+            combinedNorm = nextNorm;
+            artistIdx++;
+
+            if (combinedNorm === chunkNorm) break;
+            if (!chunkNorm.startsWith(combinedNorm)) return null;
+        }
+
+        if (group.length === 0) return null;
+
+        result.push({
+            ...group[0],
+            name: group.length === 1 ? group[0].name : chunk,
+        });
+    }
+
+    return artistIdx === artists.length ? result : null;
+}
+
 /**
  * Infers the join characters between artists from an external source string when Discogs
  * leaves the join field blank. Sequentially searches for each artist name in the source and
@@ -78,24 +230,28 @@ export function inferJoinersFromSource<T extends { name: string; anv?: string; j
 
     return artists.map((artist, i) => {
         if (i >= positions.length - 1) return artist;
-        if (artist.join) return artist;
+        if (!isUnspecifiedJoin(artist.join)) return artist;
         const rawJoiner = sourceString.substring(positions[i].end, positions[i + 1].start);
         const joiner = rawJoiner.trim();
         return joiner ? { ...artist, join: joiner } : artist;
     });
 }
 
-// Extracts the dominant separator from a metadata artist string (prefers & over ,).
-function extractSourceJoiner(sourceString: string): string | null {
-    if (sourceString.includes('&')) return '&';
-    if (sourceString.includes(',')) return ',';
-    return null;
+/** Validate names, merge split artists, and infer joiners from external metadata. */
+export function alignArtistsWithSource(
+    artists: DiscogsArtist[],
+    sourceString: string
+): DiscogsArtist[] {
+    const validated = artists.map(artist => ({
+        ...artist,
+        name: validateArtistName(artist, sourceString),
+        anv: undefined as string | undefined,
+    }));
+    const merged = mergeArtistsToMatchSource(validated, sourceString) ?? validated;
+    return inferJoinersFromSource(merged, sourceString) ?? merged;
 }
 
-/**
- * Formats track-level artists using the metadata source to fill in missing Discogs join chars.
- * Tries sequential position inference first; falls back to the dominant separator in the source.
- */
+
 export function getTrackArtistDisplay(
     trackArtists: DiscogsArtist[],
     metadata: CombinedMetadata | undefined,
@@ -105,19 +261,12 @@ export function getTrackArtistDisplay(
     const sourceMeta = getSourceMetadata(metadata, settings.artistSource);
     const sourceString = sourceMeta?.artist || '';
 
-    if (!sourceString) return formatArtistNames(trackArtists);
+    if (settings.artistSource === MetadataSourceType.Discogs || !sourceString) {
+        return formatArtistNames(trackArtists);
+    }
 
-    const sequential = inferJoinersFromSource(trackArtists, sourceString);
-    if (sequential) return formatArtistNames(sequential);
-
-    // Artists not found sequentially (e.g. track subset doesn't match source order).
-    // Apply the dominant separator from the source to all unspecified joins.
-    const joiner = extractSourceJoiner(sourceString);
-    if (!joiner) return formatArtistNames(trackArtists);
-    const withJoiners = trackArtists.map((a, i) =>
-        i < trackArtists.length - 1 && !a.join ? { ...a, join: joiner } : a
-    );
-    return formatArtistNames(withJoiners);
+    const aligned = alignArtistsWithSource(trackArtists, sourceString);
+    return formatArtistNames(aligned);
 }
 
 /**
@@ -161,11 +310,7 @@ export function validateArtistName(artist: DiscogsArtist, sourceString: string):
     // If no source string, default to ANV or Standard (Discogs behavior)
     if (!sourceString) return anv || standard;
 
-    // Split source into chunks to handle "Artist A & Artist B" scenarios
-    // We match against chunks to see if our artist name appears in the source
-    const chunks = sourceString.split(/\s*(?:,|&|\bfeat\.|\bvs\.|\band\b)\s*/i)
-        .map(s => s.trim())
-        .filter(s => s.length > 0);
+    const chunks = splitSourceArtistChunks(sourceString);
 
     // Helper to find best score against any chunk
     const getBestScore = (target: string) => {
@@ -179,37 +324,23 @@ export function validateArtistName(artist: DiscogsArtist, sourceString: string):
 
     const THRESHOLD = 0.85; // High confidence required
 
-    // Case 1: Discogs has an ANV
+    // Case 1: Discogs has an ANV — use it when source confirms it (e.g. ANV "MIKE" or "mike.").
+    // Never adopt alternate casing from the metadata source; only Discogs ANV/standard names apply.
     if (anv) {
         const anvScore = getBestScore(anv);
-        
-        // If ANV matches the source well, we VALIDATE it and USE it.
-        // We prioritize the ANV (the specific intent of the release) over the Standard name
-        // as long as the source confirms it's not completely wrong.
+
         if (anvScore >= THRESHOLD) {
             return anv;
         }
 
-        // ANV did not match source well (e.g. "AFX" vs "Aphex Twin").
-        // Check if Standard name matches source.
         const standardScore = getBestScore(standard);
         if (standardScore >= THRESHOLD) {
-            return standard; // Correction: Use Standard
+            return standard;
         }
 
-        // Neither matched the source well. 
-        // We fallback to Discogs preference (ANV).
         return anv;
     }
 
-    // Case 2: No ANV — use the source's form only when names differ purely in casing.
-    // Fuzzy scoring alone can't distinguish 'mike.' from 'MIKE' (both tokenize to 'mike'),
-    // so we require a case-insensitive exact match to avoid overwriting stylized names.
-    const standardLower = standard.toLowerCase();
-    for (const chunk of chunks) {
-        if (chunk.toLowerCase() === standardLower && chunk !== standard) return chunk;
-    }
-    if (sourceString.toLowerCase() === standardLower && sourceString !== standard) return sourceString;
     return standard;
 }
 
@@ -229,30 +360,8 @@ export function getSmartArtistDisplay(
         return formatArtistNames(artists);
     }
 
-    // We have external metadata. Validate each artist name and infer missing joiners.
-    const validatedArtists = artists.map(artist => {
-        const bestName = validateArtistName(artist, sourceString);
-        return { ...artist, name: bestName, anv: undefined };
-    });
-    const withJoiners = inferJoinersFromSource(validatedArtists, sourceString) ?? validatedArtists;
-
-    const reconstructed = formatArtistNames(withJoiners);
-
-    // Detect capitalization or artist order differences between Discogs and the source.
-    // If the names match case-insensitively but differ in exact casing or order,
-    // prefer the source string (e.g. "KAYTRANADA" vs "Kaytranada", or
-    // "21 Savage & Drake" vs "Drake & 21 Savage").
-    const score = calculateFuzzyScore(reconstructed, sourceString);
-    const hasCaseDifference = reconstructed.toLowerCase() === sourceString.toLowerCase()
-        && reconstructed !== sourceString;
-    const hasOrderDifference = score >= 0.85
-        && reconstructed.toLowerCase() !== sourceString.toLowerCase();
-
-    if (hasCaseDifference || hasOrderDifference) {
-        return sourceString;
-    }
-
-    return reconstructed;
+    const aligned = alignArtistsWithSource(artists, sourceString);
+    return formatArtistNames(aligned);
 }
 
 /**
