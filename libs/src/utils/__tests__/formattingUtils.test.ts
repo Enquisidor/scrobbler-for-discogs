@@ -42,15 +42,15 @@ describe('formatArtistsForMetadataSearch', () => {
             { id: 3, name: 'Mike', anv: 'MIKE', join: ',' },
             { id: 4, name: 'Surf Gang' },
         ];
-        expect(formatArtistsForMetadataSearch(artists)).toBe('Earl Sweatshirt, MIKE & Surf Gang');
+        expect(formatArtistsForMetadataSearch(artists)).toBe('Earl Sweatshirt, MIKE, Surf Gang');
     });
 
-    it('uses & joiner for E L U C I D collab search', () => {
+    it('does not add & heuristically for metadata search', () => {
         const artists: DiscogsArtist[] = [
             { id: 1, name: 'E L U C I D', join: ',' },
             { id: 2, name: 'Sebb Bash' },
         ];
-        expect(formatArtistsForMetadataSearch(artists)).toBe('E L U C I D & Sebb Bash');
+        expect(formatArtistsForMetadataSearch(artists)).toBe('E L U C I D, Sebb Bash');
     });
 });
 
@@ -63,7 +63,7 @@ describe('generateMetadataSearchArtistQueries', () => {
             { id: 4, name: 'Surf Gang' },
         ];
         expect(generateMetadataSearchArtistQueries(artists)).toEqual([
-            'Earl Sweatshirt, MIKE & Surf Gang',
+            'Earl Sweatshirt, MIKE, Surf Gang',
             'Earl, Sweatshirt, MIKE, Surf Gang',
         ]);
     });
@@ -72,7 +72,7 @@ describe('generateMetadataSearchArtistQueries', () => {
 describe('getSmartArtistDisplay', () => {
     const meta = (artist: string): CombinedMetadata => ({ apple: { artist } });
 
-    it('uses & joiner from source over Discogs commas', () => {
+    it('uses & joiner from metadata over Discogs commas', () => {
         const artists: DiscogsArtist[] = [
             { id: 1, name: 'E L U C I D', join: ',' },
             { id: 2, name: 'Sebb Bash' },
@@ -81,7 +81,20 @@ describe('getSmartArtistDisplay', () => {
             .toBe('E L U C I D & Sebb Bash');
     });
 
-    it('merges split Discogs artists to match source', () => {
+    it('uses metadata joiners when only albumSource is external', () => {
+        const discogsArtistSettings: Settings = {
+            artistSource: MetadataSourceType.Discogs,
+            albumSource: MetadataSourceType.Apple,
+        } as Settings;
+        const artists: DiscogsArtist[] = [
+            { id: 1, name: 'E L U C I D', join: ',' },
+            { id: 2, name: 'Sebb Bash' },
+        ];
+        expect(getSmartArtistDisplay(artists, meta('E L U C I D & Sebb Bash'), discogsArtistSettings))
+            .toBe('E L U C I D & Sebb Bash');
+    });
+
+    it('merges split Discogs artists to match metadata', () => {
         const artists: DiscogsArtist[] = [
             { id: 1, name: 'Earl', join: ',' },
             { id: 2, name: 'Sweatshirt', join: ',' },

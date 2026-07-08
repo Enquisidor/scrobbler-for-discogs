@@ -1,7 +1,7 @@
 import React from 'react';
 import type { DiscogsTrack, Settings, DiscogsArtist, CombinedMetadata, DiscogsRelease } from '../../libs';
 import IndeterminateCheckbox from './IndeterminateCheckbox';
-import { getTrackCreditsStructured, isVariousArtist, inferJoinersFromSource, getSourceMetadata, isFeaturedArtist } from '../../libs';
+import { getTrackCreditsStructured, isVariousArtist, inferJoinersFromSource, getMetadataArtistString, isFeaturedArtist } from '../../libs';
 import { getDisplayArtistName, getArtistJoiner } from '../../libs';
 
 // Exported for use in QueueItem to allow polymorphic prop passing
@@ -104,7 +104,7 @@ const Track: React.FC<TrackProps> = ({
     const renderArtistList = (currentKey: string, artists: DiscogsArtist[] | undefined) => {
         if (!artists || artists.length === 0) return null;
 
-        const sourceString = getSourceMetadata(metadata, settings.artistSource)?.artist ?? '';
+        const sourceString = getMetadataArtistString(metadata, settings);
         const correctedArtists = inferJoinersFromSource(artists, sourceString) ?? artists;
         const selectedSet = artistSelections[currentKey] || new Set();
 

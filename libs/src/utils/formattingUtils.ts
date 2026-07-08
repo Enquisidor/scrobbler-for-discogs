@@ -1,8 +1,7 @@
 
 import type { DiscogsArtist, CombinedMetadata, Settings } from '../types';
-import { MetadataSourceType } from '../types';
 import { calculateFuzzyScore } from './fuzzyUtils';
-import { getSourceMetadata } from './metadataUtils';
+import { getMetadataArtistString } from './metadataUtils';
 
 
 /**
@@ -112,24 +111,12 @@ export function mergeAdjacentSingleWordArtists<T extends { name: string; anv?: s
     return result;
 }
 
-/** Use & between artists when Discogs left the join unspecified (comma placeholder). */
-function applyCollabAmpersandBeforeLast<T extends { name: string; anv?: string; join?: string }>(
-    artists: T[]
-): T[] {
-    if (artists.length < 2) return artists;
-    return artists.map((artist, i) =>
-        i === artists.length - 2 && isUnspecifiedJoin(artist.join)
-            ? { ...artist, join: '&' }
-            : artist
-    );
-}
-
-/** Prepare artist array for metadata search: merge split names, apply collab joiners, keep ANVs. */
+/** Prepare artist array for metadata search: merge split names, keep ANVs. Joiners come from fetched metadata only. */
 export function prepareArtistsForMetadataSearch<T extends { name: string; anv?: string; join?: string }>(
     artists: T[]
 ): T[] {
     if (!artists?.length) return [];
-    return applyCollabAmpersandBeforeLast(mergeAdjacentSingleWordArtists(artists));
+    return mergeAdjacentSingleWordArtists(artists);
 }
 
 /** Combined artist string for metadata search, using ANVs and collab formatting heuristics. */
@@ -258,10 +245,9 @@ export function getTrackArtistDisplay(
     settings: Settings
 ): string {
     if (!trackArtists?.length) return '';
-    const sourceMeta = getSourceMetadata(metadata, settings.artistSource);
-    const sourceString = sourceMeta?.artist || '';
+    const sourceString = getMetadataArtistString(metadata, settings);
 
-    if (settings.artistSource === MetadataSourceType.Discogs || !sourceString) {
+    if (!sourceString) {
         return formatArtistNames(trackArtists);
     }
 
@@ -352,11 +338,9 @@ export function getSmartArtistDisplay(
     metadata: CombinedMetadata | undefined,
     settings: Settings
 ): string {
-    const sourceMeta = getSourceMetadata(metadata, settings.artistSource);
-    const sourceString = sourceMeta?.artist || '';
+    const sourceString = getMetadataArtistString(metadata, settings);
 
-    // If we are using Discogs source, or no metadata available, standard behavior
-    if (settings.artistSource === MetadataSourceType.Discogs || !sourceString) {
+    if (!sourceString) {
         return formatArtistNames(artists);
     }
 
