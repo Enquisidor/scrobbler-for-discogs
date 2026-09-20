@@ -40,6 +40,25 @@ export default defineConfig(() => {
     server: {
       port: 3000,
       host: '0.0.0.0',
+      proxy: {
+        // Same-origin proxy so browser fetch avoids iTunes CORS.
+        '/api/itunes': {
+          target: 'https://itunes.apple.com',
+          changeOrigin: true,
+          secure: true,
+          rewrite: (p: string) => p.replace(/^\/api\/itunes/, ''),
+        },
+      },
+    },
+    preview: {
+      proxy: {
+        '/api/itunes': {
+          target: 'https://itunes.apple.com',
+          changeOrigin: true,
+          secure: true,
+          rewrite: (p: string) => p.replace(/^\/api\/itunes/, ''),
+        },
+      },
     },
     plugins: [react()],
     define: {

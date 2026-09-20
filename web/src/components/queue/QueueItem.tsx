@@ -2,7 +2,7 @@ import React, { useState, useMemo } from 'react';
 import type { QueueItem as QueueItemType, DiscogsTrack } from '../../libs';
 import { getActiveMetadataProvider, MetadataSourceType } from '../../libs';
 import { Loader } from '../misc/Loader';
-import { ChevronDownIcon, CloseIcon, CheckCircleIcon, AppleMusicIcon, MusicBrainzIcon, DeezerIcon } from '../misc/Icons';
+import { ChevronDownIcon, CloseIcon, CheckCircleIcon, RefreshIcon, AppleMusicIcon, MusicBrainzIcon, DeezerIcon } from '../misc/Icons';
 import IndeterminateCheckbox from './IndeterminateCheckbox';
 import Track, { TrackPassthroughProps } from './Track';
 import { assignGroups } from './utils/trackGroupUtils';
@@ -157,15 +157,18 @@ const QueueItem: React.FC<QueueItemProps> = ({
                         <>
                             {MetadataSourceIcon && onRefreshMetadata && (
                                 <button
+                                    type="button"
                                     onClick={(e) => {
+                                        e.preventDefault();
                                         e.stopPropagation();
                                         onRefreshMetadata();
                                     }}
-                                    className="p-1 rounded-full hover:bg-gray-700"
+                                    className="p-1 rounded-full hover:bg-gray-700 flex items-center gap-0.5"
                                     aria-label="Refresh metadata"
                                     title="Refresh metadata"
                                 >
                                     <MetadataSourceIcon className="w-5 h-5" />
+                                    <RefreshIcon className="w-3.5 h-3.5 text-gray-400" />
                                 </button>
                             )}
                             <button

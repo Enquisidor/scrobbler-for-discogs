@@ -3,6 +3,7 @@ import { useDispatch, useSelector } from 'react-redux';
 import type { DiscogsRelease, Settings } from '../../types';
 import { MetadataSourceType } from '../../types';
 import { fetchAppleMusicMetadata } from '../../services/appleMusic/appleMusicService';
+import { clearAppleMusicCooldown } from '../../services/appleMusic/appleMusicAPI';
 import { fetchMusicBrainzMetadata } from '../../services/musicbrainz/musicbrainzService';
 import { fetchDeezerMetadata } from '../../services/deezer/deezerService';
 import type { RootState } from '../../store/index';
@@ -245,12 +246,25 @@ export function useMetadataFetcher(
   processQueueRef.current = processQueue;
 
   const refreshRelease = useCallback((releaseId: number) => {
-    if (!releasesRef.current.some(r => r.id === releaseId)) return;
+    console.log(`[MetadataFetcher] Manual refresh requested for release ${releaseId}`);
+    if (!releasesRef.current.some(r => r.id === releaseId)) {
+      console.warn(`[MetadataFetcher] Refresh ignored — release ${releaseId} is not in the queue`);
+      return;
+    }
 
     const needsAny =
       settingsRef.current.artistSource !== MetadataSourceType.Discogs ||
       settingsRef.current.albumSource !== MetadataSourceType.Discogs;
-    if (!needsAny) return;
+    if (!needsAny) {
+      console.warn('[MetadataFetcher] Refresh ignored — no external metadata source enabled');
+      return;
+    }
+
+    // Manual refresh should not sit behind a prior 403 cooldown, and must use a live AbortSignal.
+    clearAppleMusicCooldown();
+    if (abortControllerRef.current.signal.aborted) {
+      abortControllerRef.current = new AbortController();
+    }
 
     processedSessionRef.current.delete(releaseId);
     forceIdsRef.current.add(releaseId);
