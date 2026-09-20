@@ -81,6 +81,26 @@ describe('getSmartArtistDisplay', () => {
             .toBe('E L U C I D & Sebb Bash');
     });
 
+    it('infers & when metadata spells the name without spaces (ELUCID)', () => {
+        const artists: DiscogsArtist[] = [
+            { id: 1, name: 'E L U C I D', join: ',' },
+            { id: 2, name: 'Sebb Bash' },
+        ];
+        expect(getSmartArtistDisplay(artists, meta('ELUCID & Sebb Bash'), appleSettings))
+            .toBe('E L U C I D & Sebb Bash');
+    });
+
+    it('prefers metadata joiners when reconstruction still has commas', () => {
+        // Even if joiner inference is a no-op for some reason, separator-only diffs
+        // should adopt the metadata string (case-preserving).
+        const artists: DiscogsArtist[] = [
+            { id: 1, name: 'E L U C I D', join: ',' },
+            { id: 2, name: 'Sebb Bash' },
+        ];
+        expect(getSmartArtistDisplay(artists, meta('E L U C I D & Sebb Bash'), appleSettings))
+            .toBe('E L U C I D & Sebb Bash');
+    });
+
     it('uses metadata joiners when only albumSource is external', () => {
         const discogsArtistSettings: Settings = {
             artistSource: MetadataSourceType.Discogs,

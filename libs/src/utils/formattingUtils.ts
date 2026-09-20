@@ -191,6 +191,45 @@ export function mergeArtistsToMatchSource<T extends { name: string; anv?: string
 }
 
 /**
+ * Locate `name` in `source` starting at `searchFrom`.
+ * Tries exact (case-insensitive) first, then alphanumeric-only matching so
+ * "E L U C I D" still finds "ELUCID" in the source string.
+ */
+function findArtistSpanInSource(
+    source: string,
+    name: string,
+    searchFrom: number
+): { start: number; end: number } | null {
+    const sourceLower = source.toLowerCase();
+    const nameLower = name.toLowerCase();
+    const exact = sourceLower.indexOf(nameLower, searchFrom);
+    if (exact !== -1) {
+        return { start: exact, end: exact + name.length };
+    }
+
+    // Alphanumeric fallback: map each source char to its alnum index, then match.
+    const target = normalizeAlphanumeric(name);
+    if (!target) return null;
+
+    let alnum = '';
+    const alnumToSourceIndex: number[] = [];
+    for (let i = searchFrom; i < source.length; i++) {
+        const ch = source[i].toLowerCase();
+        if (/[a-z0-9]/.test(ch)) {
+            alnumToSourceIndex.push(i);
+            alnum += ch;
+        }
+    }
+
+    const alnumPos = alnum.indexOf(target);
+    if (alnumPos === -1) return null;
+
+    const start = alnumToSourceIndex[alnumPos];
+    const endExclusive = alnumToSourceIndex[alnumPos + target.length - 1] + 1;
+    return { start, end: endExclusive };
+}
+
+/**
  * Infers the join characters between artists from an external source string when Discogs
  * leaves the join field blank. Sequentially searches for each artist name in the source and
  * extracts whatever text sits between consecutive names as the joiner.
@@ -203,16 +242,15 @@ export function inferJoinersFromSource<T extends { name: string; anv?: string; j
 ): T[] | null {
     if (artists.length <= 1 || !sourceString) return null;
 
-    const sourceLower = sourceString.toLowerCase();
     let searchFrom = 0;
     const positions: { start: number; end: number }[] = [];
 
     for (const artist of artists) {
-        const name = getDisplayArtistName(artist.anv || artist.name).toLowerCase();
-        const pos = sourceLower.indexOf(name, searchFrom);
-        if (pos === -1) return null;
-        positions.push({ start: pos, end: pos + name.length });
-        searchFrom = pos + name.length;
+        const name = getDisplayArtistName(artist.anv || artist.name);
+        const span = findArtistSpanInSource(sourceString, name, searchFrom);
+        if (!span) return null;
+        positions.push(span);
+        searchFrom = span.end;
     }
 
     return artists.map((artist, i) => {
@@ -222,6 +260,22 @@ export function inferJoinersFromSource<T extends { name: string; anv?: string; j
         const joiner = rawJoiner.trim();
         return joiner ? { ...artist, join: joiner } : artist;
     });
+}
+
+/**
+ * Prefer the metadata artist string when it differs only in joiners
+ * (e.g. "E L U C I D, Sebb Bash" vs "E L U C I D & Sebb Bash").
+ * Keeps Discogs name spelling/casing — "Mike" vs "MIKE" and "E L U C I D" vs "ELUCID"
+ * are not treated as joiner-only diffs.
+ */
+function shouldPreferSourceForJoiners(reconstructed: string, sourceString: string): boolean {
+    if (reconstructed === sourceString) return false;
+    const normalizeJoiners = (s: string) =>
+        s.replace(/\s*(?:,|&|\bfeat\.|\bvs\.|\band\b)\s*/gi, '\0');
+    const a = normalizeJoiners(reconstructed);
+    const b = normalizeJoiners(sourceString);
+    // Exact (case-preserving) match of the name parts — only the joiners differed.
+    return a === b;
 }
 
 /** Validate names, merge split artists, and infer joiners from external metadata. */
@@ -252,7 +306,11 @@ export function getTrackArtistDisplay(
     }
 
     const aligned = alignArtistsWithSource(trackArtists, sourceString);
-    return formatArtistNames(aligned);
+    const reconstructed = formatArtistNames(aligned);
+    if (shouldPreferSourceForJoiners(reconstructed, sourceString)) {
+        return sourceString;
+    }
+    return reconstructed;
 }
 
 /**
@@ -345,7 +403,13 @@ export function getSmartArtistDisplay(
     }
 
     const aligned = alignArtistsWithSource(artists, sourceString);
-    return formatArtistNames(aligned);
+    const reconstructed = formatArtistNames(aligned);
+    // Restore joiner preference from metadata (e.g. "&" over Discogs ",") without
+    // adopting source casing for individual names (Mike must not become MIKE).
+    if (shouldPreferSourceForJoiners(reconstructed, sourceString)) {
+        return sourceString;
+    }
+    return reconstructed;
 }
 
 /**

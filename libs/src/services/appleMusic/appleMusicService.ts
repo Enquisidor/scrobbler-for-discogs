@@ -5,7 +5,7 @@ import { generateSearchStrategies } from './strategies';
 import { calculateTruthScore, isBetterTieBreak, getScores, getDiscogsReleaseType, getAppleReleaseType } from './scoring';
 import { AppleSearchStrategyType, ReleaseType } from '../../types';
 import { calculateFuzzyScore } from '../../utils/fuzzyUtils';
-import { formatArtistNames, getDisplayArtistName } from '../../utils/formattingUtils';
+import { alignArtistsWithSource, formatArtistNames, getDisplayArtistName } from '../../utils/formattingUtils';
 import { fetchFromAppleMusic } from './appleMusicAPI';
 import type { AppleMusicMetadata, CombinedMetadata } from '../../types';
 
@@ -228,12 +228,17 @@ const handleCollaborationFallback = async (
     // Enforce individual artist corrections on the final result.
     // If we found corrections (e.g. "Gabe 'Nandez") but the album metadata from Apple 
     // uses the old/incorrect name (e.g. "Gabe Nandez"), we overwrite it here.
+    // IMPORTANT: keep Apple's joiners (e.g. "&") — do not rebuild with Discogs commas.
     if (corrections.size > 0) {
         const improvedArtists = originalArtists.map((a, index) => ({
             ...a,
-            name: corrections.get(index) || a.name
+            name: corrections.get(index) || a.name,
+            anv: corrections.has(index) ? undefined : a.anv,
         }));
-        const improvedDisplayName = formatArtistNames(improvedArtists);
+        const appleArtist = bestResultSoFar.bestMatch?.artistName;
+        const improvedDisplayName = appleArtist
+            ? formatArtistNames(alignArtistsWithSource(improvedArtists, appleArtist))
+            : formatArtistNames(improvedArtists);
 
         if (bestResultSoFar.bestMatch) {
              // If we have a match (even a new better one), ensure it uses our corrected names
