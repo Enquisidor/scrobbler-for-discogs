@@ -46,31 +46,29 @@ export function generateSearchStrategies(release: DiscogsRelease, settings: Sett
 
     const cleanedTitle = cleanForSearch(title);
 
-    // When correcting the ARTIST:
-    // We only generate strategies IF there is an ANV (Artist Name Variation) to validate.
-    // As per requirement: "Apple only needs to be consulted if discogs provides 'anv'"
-    if (isCorrectingArtist) {
-        // Search by artist name — Apple search is approximate, and for artist correction
-        // we want to find what Apple calls this artist, not locate the exact album.
+    // Anchor on the field we already trust from Discogs; update the other from Apple.
+    // - Correcting artist → search by album, take Apple's artist
+    // - Correcting album  → search by artist, take Apple's album
+    if (isCorrectingArtist && !isCorrectingAlbum) {
+        strategies.push({ query: cleanedTitle, type: AppleSearchStrategyType.ALBUM_PLUS_YEAR, attribute: 'albumTerm', entity: 'album' });
+        strategies.push({ query: cleanedTitle, type: AppleSearchStrategyType.ALBUM_PLUS_YEAR, omitEntity: true });
+
+        // Fallback: artist-term searches (ANVs help when the Discogs title is noisy).
         const searchQueries = generateMetadataSearchArtistQueries(info.artists);
         searchQueries.forEach(query => {
             const cleaned = cleanForSearch(query);
             strategies.push({ query: cleaned, type: AppleSearchStrategyType.ARTIST_PLUS_YEAR, attribute: 'artistTerm', entity: 'album' });
             strategies.push({ query: cleaned, type: AppleSearchStrategyType.ARTIST_PLUS_YEAR, omitEntity: true });
         });
-
-        // When ANV exists, also search by the ANV directly
         info.artists.filter(a => !!a.anv).forEach(artist => {
             const cleanedAnv = cleanForSearch(artist.anv!);
             strategies.push({ query: cleanedAnv, type: AppleSearchStrategyType.ARTIST_PLUS_YEAR, attribute: 'artistTerm', entity: 'album' });
             strategies.push({ query: cleanedAnv, type: AppleSearchStrategyType.ARTIST_PLUS_YEAR, omitEntity: true });
         });
+
+        return strategies;
     }
 
-    // When correcting the ALBUM, search using the artist name as the anchor.
-    // For multi-artist releases, try all permutations of the artist array — Apple Music may
-    // order collaborating artists differently. Deduplicate by query string so the same
-    // search is never sent twice.
     if (isCorrectingAlbum) {
         const seenQueries = new Set<string>();
 
@@ -86,14 +84,12 @@ export function generateSearchStrategies(release: DiscogsRelease, settings: Sett
         searchQueries.forEach(query => addArtistStrategies(query));
 
         // For collabs, Apple Music may attribute the album to only one primary artist.
-        // Always add individual artist searches so we can find the album regardless.
         if (info.artists && info.artists.length > 1) {
             info.artists.forEach(artist => {
                 addArtistStrategies(formatArtistNames([artist]));
             });
         }
 
-        // Also search by unique track-level artist combinations from cached metadata.
         const hasCachedThirdParty = !!(metadata?.apple || metadata?.musicbrainz || metadata?.deezer);
         if (hasCachedThirdParty) {
             const trackArtistStrings = new Set<string>();
@@ -107,9 +103,19 @@ export function generateSearchStrategies(release: DiscogsRelease, settings: Sett
         }
     }
 
-    // Final fallback: search by album title if all artist-anchored searches fail.
+    // When correcting both, or as album-correction fallback: search by album title.
     strategies.push({ query: cleanedTitle, type: AppleSearchStrategyType.ALBUM_PLUS_YEAR, attribute: 'albumTerm', entity: 'album' });
     strategies.push({ query: cleanedTitle, type: AppleSearchStrategyType.ALBUM_PLUS_YEAR, omitEntity: true });
+
+    // When correcting artist alongside album, also try artist-term queries.
+    if (isCorrectingArtist && isCorrectingAlbum) {
+        const searchQueries = generateMetadataSearchArtistQueries(info.artists);
+        searchQueries.forEach(query => {
+            const cleaned = cleanForSearch(query);
+            strategies.push({ query: cleaned, type: AppleSearchStrategyType.ARTIST_PLUS_YEAR, attribute: 'artistTerm', entity: 'album' });
+            strategies.push({ query: cleaned, type: AppleSearchStrategyType.ARTIST_PLUS_YEAR, omitEntity: true });
+        });
+    }
 
     return strategies;
 }

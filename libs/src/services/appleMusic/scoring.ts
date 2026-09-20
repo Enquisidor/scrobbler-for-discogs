@@ -144,26 +144,24 @@ export function calculateTruthScore(
     const useAppleMusicArtist = settings.artistSource === 'apple';
     const useAppleMusicAlbum = settings.albumSource === 'apple';
 
+    // Score the *anchor* field we searched with (trusted Discogs data), not the field
+    // we're trying to update — otherwise joiner differences ("," vs "&") reject good hits.
     if (useAppleMusicArtist && !useAppleMusicAlbum) {
-        primaryScore = scores.artistScore;
-        primaryScoreType = 'Artist';
-    } else if (!useAppleMusicArtist && useAppleMusicAlbum) {
+        // Correcting artist: album was the search anchor.
         primaryScore = scores.albumScore;
-        primaryScoreType = 'Album';
-    } else { // Correcting both: This is where the logic needs to be strategy-aware.
+        primaryScoreType = 'Album (anchor for artist update)';
+    } else if (!useAppleMusicArtist && useAppleMusicAlbum) {
+        // Correcting album: artist was the search anchor.
+        primaryScore = scores.artistScore;
+        primaryScoreType = 'Artist (anchor for album update)';
+    } else { // Correcting both: strategy-aware — judge the field we weren't searching by.
         if (strategy.type === AppleSearchStrategyType.ALBUM_PLUS_YEAR) {
-            // This strategy searches by album title to find the correct artist.
-            // Therefore, the artist score is the one we should primarily judge.
             primaryScore = scores.artistScore;
             primaryScoreType = 'Artist (from Album search)';
         } else if (strategy.type === AppleSearchStrategyType.ARTIST_PLUS_YEAR) {
-            // This strategy searches by artist name to find the correct album.
-            // Therefore, the album score is the one we should primarily judge.
             primaryScore = scores.albumScore;
             primaryScoreType = 'Album (from Artist search)';
         } else {
-            // For other strategies (e.g., broad fallbacks without attributes),
-            // the original logic of taking the best of the two makes sense.
             primaryScore = Math.max(scores.artistScore, scores.albumScore);
             primaryScoreType = scores.artistScore >= scores.albumScore ? 'Artist (Both)' : 'Album (Both)';
         }
@@ -260,11 +258,13 @@ export function isBetterTieBreak(
     const useAppleMusicAlbum = settings.albumSource === 'apple';
 
     if (useAppleMusicArtist && !useAppleMusicAlbum) {
-        secondaryScoreNew = newScores.albumScore;
-        secondaryScoreCurrent = currentScores.albumScore;
-    } else if (!useAppleMusicArtist && useAppleMusicAlbum) {
+        // Primary was album (anchor); tie-break on artist.
         secondaryScoreNew = newScores.artistScore;
         secondaryScoreCurrent = currentScores.artistScore;
+    } else if (!useAppleMusicArtist && useAppleMusicAlbum) {
+        // Primary was artist (anchor); tie-break on album.
+        secondaryScoreNew = newScores.albumScore;
+        secondaryScoreCurrent = currentScores.albumScore;
     } else { // Correcting both: primary was max(a,b), so secondary is min(a,b).
         secondaryScoreNew = Math.min(newScores.artistScore, newScores.albumScore);
         secondaryScoreCurrent = Math.min(currentScores.artistScore, currentScores.albumScore);

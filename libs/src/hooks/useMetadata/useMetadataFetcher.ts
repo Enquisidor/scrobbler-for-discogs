@@ -15,6 +15,28 @@ const DISPATCH_INTERVAL_MS = 500;
 const RATE_LIMIT_COUNT = 18;
 const RATE_LIMIT_WINDOW_MS = 60 * 1000;
 
+/** True when cached provider data is fresh AND has the fields the current settings need. */
+function hasUsableProviderMetadata(
+  meta: { artist?: string; album?: string; lastChecked?: number } | undefined,
+  settings: Settings,
+  provider: 'apple' | 'musicbrainz' | 'deezer',
+  now: number
+): boolean {
+  if (!meta || (now - (meta.lastChecked || 0) >= RECHECK_INTERVAL_MS)) return false;
+
+  const sourceKey = provider === 'apple' ? MetadataSourceType.Apple
+    : provider === 'musicbrainz' ? MetadataSourceType.MusicBrainz
+    : MetadataSourceType.Deezer;
+
+  const needsArtist = settings.artistSource === sourceKey;
+  const needsAlbum = settings.albumSource === sourceKey;
+
+  // A lastChecked-only stamp (failed fetch) must not block refetch when we still need data.
+  if (needsArtist && !meta.artist) return false;
+  if (needsAlbum && !meta.album) return false;
+  return true;
+}
+
 export interface MetadataFetcherOptions {
   /** Function to check if a force fetch was requested (platform-specific storage) */
   checkForceFetch?: () => boolean;
@@ -42,9 +64,6 @@ export function useMetadataFetcher(
   const activeSetRef = useRef<Set<number>>(new Set());
   const sessionQueryCountRef = useRef(0);
   const forceFetchActiveRef = useRef(false);
-  // Tracks artist display name strings already searched this session so releases sharing
-  // the same artist combination don't trigger redundant API calls.
-  const searchedArtistCombinationsRef = useRef<Set<string>>(new Set());
   const mountedRef = useRef(true);
   const prevSettingsRef = useRef(settings);
 
@@ -133,9 +152,9 @@ export function useMetadataFetcher(
       const needsMB = currentSettings.artistSource === MetadataSourceType.MusicBrainz || currentSettings.albumSource === MetadataSourceType.MusicBrainz;
       const needsDeezer = currentSettings.artistSource === MetadataSourceType.Deezer || currentSettings.albumSource === MetadataSourceType.Deezer;
 
-      const hasApple = currentMeta?.apple && (now - (currentMeta.apple.lastChecked || 0) < RECHECK_INTERVAL_MS);
-      const hasMB = currentMeta?.musicbrainz && (now - (currentMeta.musicbrainz.lastChecked || 0) < RECHECK_INTERVAL_MS);
-      const hasDeezer = currentMeta?.deezer && (now - (currentMeta.deezer.lastChecked || 0) < RECHECK_INTERVAL_MS);
+      const hasApple = hasUsableProviderMetadata(currentMeta?.apple, currentSettings, 'apple', now);
+      const hasMB = hasUsableProviderMetadata(currentMeta?.musicbrainz, currentSettings, 'musicbrainz', now);
+      const hasDeezer = hasUsableProviderMetadata(currentMeta?.deezer, currentSettings, 'deezer', now);
 
       requestTimestampsRef.current.push(Date.now());
       activeCountRef.current++;
@@ -143,18 +162,19 @@ export function useMetadataFetcher(
 
       const tasks: Promise<void>[] = [];
 
-      const artistKey = release.basic_information?.artist_display_name ?? '';
-      const isArtistOnlyCorrection = currentSettings.artistSource === MetadataSourceType.Apple && currentSettings.albumSource !== MetadataSourceType.Apple;
-      const artistCombinationAlreadySearched = isArtistOnlyCorrection && searchedArtistCombinationsRef.current.has(artistKey);
-
-      if ((needsApple && (!hasApple || forceFetchActiveRef.current)) && !artistCombinationAlreadySearched) {
-        if (isArtistOnlyCorrection) searchedArtistCombinationsRef.current.add(artistKey);
+      if (needsApple && (!hasApple || forceFetchActiveRef.current)) {
         tasks.push(
           fetchAppleMusicMetadata(release, currentSettings, signal, currentMeta)
             .then(result => {
               if (!mountedRef.current || signal.aborted) return;
-              const finalResult = result ? { ...result, rawResult: result.rawItunesResult, lastChecked: Date.now() } : { lastChecked: Date.now() };
-              dispatch(updateMetadataItem({ releaseId, provider: 'apple', metadata: finalResult }));
+              // Only cache real hits. A lastChecked-only miss was poisoning display for 30 days
+              // (no artist → Discogs commas) after force-refresh rate limits / failed matches.
+              if (!result) return;
+              dispatch(updateMetadataItem({
+                releaseId,
+                provider: 'apple',
+                metadata: { ...result, rawResult: result.rawItunesResult, lastChecked: Date.now() },
+              }));
             })
             .catch(err => {
               if (err.name !== 'AbortError') console.warn(`[MetadataFetcher] Apple fetch error for ${releaseId}`, err);
@@ -166,9 +186,8 @@ export function useMetadataFetcher(
         tasks.push(
           fetchMusicBrainzMetadata(release, signal)
             .then(result => {
-              if (!mountedRef.current || signal.aborted) return;
-              const finalResult = result || { lastChecked: Date.now() };
-              dispatch(updateMetadataItem({ releaseId, provider: 'musicbrainz', metadata: finalResult }));
+              if (!mountedRef.current || signal.aborted || !result) return;
+              dispatch(updateMetadataItem({ releaseId, provider: 'musicbrainz', metadata: { ...result, lastChecked: Date.now() } }));
             })
             .catch(err => {
               if (err.name !== 'AbortError') console.warn(`[MetadataFetcher] MusicBrainz fetch error for ${releaseId}`, err);
@@ -180,9 +199,8 @@ export function useMetadataFetcher(
         tasks.push(
           fetchDeezerMetadata(release, signal)
             .then(result => {
-              if (!mountedRef.current || signal.aborted) return;
-              const finalResult = result || { lastChecked: Date.now() };
-              dispatch(updateMetadataItem({ releaseId, provider: 'deezer', metadata: finalResult }));
+              if (!mountedRef.current || signal.aborted || !result) return;
+              dispatch(updateMetadataItem({ releaseId, provider: 'deezer', metadata: { ...result, lastChecked: Date.now() } }));
             })
             .catch(err => {
               if (err.name !== 'AbortError') console.warn(`[MetadataFetcher] Deezer fetch error for ${releaseId}`, err);
@@ -211,7 +229,6 @@ export function useMetadataFetcher(
       queuedSetRef.current.clear();
       activeSetRef.current.clear();
       processedSessionRef.current.clear();
-      searchedArtistCombinationsRef.current.clear();
       sessionQueryCountRef.current = 0;
       activeCountRef.current = 0;
       requestTimestampsRef.current = [];
@@ -254,7 +271,6 @@ export function useMetadataFetcher(
 
     if (settingsChanged) {
       processedSessionRef.current.clear();
-      searchedArtistCombinationsRef.current.clear();
       sessionQueryCountRef.current = 0;
     }
 
@@ -263,6 +279,9 @@ export function useMetadataFetcher(
 
     collection.forEach(release => {
       const releaseId = release.id;
+
+      // If a visible set is provided, only fetch for on-screen releases.
+      if (visibleIdsRef.current.size > 0 && !visibleIdsRef.current.has(releaseId)) return;
 
       if (queuedSetRef.current.has(releaseId)) return;
       if (activeSetRef.current.has(releaseId)) return;
@@ -274,9 +293,9 @@ export function useMetadataFetcher(
       const needsMB = currentSettings.artistSource === MetadataSourceType.MusicBrainz || currentSettings.albumSource === MetadataSourceType.MusicBrainz;
       const needsDeezer = currentSettings.artistSource === MetadataSourceType.Deezer || currentSettings.albumSource === MetadataSourceType.Deezer;
 
-      const hasApple = meta?.apple && (now - (meta.apple.lastChecked || 0) < RECHECK_INTERVAL_MS);
-      const hasMB = meta?.musicbrainz && (now - (meta.musicbrainz.lastChecked || 0) < RECHECK_INTERVAL_MS);
-      const hasDeezer = meta?.deezer && (now - (meta.deezer.lastChecked || 0) < RECHECK_INTERVAL_MS);
+      const hasApple = hasUsableProviderMetadata(meta?.apple, currentSettings, 'apple', now);
+      const hasMB = hasUsableProviderMetadata(meta?.musicbrainz, currentSettings, 'musicbrainz', now);
+      const hasDeezer = hasUsableProviderMetadata(meta?.deezer, currentSettings, 'deezer', now);
 
       if (forceFetch || (needsApple && !hasApple) || (needsMB && !hasMB) || (needsDeezer && !hasDeezer)) {
         queueRef.current.push(releaseId);

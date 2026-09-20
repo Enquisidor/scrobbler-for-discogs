@@ -125,14 +125,14 @@ describe('getSmartArtistDisplay', () => {
             .toBe('Earl Sweatshirt, MIKE & Surf Gang');
     });
 
-    it('does not adopt source MIKE when Discogs has Mike without ANV', () => {
+    it('keeps Discogs MIKE when Apple returns Mike, but still takes & from Apple', () => {
         const artists: DiscogsArtist[] = [
             { id: 1, name: 'Earl', join: ',' },
             { id: 2, name: 'Sweatshirt', join: ',' },
-            { id: 3, name: 'Mike', join: ',' },
+            { id: 3, name: 'MIKE', join: ',' },
             { id: 4, name: 'Surf Gang' },
         ];
-        expect(getSmartArtistDisplay(artists, meta('Earl Sweatshirt, MIKE & Surf Gang'), appleSettings))
-            .toBe('Earl Sweatshirt, Mike & Surf Gang');
+        expect(getSmartArtistDisplay(artists, meta('Earl Sweatshirt, Mike & Surf Gang'), appleSettings))
+            .toBe('Earl Sweatshirt, MIKE & Surf Gang');
     });
 });

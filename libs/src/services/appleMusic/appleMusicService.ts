@@ -5,7 +5,7 @@ import { generateSearchStrategies } from './strategies';
 import { calculateTruthScore, isBetterTieBreak, getScores, getDiscogsReleaseType, getAppleReleaseType } from './scoring';
 import { AppleSearchStrategyType, ReleaseType } from '../../types';
 import { calculateFuzzyScore } from '../../utils/fuzzyUtils';
-import { alignArtistsWithSource, formatArtistNames, getDisplayArtistName } from '../../utils/formattingUtils';
+import { formatArtistNames, getDisplayArtistName } from '../../utils/formattingUtils';
 import { fetchFromAppleMusic } from './appleMusicAPI';
 import type { AppleMusicMetadata, CombinedMetadata } from '../../types';
 
@@ -80,8 +80,9 @@ const findBestMatch = async (
 
                     const preFilteredResults = validatedResults.filter(result => {
                         const { artistScore, albumScore } = getScores(releaseForScoring, result);
-                        if (strategy.type === AppleSearchStrategyType.ALBUM_PLUS_YEAR) return artistScore > PRE_FILTER_THRESHOLD;
-                        if (strategy.type === AppleSearchStrategyType.ARTIST_PLUS_YEAR) return albumScore > PRE_FILTER_THRESHOLD;
+                        // Keep hits that match the search anchor (the Discogs field we queried with).
+                        if (strategy.type === AppleSearchStrategyType.ALBUM_PLUS_YEAR) return albumScore > PRE_FILTER_THRESHOLD;
+                        if (strategy.type === AppleSearchStrategyType.ARTIST_PLUS_YEAR) return artistScore > PRE_FILTER_THRESHOLD;
                         if (strategy.type === AppleSearchStrategyType.ARTIST_ONLY) return artistScore > PRE_FILTER_THRESHOLD;
                         if (!strategy.attribute) return Math.max(artistScore, albumScore) > PRE_FILTER_THRESHOLD;
                         return true;
@@ -225,58 +226,27 @@ const handleCollaborationFallback = async (
         }
     }
 
-    // Enforce individual artist corrections on the final result.
-    // If we found corrections (e.g. "Gabe 'Nandez") but the album metadata from Apple 
-    // uses the old/incorrect name (e.g. "Gabe Nandez"), we overwrite it here.
-    // IMPORTANT: keep Apple's joiners (e.g. "&") — do not rebuild with Discogs commas.
-    if (corrections.size > 0) {
-        const improvedArtists = originalArtists.map((a, index) => ({
-            ...a,
-            name: corrections.get(index) || a.name,
-            anv: corrections.has(index) ? undefined : a.anv,
-        }));
-        const appleArtist = bestResultSoFar.bestMatch?.artistName;
-        const improvedDisplayName = appleArtist
-            ? formatArtistNames(alignArtistsWithSource(improvedArtists, appleArtist))
-            : formatArtistNames(improvedArtists);
+    // Enforce individual artist corrections on the final result WITHOUT rebuilding
+    // the credit from Discogs joiners. Apple's artistName is the joiner authority
+    // (e.g. "&"); we only substitute corrected individual names into that string.
+    if (corrections.size > 0 && bestResultSoFar.bestMatch?.artistName) {
+        let improvedDisplayName = bestResultSoFar.bestMatch.artistName;
+        for (const [index, correctedName] of corrections) {
+            const original = getDisplayArtistName(originalArtists[index].anv || originalArtists[index].name);
+            if (!original || original.toLowerCase() === correctedName.toLowerCase()) continue;
+            const escaped = original.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+            improvedDisplayName = improvedDisplayName.replace(new RegExp(escaped, 'i'), correctedName);
+        }
 
-        if (bestResultSoFar.bestMatch) {
-             // If we have a match (even a new better one), ensure it uses our corrected names
-             if (bestResultSoFar.bestMatch.artistName !== improvedDisplayName) {
-                 bestResultSoFar = {
-                     ...bestResultSoFar,
-                     bestMatch: {
-                         ...bestResultSoFar.bestMatch,
-                         artistName: improvedDisplayName
-                     }
-                 };
-                 console.log(`[Apple Music] Enforcing artist corrections on final result: "${improvedDisplayName}"`);
-             }
-        } else if (bestResultSoFar.bestScore < ACCEPTANCE_THRESHOLD) {
-            // If still no good album match, create synthetic match with corrections
-            console.log(`[Apple Music] Fallback: Album not found, but applying ${corrections.size} artist corrections: "${improvedDisplayName}"`);
-            const syntheticMatch: ITunesResult = {
-                wrapperType: 'collection',
-                collectionType: 'Album',
-                artistName: improvedDisplayName,
-                collectionName: release.basic_information.title,
-                primaryGenreName: 'Unknown',
-                trackCount: 0,
-                releaseDate: '',
-                country: '',
-                currency: '',
-                artworkUrl100: '',
-                collectionViewUrl: '',
-                artistViewUrl: '',
-                collectionCensoredName: release.basic_information.title,
-                collectionPrice: 0,
+        if (improvedDisplayName !== bestResultSoFar.bestMatch.artistName) {
+            bestResultSoFar = {
+                ...bestResultSoFar,
+                bestMatch: {
+                    ...bestResultSoFar.bestMatch,
+                    artistName: improvedDisplayName,
+                },
             };
-
-            return {
-                bestMatch: syntheticMatch,
-                bestScore: 0.9, // Synthetic passing score
-                bestStrategy: { type: AppleSearchStrategyType.ARTIST_ONLY, query: 'Collaboration Fallback' }
-            };
+            console.log(`[Apple Music] Enforcing artist corrections on final result: "${improvedDisplayName}"`);
         }
     }
 

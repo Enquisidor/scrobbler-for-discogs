@@ -152,7 +152,7 @@ describe('useMetadataFetcher', () => {
     it('should not fetch Apple metadata if already cached and recent', async () => {
       const recentTimestamp = Date.now();
       const store = createTestStore({
-        1: { apple: { artist: 'Cached', lastChecked: recentTimestamp } },
+        1: { apple: { artist: 'Cached', album: 'Cached Album', lastChecked: recentTimestamp } },
       });
       const collection = [createRelease(1)];
 
@@ -223,7 +223,8 @@ describe('useMetadataFetcher', () => {
       expect(mockFetchApple).toHaveBeenCalledWith(
         expect.objectContaining({ id: 2 }),
         expect.any(Object),
-        expect.any(Object)
+        expect.any(Object),
+        undefined
       );
     });
 
