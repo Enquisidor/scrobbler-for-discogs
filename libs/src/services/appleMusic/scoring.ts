@@ -1,7 +1,7 @@
 
 import type { DiscogsRelease, ITunesResult, AppleSearchStrategy, Settings } from '../../types';
 import { AppleSearchStrategyType, ReleaseType } from '../../types';
-import { calculateFuzzyScore } from '../../utils/fuzzyUtils';
+import { calculateFuzzyScore, calculateCloseEnoughScore } from '../../utils/fuzzyUtils';
 import { formatArtistNames, formatArtistsForMetadataSearch } from '../../utils/formattingUtils';
 
 export function getDiscogsReleaseType(release: DiscogsRelease): ReleaseType {
@@ -44,14 +44,14 @@ export function getScores(discogs: DiscogsRelease, apple: ITunesResult): { artis
         ? formatArtistsForMetadataSearch(info.artists)
         : info.artist_display_name;
     let finalArtistScore = Math.max(
-        calculateFuzzyScore(searchArtist, appleArtist),
-        calculateFuzzyScore(info.artist_display_name, appleArtist)
+        calculateCloseEnoughScore(searchArtist, appleArtist),
+        calculateCloseEnoughScore(info.artist_display_name, appleArtist)
     );
 
     // For single-artist releases also check the ANV.
     const individualArtists = info.artists;
     if (individualArtists?.length === 1 && individualArtists[0].anv) {
-        const anvScore = calculateFuzzyScore(individualArtists[0].anv, appleArtist);
+        const anvScore = calculateCloseEnoughScore(individualArtists[0].anv, appleArtist);
         if (anvScore > finalArtistScore) finalArtistScore = anvScore;
     }
 
@@ -67,7 +67,7 @@ export function getScores(discogs: DiscogsRelease, apple: ITunesResult): { artis
                     const combo = formatArtistNames(t.artists);
                     if (!seen.has(combo)) {
                         seen.add(combo);
-                        const s = calculateFuzzyScore(combo, appleArtist);
+                        const s = calculateCloseEnoughScore(combo, appleArtist);
                         if (s > finalArtistScore) finalArtistScore = s;
                     }
                 }
@@ -75,7 +75,17 @@ export function getScores(discogs: DiscogsRelease, apple: ITunesResult): { artis
         }
     }
 
-    const albumScore = calculateFuzzyScore(info.title, apple.collectionName);
+    // Also score each Discogs artist individually against Apple (subset / primary credit).
+    if (individualArtists && individualArtists.length > 1) {
+        for (const artist of individualArtists) {
+            const name = artist.anv || artist.name;
+            if (!name) continue;
+            const s = calculateCloseEnoughScore(name, appleArtist);
+            if (s > finalArtistScore) finalArtistScore = s;
+        }
+    }
+
+    const albumScore = calculateCloseEnoughScore(info.title, apple.collectionName);
 
     return { artistScore: finalArtistScore, albumScore };
 }

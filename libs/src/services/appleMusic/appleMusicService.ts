@@ -4,7 +4,7 @@ import type { DiscogsRelease, Settings, ITunesResponse, ITunesResult, AppleSearc
 import { generateSearchStrategies } from './strategies';
 import { calculateTruthScore, isBetterTieBreak, getScores, getDiscogsReleaseType, getAppleReleaseType } from './scoring';
 import { AppleSearchStrategyType, ReleaseType } from '../../types';
-import { calculateFuzzyScore } from '../../utils/fuzzyUtils';
+import { calculateCloseEnoughScore } from '../../utils/fuzzyUtils';
 import { formatArtistNames, getDisplayArtistName } from '../../utils/formattingUtils';
 import { AppleMusicRateLimitError, fetchFromAppleMusic } from './appleMusicAPI';
 import type { AppleMusicMetadata, CombinedMetadata } from '../../types';
@@ -73,8 +73,8 @@ const findBestMatch = async (
                     });
 
                     const validatedResults = typeFilteredResults.filter(result => {
-                        if (strategy.attribute === 'albumTerm') return calculateFuzzyScore(strategy.query, result.collectionName) >= ANCHOR_FIELD_VALIDATION_THRESHOLD;
-                        if (strategy.attribute === 'artistTerm') return calculateFuzzyScore(strategy.query, result.artistName) >= ANCHOR_FIELD_VALIDATION_THRESHOLD;
+                        if (strategy.attribute === 'albumTerm') return calculateCloseEnoughScore(strategy.query, result.collectionName) >= ANCHOR_FIELD_VALIDATION_THRESHOLD;
+                        if (strategy.attribute === 'artistTerm') return calculateCloseEnoughScore(strategy.query, result.artistName) >= ANCHOR_FIELD_VALIDATION_THRESHOLD;
                         return true;
                     });
 
