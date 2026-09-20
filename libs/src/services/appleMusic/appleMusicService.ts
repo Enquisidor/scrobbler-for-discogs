@@ -6,7 +6,7 @@ import {
     buildOneArtistCorrectedCollabQueries,
 } from './strategies';
 import { calculateTruthScore, isBetterTieBreak, getScores, getDiscogsReleaseType, getAppleReleaseType } from './scoring';
-import { AppleSearchStrategyType, ReleaseType } from '../../types';
+import { ReleaseType } from '../../types';
 import { formatArtistsForMetadataSearch } from '../../utils/formattingUtils';
 import { albumTitleVariants, calculateCloseEnoughScore, cleanForSearch } from '../../utils/fuzzyUtils';
 import { AppleMusicRateLimitError, fetchFromAppleMusic } from './appleMusicAPI';
@@ -109,8 +109,9 @@ const runStrategies = async (
                         const albumScore = albumResemblanceScore(discogsTitle, result.collectionName);
                         const artistScoreVsDiscogs = artistResemblanceScore(releaseForScoring, result.artistName);
 
-                        // Harvest corrected Apple artist spellings / joiners when they still
-                        // look like the same Discogs credit (even if this album isn't ours).
+                        // Only harvest artist corrections that still resemble the Discogs credit.
+                        // Never treat a same-titled album by an unrelated artist as a correction
+                        // (e.g. "amputated mind - Laughing So Hard It Hurts" for MAVI).
                         if (
                             result.artistName &&
                             artistScoreVsDiscogs >= ARTIST_CORRECTION_FLOOR
@@ -121,25 +122,15 @@ const runStrategies = async (
                             }
                         }
 
-                        // Strong album hit from album-title search → Apple's artistName is the correction.
-                        if (
-                            strategy.attribute === 'albumTerm' &&
-                            albumScore >= STRONG_ALBUM_ANCHOR &&
-                            result.artistName
-                        ) {
-                            const cleaned = cleanForSearch(result.artistName);
-                            if (cleaned && !triedArtistQueries.has(cleaned)) {
-                                correctedArtists.add(result.artistName);
-                            }
-                        }
-
                         const appleType = getAppleReleaseType(result);
                         if (discogsType !== ReleaseType.UNKNOWN) {
                             if (discogsType !== ReleaseType.SINGLE && appleType === ReleaseType.SINGLE) continue;
+                            // Soften EP mismatch only when both album AND artist already look right.
                             if (
                                 discogsType !== ReleaseType.EP &&
                                 appleType === ReleaseType.EP &&
-                                albumScore < STRONG_ALBUM_ANCHOR
+                                (albumScore < STRONG_ALBUM_ANCHOR ||
+                                    artistScoreVsDiscogs < ARTIST_CORRECTION_FLOOR)
                             ) {
                                 continue;
                             }
@@ -156,9 +147,8 @@ const runStrategies = async (
 
                         const { artistScore, albumScore: scoredAlbum } = getScores(releaseForScoring, result);
                         if (scoredAlbum <= PRE_FILTER_THRESHOLD) continue;
-                        if (strategy.type === AppleSearchStrategyType.ARTIST_PLUS_YEAR && artistScore <= PRE_FILTER_THRESHOLD) {
-                            continue;
-                        }
+                        // Album title alone is never enough — reject unrelated artists.
+                        if (artistScore < ARTIST_CORRECTION_FLOOR) continue;
 
                         let score = calculateTruthScore(releaseForScoring, result, strategy, settingsForThisRun);
                         if (

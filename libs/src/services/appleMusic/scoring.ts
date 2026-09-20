@@ -157,7 +157,17 @@ export function calculateTruthScore(
     // Score the *anchor* field we searched with (trusted Discogs data), not the field
     // we're trying to update — otherwise joiner differences ("," vs "&") reject good hits.
     if (useAppleMusicArtist && !useAppleMusicAlbum) {
-        // Correcting artist: album was the search anchor.
+        // Correcting artist: album anchors the search, but artist must still be plausible
+        // or same-titled releases by unrelated artists will "win".
+        if (scores.artistScore < 0.55) {
+            console.log('[Score]', {
+                discogs: `${discogs.basic_information.artist_display_name} - ${discogs.basic_information.title}`,
+                apple: `${apple.artistName} - ${apple.collectionName}`,
+                status: `REJECTED (artist ${scores.artistScore.toFixed(3)} unrelated to Discogs credit)`,
+                strategy: `${strategy.type} (${strategy.attribute || 'Broad'})`,
+            });
+            return scores.artistScore;
+        }
         primaryScore = scores.albumScore;
         primaryScoreType = 'Album (anchor for artist update)';
     } else if (!useAppleMusicArtist && useAppleMusicAlbum) {

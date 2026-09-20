@@ -110,7 +110,7 @@ export function buildOneArtistCorrectedCollabQueries(
             }
         }
 
-        if (!bestCandidate || bestScore <= 0) continue;
+        if (!bestCandidate || bestScore < 0.55) continue;
         if (cleanForSearch(discogsName) === cleanForSearch(bestCandidate)) continue;
 
         const substituted = artists.map((artist, idx) =>
