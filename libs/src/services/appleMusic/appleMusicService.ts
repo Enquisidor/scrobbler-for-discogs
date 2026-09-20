@@ -1,38 +1,85 @@
 
-
-import type { DiscogsRelease, Settings, ITunesResponse, ITunesResult, AppleSearchStrategy } from '../../types';
-import { generateSearchStrategies } from './strategies';
+import type { DiscogsRelease, Settings, ITunesResult, AppleSearchStrategy } from '../../types';
+import {
+    generateArtistSearchStrategies,
+    generateAlbumSearchStrategies,
+    buildOneArtistCorrectedCollabQueries,
+} from './strategies';
 import { calculateTruthScore, isBetterTieBreak, getScores, getDiscogsReleaseType, getAppleReleaseType } from './scoring';
 import { AppleSearchStrategyType, ReleaseType } from '../../types';
-import { calculateCloseEnoughScore } from '../../utils/fuzzyUtils';
-import { formatArtistNames, getDisplayArtistName } from '../../utils/formattingUtils';
+import { formatArtistsForMetadataSearch } from '../../utils/formattingUtils';
+import { albumTitleVariants, calculateCloseEnoughScore, cleanForSearch } from '../../utils/fuzzyUtils';
 import { AppleMusicRateLimitError, fetchFromAppleMusic } from './appleMusicAPI';
 import type { AppleMusicMetadata, CombinedMetadata } from '../../types';
 
 // Strict threshold for acceptance
 const ACCEPTANCE_THRESHOLD = 0.85;
+/** When the album anchor is strong, accept a weaker artist match (collabs / stylization). */
+const STRONG_ALBUM_ANCHOR = 0.85;
+const RELAXED_ARTIST_FLOOR = 0.4;
 const PRE_FILTER_THRESHOLD = 0.3; // Low bar to weed out completely wrong results
 const ANCHOR_FIELD_VALIDATION_THRESHOLD = 0.7; // Threshold to confirm API returned a relevant result
+/** ArtistName is a plausible stylization / joiner fix of the Discogs credit. */
+const ARTIST_CORRECTION_FLOOR = 0.55;
+const MAX_CORRECTED_ARTIST_RETRIES = 3;
+
+type MatchResult = {
+    bestMatch: ITunesResult | null;
+    bestScore: number;
+    bestStrategy: AppleSearchStrategy | null;
+    rateLimited?: boolean;
+};
+
+/** Best close-enough score of an Apple album title against Discogs title variants. */
+const albumResemblanceScore = (discogsTitle: string, appleAlbumTitle: string): number => {
+    let best = calculateCloseEnoughScore(discogsTitle, appleAlbumTitle);
+    for (const variant of albumTitleVariants(discogsTitle)) {
+        best = Math.max(best, calculateCloseEnoughScore(variant, appleAlbumTitle));
+    }
+    return best;
+};
+
+/** How closely an Apple artistName resembles the Discogs credit (for correction harvest). */
+const artistResemblanceScore = (release: DiscogsRelease, appleArtist: string): number => {
+    const info = release.basic_information;
+    const searchArtist = info.artists?.length
+        ? formatArtistsForMetadataSearch(info.artists)
+        : info.artist_display_name;
+    let best = Math.max(
+        calculateCloseEnoughScore(searchArtist, appleArtist),
+        calculateCloseEnoughScore(info.artist_display_name, appleArtist)
+    );
+    for (const artist of info.artists ?? []) {
+        const name = artist.anv || artist.name;
+        if (name) best = Math.max(best, calculateCloseEnoughScore(name, appleArtist));
+    }
+    return best;
+};
 
 /**
- * A helper function that runs a set of search strategies for a given release
- * and returns the best match found.
+ * Run a list of strategies, scoring album-anchored hits. Optionally harvest Apple
+ * artistNames that look like corrections of the Discogs credit.
  */
-const findBestMatch = async (
+const runStrategies = async (
+    strategies: AppleSearchStrategy[],
     releaseForSearch: DiscogsRelease,
     settingsForThisRun: Settings,
     parentSignal: AbortSignal | undefined,
     releaseForScoring: DiscogsRelease,
-    metadata?: CombinedMetadata
-): Promise<{ bestMatch: ITunesResult | null, bestScore: number, bestStrategy: AppleSearchStrategy | null, rateLimited?: boolean }> => {
-    const strategies = generateSearchStrategies(releaseForSearch, settingsForThisRun, metadata);
-    
-    let overallBestMatch: ITunesResult | null = null;
-    let overallBestScore = 0;
-    let bestMatchStrategy: AppleSearchStrategy | null = null;
+    seed: MatchResult,
+    correctedArtists: Set<string>,
+    triedArtistQueries: Set<string>
+): Promise<MatchResult> => {
+    const discogsTitle = releaseForScoring.basic_information.title;
+    let overallBestMatch = seed.bestMatch;
+    let overallBestScore = seed.bestScore;
+    let bestMatchStrategy = seed.bestStrategy;
 
-     for (const strategy of strategies) {
+    for (const strategy of strategies) {
         if (parentSignal?.aborted) throw new DOMException('Aborted by parent', 'AbortError');
+        if (strategy.attribute === 'artistTerm') {
+            triedArtistQueries.add(cleanForSearch(strategy.query));
+        }
 
         let currentOffset = 0;
         let hasMorePages = true;
@@ -40,7 +87,7 @@ const findBestMatch = async (
 
         while (hasMorePages) {
             if (parentSignal?.aborted) throw new DOMException('Aborted by parent', 'AbortError');
-            
+
             try {
                 const data = await fetchFromAppleMusic(
                     strategy.query,
@@ -50,51 +97,88 @@ const findBestMatch = async (
                     currentOffset,
                     parentSignal
                 );
-                
+
                 if (totalResultsFromServer === -1) totalResultsFromServer = data.resultCount;
 
                 if (data.resultCount > 0 && data.results.length > 0) {
-                    let resultsToProcess = data.results;
-
-                    if (strategy.type === AppleSearchStrategyType.ARTIST_ONLY) {
-                        resultsToProcess = data.results.filter(r => r.wrapperType === 'artist').map(r => ({ ...r, collectionType: 'Album', collectionName: r.artistName, trackCount: 0, releaseDate: '' }));
-                    }
-
                     const discogsType = getDiscogsReleaseType(releaseForScoring);
-                    const typeFilteredResults = resultsToProcess.filter(result => {
-                        if (strategy.type === AppleSearchStrategyType.ARTIST_ONLY) return true;
-                        if (result.wrapperType !== 'collection' || result.collectionType !== 'Album') return false;
-                        if (discogsType === ReleaseType.UNKNOWN) return true;
+
+                    for (const result of data.results) {
+                        if (result.wrapperType !== 'collection' || result.collectionType !== 'Album') continue;
+
+                        const albumScore = albumResemblanceScore(discogsTitle, result.collectionName);
+                        const artistScoreVsDiscogs = artistResemblanceScore(releaseForScoring, result.artistName);
+
+                        // Harvest corrected Apple artist spellings / joiners when they still
+                        // look like the same Discogs credit (even if this album isn't ours).
+                        if (
+                            result.artistName &&
+                            artistScoreVsDiscogs >= ARTIST_CORRECTION_FLOOR
+                        ) {
+                            const cleaned = cleanForSearch(result.artistName);
+                            if (cleaned && !triedArtistQueries.has(cleaned)) {
+                                correctedArtists.add(result.artistName);
+                            }
+                        }
+
+                        // Strong album hit from album-title search → Apple's artistName is the correction.
+                        if (
+                            strategy.attribute === 'albumTerm' &&
+                            albumScore >= STRONG_ALBUM_ANCHOR &&
+                            result.artistName
+                        ) {
+                            const cleaned = cleanForSearch(result.artistName);
+                            if (cleaned && !triedArtistQueries.has(cleaned)) {
+                                correctedArtists.add(result.artistName);
+                            }
+                        }
+
                         const appleType = getAppleReleaseType(result);
-                        if (discogsType !== ReleaseType.SINGLE && appleType === ReleaseType.SINGLE) return false;
-                        if (discogsType !== ReleaseType.EP && appleType === ReleaseType.EP) return false;
-                        if (discogsType === ReleaseType.SINGLE && appleType === ReleaseType.ALBUM) return false;
-                        return true;
-                    });
+                        if (discogsType !== ReleaseType.UNKNOWN) {
+                            if (discogsType !== ReleaseType.SINGLE && appleType === ReleaseType.SINGLE) continue;
+                            if (
+                                discogsType !== ReleaseType.EP &&
+                                appleType === ReleaseType.EP &&
+                                albumScore < STRONG_ALBUM_ANCHOR
+                            ) {
+                                continue;
+                            }
+                            if (discogsType === ReleaseType.SINGLE && appleType === ReleaseType.ALBUM) continue;
+                        }
 
-                    const validatedResults = typeFilteredResults.filter(result => {
-                        if (strategy.attribute === 'albumTerm') return calculateCloseEnoughScore(strategy.query, result.collectionName) >= ANCHOR_FIELD_VALIDATION_THRESHOLD;
-                        if (strategy.attribute === 'artistTerm') return calculateCloseEnoughScore(strategy.query, result.artistName) >= ANCHOR_FIELD_VALIDATION_THRESHOLD;
-                        return true;
-                    });
+                        if (strategy.attribute === 'albumTerm') {
+                            if (calculateCloseEnoughScore(strategy.query, result.collectionName) < ANCHOR_FIELD_VALIDATION_THRESHOLD) {
+                                continue;
+                            }
+                        } else if (strategy.attribute === 'artistTerm') {
+                            if (albumScore < ANCHOR_FIELD_VALIDATION_THRESHOLD) continue;
+                        }
 
-                    const preFilteredResults = validatedResults.filter(result => {
-                        const { artistScore, albumScore } = getScores(releaseForScoring, result);
-                        // Keep hits that match the search anchor (the Discogs field we queried with).
-                        if (strategy.type === AppleSearchStrategyType.ALBUM_PLUS_YEAR) return albumScore > PRE_FILTER_THRESHOLD;
-                        if (strategy.type === AppleSearchStrategyType.ARTIST_PLUS_YEAR) return artistScore > PRE_FILTER_THRESHOLD;
-                        if (strategy.type === AppleSearchStrategyType.ARTIST_ONLY) return artistScore > PRE_FILTER_THRESHOLD;
-                        if (!strategy.attribute) return Math.max(artistScore, albumScore) > PRE_FILTER_THRESHOLD;
-                        return true;
-                    });
+                        const { artistScore, albumScore: scoredAlbum } = getScores(releaseForScoring, result);
+                        if (scoredAlbum <= PRE_FILTER_THRESHOLD) continue;
+                        if (strategy.type === AppleSearchStrategyType.ARTIST_PLUS_YEAR && artistScore <= PRE_FILTER_THRESHOLD) {
+                            continue;
+                        }
 
-                    for (const result of preFilteredResults) {
-                        const score = calculateTruthScore(releaseForScoring, result, strategy, settingsForThisRun);
+                        let score = calculateTruthScore(releaseForScoring, result, strategy, settingsForThisRun);
+                        if (
+                            score < ACCEPTANCE_THRESHOLD &&
+                            scoredAlbum >= STRONG_ALBUM_ANCHOR &&
+                            artistScore >= RELAXED_ARTIST_FLOOR
+                        ) {
+                            score = Math.max(score, Math.min(0.92, 0.7 * scoredAlbum + 0.3 * artistScore));
+                        }
+
                         if (score > overallBestScore) {
                             overallBestScore = score;
                             overallBestMatch = result;
                             bestMatchStrategy = strategy;
-                        } else if (score === overallBestScore && overallBestScore > 0 && overallBestMatch && isBetterTieBreak(releaseForScoring, result, overallBestMatch, settingsForThisRun)) {
+                        } else if (
+                            score === overallBestScore &&
+                            overallBestScore > 0 &&
+                            overallBestMatch &&
+                            isBetterTieBreak(releaseForScoring, result, overallBestMatch, settingsForThisRun)
+                        ) {
                             overallBestMatch = result;
                             bestMatchStrategy = strategy;
                         }
@@ -108,26 +192,121 @@ const findBestMatch = async (
                     if (data.results.length < 200 || currentOffset >= totalResultsFromServer) hasMorePages = false;
                 }
             } catch (e) {
-                hasMorePages = false; // Stop paginating for this strategy if an error occurs
+                hasMorePages = false;
                 if (e instanceof DOMException && e.name === 'AbortError' && parentSignal?.aborted) {
-                    throw e; // Propagate parent-level aborts
+                    throw e;
                 }
-                // 403 means Apple is throttling this IP — more strategies only deepen the ban.
                 if (e instanceof AppleMusicRateLimitError) {
                     console.warn(`[Apple Music] Rate limited; stopping search early (best so far ${(overallBestScore * 100).toFixed(1)}%).`);
-                    return { bestMatch: overallBestMatch, bestScore: overallBestScore, bestStrategy: bestMatchStrategy, rateLimited: true };
+                    return {
+                        bestMatch: overallBestMatch,
+                        bestScore: overallBestScore,
+                        bestStrategy: bestMatchStrategy,
+                        rateLimited: true,
+                    };
                 }
-                // Log other errors (like timeouts or network issues) but continue to the next strategy
                 console.warn(`[Apple Music] Strategy page failed for query "${strategy.query}".`, e);
             }
         }
-        if (overallBestScore >= ACCEPTANCE_THRESHOLD) break; // Move to the next strategy if no good match found
+        if (overallBestScore >= ACCEPTANCE_THRESHOLD) break;
     }
-    return { bestMatch: overallBestMatch, bestScore: overallBestScore, bestStrategy: bestMatchStrategy };
+
+    return {
+        bestMatch: overallBestMatch,
+        bestScore: overallBestScore,
+        bestStrategy: bestMatchStrategy,
+    };
+};
+
+/**
+ * 1. Search by Discogs artist(s) for albums resembling the Discogs title.
+ * 2. If no close album: discover corrected Apple artist names (album-title search +
+ *    stylized artistNames from step 1), then retry artist → album under those names.
+ */
+const findBestMatch = async (
+    releaseForSearch: DiscogsRelease,
+    settingsForThisRun: Settings,
+    parentSignal: AbortSignal | undefined,
+    releaseForScoring: DiscogsRelease,
+    _metadata?: CombinedMetadata
+): Promise<MatchResult> => {
+    const correctedArtists = new Set<string>();
+    const triedArtistQueries = new Set<string>();
+    let state: MatchResult = { bestMatch: null, bestScore: 0, bestStrategy: null };
+
+    // Pass 1: Discogs artist names (combined + separated) → resembling albums.
+    const artistStrategies = generateArtistSearchStrategies(releaseForSearch, settingsForThisRun);
+    state = await runStrategies(
+        artistStrategies,
+        releaseForSearch,
+        settingsForThisRun,
+        parentSignal,
+        releaseForScoring,
+        state,
+        correctedArtists,
+        triedArtistQueries
+    );
+    if (state.rateLimited || state.bestScore >= ACCEPTANCE_THRESHOLD) return state;
+
+    // Pass 2: album-title search — finds the release when Discogs artist spelling
+    // didn't land in the right catalog, and harvests Apple's artistName as a correction.
+    const albumStrategies = generateAlbumSearchStrategies(releaseForSearch, settingsForThisRun);
+    state = await runStrategies(
+        albumStrategies,
+        releaseForSearch,
+        settingsForThisRun,
+        parentSignal,
+        releaseForScoring,
+        state,
+        correctedArtists,
+        triedArtistQueries
+    );
+    if (state.rateLimited || state.bestScore >= ACCEPTANCE_THRESHOLD) return state;
+
+    // Pass 3: no close album under Discogs artists — retry with corrected Apple artist names,
+    // and (for collabs) with the closest member so far substituted when nothing similar matched.
+    const fullCorrections = [...correctedArtists]
+        .filter(name => {
+            const cleaned = cleanForSearch(name);
+            return cleaned && !triedArtistQueries.has(cleaned);
+        })
+        .slice(0, MAX_CORRECTED_ARTIST_RETRIES);
+
+    const nothingSimilar = state.bestScore < ANCHOR_FIELD_VALIDATION_THRESHOLD;
+    const partialCollabCorrections = nothingSimilar
+        ? buildOneArtistCorrectedCollabQueries(
+            releaseForSearch,
+            correctedArtists,
+            triedArtistQueries
+        ).slice(0, MAX_CORRECTED_ARTIST_RETRIES)
+        : [];
+
+    const retryQueries = [...new Set([...fullCorrections, ...partialCollabCorrections])];
+    if (retryQueries.length === 0) return state;
+
+    console.log(
+        `[Apple Music] No close album under Discogs artist(s); retrying with corrected artist name(s): ${retryQueries.join(' | ')}`
+    );
+    const retryStrategies = generateArtistSearchStrategies(
+        releaseForSearch,
+        settingsForThisRun,
+        retryQueries
+    ).filter(s => !triedArtistQueries.has(cleanForSearch(s.query)));
+
+    return runStrategies(
+        retryStrategies,
+        releaseForSearch,
+        settingsForThisRun,
+        parentSignal,
+        releaseForScoring,
+        state,
+        correctedArtists,
+        triedArtistQueries
+    );
 };
 
 const processFinalResult = (
-    result: { bestMatch: ITunesResult | null, bestScore: number, bestStrategy: AppleSearchStrategy | null },
+    result: MatchResult,
     release: DiscogsRelease,
     settings: Settings
 ): AppleMusicMetadata | null => {
@@ -138,9 +317,8 @@ const processFinalResult = (
     }
 
     const finalArtist = result.bestMatch.artistName;
-    const isArtistOnly = result.bestStrategy?.type === AppleSearchStrategyType.ARTIST_ONLY;
     const albumSourceIsApple = settings.albumSource === 'apple';
-    const finalAlbum = (isArtistOnly || !albumSourceIsApple) ? undefined : result.bestMatch.collectionName;
+    const finalAlbum = albumSourceIsApple ? result.bestMatch.collectionName : undefined;
 
     const discogsArtist = release.basic_information.artist_display_name;
     const discogsTitle = release.basic_information.title;
@@ -165,100 +343,6 @@ const processFinalResult = (
 };
 
 /**
- * Handles the complex, multi-stage fallback logic for releases with multiple artists (collaborations).
- */
-const handleCollaborationFallback = async (
-    initialBestResult: { bestMatch: ITunesResult | null, bestScore: number, bestStrategy: AppleSearchStrategy | null },
-    release: DiscogsRelease,
-    settings: Settings,
-    parentSignal: AbortSignal | undefined
-): Promise<{ bestMatch: ITunesResult | null, bestScore: number, bestStrategy: AppleSearchStrategy | null }> => {
-    console.log(`[Apple Music] Initial search failed for collaboration. Attempting iterative artist correction.`);
-    
-    let bestResultSoFar = initialBestResult;
-    const originalArtists = release.basic_information.artists!;
-    // Use Apple Music as the artist source for individual artist correction
-    const artistCorrectionSettings: Settings = { ...settings, artistSource: 'apple', albumSource: 'discogs' };
-    const corrections = new Map<number, string>();
-
-    for (let i = 0; i < originalArtists.length; i++) {
-        const artistToCorrect = originalArtists[i];
-        if (parentSignal?.aborted) break;
-        
-        // --- Step A: Find a potential correction for the current artist ---
-        const displayName = getDisplayArtistName(artistToCorrect.anv || artistToCorrect.name);
-        const artistLookupRelease: DiscogsRelease = {
-            ...release,
-            basic_information: { ...release.basic_information, artists: [artistToCorrect], artist_display_name: displayName, title: "Artist Correction Search" }
-        };
-        const artistCorrectionResult = await findBestMatch(artistLookupRelease, artistCorrectionSettings, parentSignal, artistLookupRelease);
-
-        const correctedName = artistCorrectionResult.bestMatch?.artistName;
-        const nonAlphanumCount = (s: string) => (s.match(/[^a-zA-Z0-9\s]/g) || []).length;
-        const correctedAddsPunctuation = correctedName ? nonAlphanumCount(correctedName) > nonAlphanumCount(displayName) : false;
-        const hasFoundCorrection = correctedName && artistCorrectionResult.bestScore >= ACCEPTANCE_THRESHOLD && correctedName.toLowerCase() !== displayName.toLowerCase() && !correctedAddsPunctuation;
-
-        if (hasFoundCorrection) {
-            console.log(`[Apple Music] Correction found: "${displayName}" -> "${correctedName}".`);
-            corrections.set(i, correctedName!);
-
-            // --- Step B: Re-run the main search for releases, anchored on the corrected artist name ---
-            const releaseForResearch: DiscogsRelease = {
-                ...release,
-                basic_information: { ...release.basic_information, artists: [{ ...artistToCorrect, name: correctedName! }], artist_display_name: correctedName! }
-            };
-            
-            // --- Step C: Score the results against the original release with the one artist name substituted ---
-            const artistsWithSubstitution = originalArtists.map(a => a.name === artistToCorrect.name ? { ...a, name: correctedName! } : a);
-            const scoringReleaseWithSubstitution: DiscogsRelease = {
-                ...release,
-                basic_information: { ...release.basic_information, artists: artistsWithSubstitution, artist_display_name: formatArtistNames(artistsWithSubstitution) }
-            }
-
-            const reSearchResult = await findBestMatch(releaseForResearch, settings, parentSignal, scoringReleaseWithSubstitution);
-
-            // --- Step D: Compare and keep the best result found so far ---
-            if (reSearchResult.bestScore > bestResultSoFar.bestScore) {
-                console.log(`[Apple Music] Re-search yielded a better score: ${reSearchResult.bestScore.toFixed(3)} > ${bestResultSoFar.bestScore.toFixed(3)}`);
-                bestResultSoFar = reSearchResult;
-            }
-
-            // If we get a near-perfect match, we can stop early
-            if (bestResultSoFar.bestScore >= 0.99) {
-                console.log(`[Apple Music] Found a high-confidence match. Stopping fallback search.`);
-                break;
-            }
-        }
-    }
-
-    // Enforce individual artist corrections on the final result WITHOUT rebuilding
-    // the credit from Discogs joiners. Apple's artistName is the joiner authority
-    // (e.g. "&"); we only substitute corrected individual names into that string.
-    if (corrections.size > 0 && bestResultSoFar.bestMatch?.artistName) {
-        let improvedDisplayName = bestResultSoFar.bestMatch.artistName;
-        for (const [index, correctedName] of corrections) {
-            const original = getDisplayArtistName(originalArtists[index].anv || originalArtists[index].name);
-            if (!original || original.toLowerCase() === correctedName.toLowerCase()) continue;
-            const escaped = original.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
-            improvedDisplayName = improvedDisplayName.replace(new RegExp(escaped, 'i'), correctedName);
-        }
-
-        if (improvedDisplayName !== bestResultSoFar.bestMatch.artistName) {
-            bestResultSoFar = {
-                ...bestResultSoFar,
-                bestMatch: {
-                    ...bestResultSoFar.bestMatch,
-                    artistName: improvedDisplayName,
-                },
-            };
-            console.log(`[Apple Music] Enforcing artist corrections on final result: "${improvedDisplayName}"`);
-        }
-    }
-
-    return bestResultSoFar;
-};
-
-/**
  * The main exported function that orchestrates the entire metadata fetching process for a single release.
  */
 export const fetchAppleMusicMetadata = async (
@@ -269,18 +353,6 @@ export const fetchAppleMusicMetadata = async (
 ): Promise<AppleMusicMetadata | null> => {
     if (!release || !release.basic_information) return null;
 
-    // --- 1. Initial Search ---
-    let bestResultSoFar = await findBestMatch(release, settings, parentSignal, release, metadata);
-
-    // --- 2. Collaboration Fallback (if necessary) ---
-    const artists = release.basic_information.artists ?? [];
-    const isCollaboration = artists.length > 1;
-    const shouldFallback = isCollaboration && bestResultSoFar.bestScore < ACCEPTANCE_THRESHOLD && !bestResultSoFar.rateLimited;
-
-    if (shouldFallback) {
-        bestResultSoFar = await handleCollaborationFallback(bestResultSoFar, release, settings, parentSignal);
-    }
-
-    // --- 3. Final Result Construction ---
+    const bestResultSoFar = await findBestMatch(release, settings, parentSignal, release, metadata);
     return processFinalResult(bestResultSoFar, release, settings);
 };

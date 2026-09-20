@@ -39,6 +39,8 @@ const STOP_WORDS = new Set(['the', 'a', 'an', 'and', '&', 'of', 'in', 'on', 'at'
 /** Trailing edition / version noise often present on Discogs but missing (or different) on Apple. */
 const TRAILING_EDITION_PARENS = /\s*\([^)]*(?:edition|version|deluxe|expanded|remaster(?:ed)?|anniversary|bonus|explicit|clean|instrumental)[^)]*\)\s*$/i;
 const TRAILING_EDITION_DASH = /\s+[-–—]\s+(?:deluxe|expanded|remaster(?:ed)?|anniversary|bonus)\b.*$/i;
+/** Multi-release Discogs titles that join a digital album with an exclusive side (not an "edition"). */
+const COMBINED_RELEASE_SPLIT = /\s+(?:x|\/|\||\+)\s+/i;
 
 // Tokenizer for SCORING: Strips ALL non-alphanumeric characters to match "Guns N' Roses" vs "Guns N Roses".
 export const tokenize = (str: string): string[] => {
@@ -83,14 +85,28 @@ export const stripEditionSuffix = (title: string): string => {
 };
 
 /**
- * Title variants worth searching / comparing: full title and edition-stripped base.
+ * Title variants worth searching / comparing:
+ * - full title
+ * - edition-stripped base ("… (Laughing Edition)" → base)
+ * - combined-release parts ("Foo x Bar" → "Foo", "Bar") for vinyl exclusives joined on Discogs
  */
 export const albumTitleVariants = (title: string): string[] => {
     const cleaned = cleanForSearch(title);
     if (!cleaned) return [];
+
+    const variants: string[] = [cleaned];
     const stripped = cleanForSearch(stripEditionSuffix(title));
-    const variants = [cleaned];
     if (stripped && stripped !== cleaned) variants.push(stripped);
+
+    const combinedSource = stripped || cleaned;
+    const parts = combinedSource.split(COMBINED_RELEASE_SPLIT).map(p => p.trim()).filter(Boolean);
+    if (parts.length > 1) {
+        // Prefer longer parts first (more specific album searches).
+        for (const part of [...parts].sort((a, b) => b.length - a.length)) {
+            if (part.length >= 4 && !variants.includes(part)) variants.push(part);
+        }
+    }
+
     return variants;
 };
 
