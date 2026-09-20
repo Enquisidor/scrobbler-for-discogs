@@ -113,7 +113,14 @@ export const fetchFromAppleMusic = async (
             throw new Error(`Apple Music API responded with status ${response.status}`);
         }
 
-        return await response.json() as ITunesResponse;
+        const raw = await response.text();
+        if (raw.trimStart().startsWith('<!DOCTYPE') || raw.trimStart().startsWith('<html')) {
+            throw new Error(
+                'Apple Music proxy returned HTML instead of JSON. Restart the Vite dev server so /api/itunes is active.'
+            );
+        }
+
+        return JSON.parse(raw) as ITunesResponse;
     } catch (e) {
         if (e instanceof DOMException && e.name === 'AbortError') {
             if (parentSignal?.aborted) {
