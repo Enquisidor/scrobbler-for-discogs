@@ -20,9 +20,12 @@ import {
   fontSize,
   fontWeight,
   borderRadius,
+  getActiveMetadataProvider,
+  MetadataSourceType,
 } from '@libs';
 import Track, { TrackPassthroughProps } from './Track';
 import IndeterminateCheckbox from './IndeterminateCheckbox';
+import { AppleMusicIcon, MusicBrainzIcon, DeezerIcon } from '../misc/Icons';
 
 interface QueueItemProps extends TrackPassthroughProps {
   item: QueueItemType;
@@ -32,6 +35,7 @@ interface QueueItemProps extends TrackPassthroughProps {
   onRemoveAlbumInstanceFromQueue: () => void;
   onScrobbleModeToggle: (useTrackArtist: boolean) => void;
   onScrobbleSingleRelease: () => void;
+  onRefreshMetadata?: () => void;
   isScrobbling: boolean;
   testID?: string;
 }
@@ -44,6 +48,7 @@ export const QueueItem: React.FC<QueueItemProps> = ({
   onRemoveAlbumInstanceFromQueue,
   onScrobbleModeToggle,
   onScrobbleSingleRelease,
+  onRefreshMetadata,
   isScrobbling,
   testID,
   ...trackPassthroughProps
@@ -59,6 +64,7 @@ export const QueueItem: React.FC<QueueItemProps> = ({
 
   const artistName = getReleaseDisplayArtist(item, metadata, settings);
   const title = getReleaseDisplayTitle(item, metadata, settings);
+  const metadataProvider = getActiveMetadataProvider(settings);
 
   const isVarious = useMemo(() => {
     if (isVariousArtist(artistName)) return true;
@@ -183,6 +189,20 @@ export const QueueItem: React.FC<QueueItemProps> = ({
 
           {!isHistoryItem && (
             <>
+              {metadataProvider && onRefreshMetadata && (
+                <Pressable
+                  testID={testID ? `${testID}-refresh-metadata` : undefined}
+                  style={styles.actionButton}
+                  onPress={(e) => {
+                    e?.stopPropagation?.();
+                    onRefreshMetadata();
+                  }}
+                >
+                  {metadataProvider === MetadataSourceType.Apple && <AppleMusicIcon size={20} />}
+                  {metadataProvider === MetadataSourceType.MusicBrainz && <MusicBrainzIcon size={20} />}
+                  {metadataProvider === MetadataSourceType.Deezer && <DeezerIcon size={20} />}
+                </Pressable>
+              )}
               <Pressable
                 testID={testID ? `${testID}-scrobble` : undefined}
                 style={[styles.actionButton, isScrobbling && styles.actionButtonDisabled]}

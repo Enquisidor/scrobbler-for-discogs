@@ -1,8 +1,20 @@
 import React, { useState } from 'react';
 import { Modal, View, Text, Pressable, Switch, ScrollView, Alert } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
-import type { Settings, MetadataSource } from '@libs';
-import { MetadataSourceType, colors, settingsStyles, dropdownStyles, getThemeColors } from '@libs';
+import type { Settings, ExternalMetadataSource } from '@libs';
+import {
+  MetadataSourceType,
+  colors,
+  settingsStyles,
+  dropdownStyles,
+  getThemeColors,
+  getMetadataProviderForUi,
+  isCorrectingArtist,
+  isCorrectingAlbum,
+  withMetadataProvider,
+  withCorrectArtist,
+  withCorrectAlbum,
+} from '@libs';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import * as SecureStore from 'expo-secure-store';
 import { SettingsIcon } from '../misc/Icons';
@@ -42,8 +54,8 @@ const SettingsToggle: React.FC<SettingsToggleProps> = ({ label, description, che
 interface SourceSelectProps {
   label: string;
   description: string;
-  value: MetadataSource;
-  onChange: (value: MetadataSource) => void;
+  value: ExternalMetadataSource;
+  onChange: (value: ExternalMetadataSource) => void;
   labelColor?: string;
   descriptionColor?: string;
 }
@@ -51,15 +63,13 @@ interface SourceSelectProps {
 const SourceSelect: React.FC<SourceSelectProps> = ({ label, description, value, onChange, labelColor, descriptionColor }) => {
   const [isPickerOpen, setIsPickerOpen] = useState(false);
 
-  const sourceLabels: Record<MetadataSource, string> = {
-    [MetadataSourceType.Discogs]: 'Discogs (Default)',
+  const sourceLabels: Record<ExternalMetadataSource, string> = {
     [MetadataSourceType.Apple]: 'Apple Music',
     [MetadataSourceType.MusicBrainz]: 'MusicBrainz',
     [MetadataSourceType.Deezer]: 'Deezer',
   };
 
-  const sources: MetadataSource[] = [
-    MetadataSourceType.Discogs,
+  const sources: ExternalMetadataSource[] = [
     MetadataSourceType.Apple,
     MetadataSourceType.MusicBrainz,
     MetadataSourceType.Deezer,
@@ -127,6 +137,9 @@ export const SettingsSheet: React.FC<SettingsSheetProps> = ({
   onSettingsChange,
 }) => {
   const t = getThemeColors(settings.darkMode);
+  const provider = getMetadataProviderForUi(settings);
+  const correctArtist = isCorrectingArtist(settings);
+  const correctAlbum = isCorrectingAlbum(settings);
 
   const handleShowFeaturesChange = (checked: boolean) => {
     onSettingsChange({
@@ -268,23 +281,32 @@ export const SettingsSheet: React.FC<SettingsSheetProps> = ({
           <View style={[settingsStyles.section, { borderBottomColor: t.border }]}>
             <Text style={[settingsStyles.sectionTitle, { color: t.textMuted }]}>Metadata Sources</Text>
             <Text style={[settingsStyles.sectionDescription, { color: t.textMuted }]}>
-              Choose where to fetch improved metadata. External sources can provide cleaner names and fix formatting issues.
+              Choose an external source, then enable artist and/or album corrections. Discogs is used when a correction is off.
             </Text>
 
             <SourceSelect
-              label="Artist Name Source"
-              description="Source for artist names."
-              value={settings.artistSource}
-              onChange={(val) => onSettingsChange({ ...settings, artistSource: val })}
+              label="Metadata source"
+              description="Provider used for enabled corrections."
+              value={provider}
+              onChange={(val) => onSettingsChange(withMetadataProvider(settings, val))}
               labelColor={t.textSecondary}
               descriptionColor={t.textMuted}
             />
 
-            <SourceSelect
-              label="Album Title Source"
-              description="Source for album titles."
-              value={settings.albumSource}
-              onChange={(val) => onSettingsChange({ ...settings, albumSource: val })}
+            <SettingsToggle
+              label="Correct artist names"
+              description="Replace Discogs artist display with names from the selected source."
+              checked={correctArtist}
+              onChange={(checked) => onSettingsChange(withCorrectArtist(settings, checked, provider))}
+              labelColor={t.textSecondary}
+              descriptionColor={t.textMuted}
+            />
+
+            <SettingsToggle
+              label="Correct album titles"
+              description="Replace Discogs album titles with titles from the selected source."
+              checked={correctAlbum}
+              onChange={(checked) => onSettingsChange(withCorrectAlbum(settings, checked, provider))}
               labelColor={t.textSecondary}
               descriptionColor={t.textMuted}
             />

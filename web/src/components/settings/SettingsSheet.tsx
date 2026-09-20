@@ -1,6 +1,15 @@
 import React from 'react';
-import type { Settings, MetadataSource } from '../../libs';
-import { MetadataSourceType } from '../../libs';
+import type { Settings } from '../../libs';
+import {
+    MetadataSourceType,
+    getMetadataProviderForUi,
+    isCorrectingArtist,
+    isCorrectingAlbum,
+    withMetadataProvider,
+    withCorrectArtist,
+    withCorrectAlbum,
+    type ExternalMetadataSource,
+} from '../../libs';
 import { SettingsIcon } from '../misc/Icons';
 
 interface SettingsSheetProps {
@@ -45,8 +54,8 @@ const SettingsToggle: React.FC<SettingsToggleProps> = ({ label, description, che
 interface SourceSelectProps {
     label: string;
     description: string;
-    value: MetadataSource;
-    onChange: (value: MetadataSource) => void;
+    value: ExternalMetadataSource;
+    onChange: (value: ExternalMetadataSource) => void;
 }
 
 const SourceSelect: React.FC<SourceSelectProps> = ({ label, description, value, onChange }) => (
@@ -57,10 +66,9 @@ const SourceSelect: React.FC<SourceSelectProps> = ({ label, description, value, 
         </div>
         <select
             value={value}
-            onChange={(e) => onChange(e.target.value as MetadataSource)}
+            onChange={(e) => onChange(e.target.value as ExternalMetadataSource)}
             className="bg-gray-700 text-white text-sm rounded-md border-gray-600 focus:ring-blue-500 focus:border-blue-500 p-2.5 cursor-pointer outline-none"
         >
-            <option value={MetadataSourceType.Discogs}>Discogs (Default)</option>
             <option value={MetadataSourceType.Apple}>Apple Music</option>
             <option value={MetadataSourceType.MusicBrainz}>MusicBrainz</option>
             <option value={MetadataSourceType.Deezer}>Deezer</option>
@@ -71,6 +79,10 @@ const SourceSelect: React.FC<SourceSelectProps> = ({ label, description, value, 
 
 export default function SettingsSheet({ isOpen, onClose, settings, onSettingsChange }: SettingsSheetProps) {
     if (!isOpen) return null;
+
+    const provider = getMetadataProviderForUi(settings);
+    const correctArtist = isCorrectingArtist(settings);
+    const correctAlbum = isCorrectingAlbum(settings);
 
     const handleShowFeaturesChange = (checked: boolean) => {
         onSettingsChange({
@@ -149,20 +161,27 @@ export default function SettingsSheet({ isOpen, onClose, settings, onSettingsCha
                     </div>
                     <div className="pt-4">
                         <h3 className="text-xs font-bold uppercase text-gray-500 tracking-wider mb-2">Metadata Sources</h3>
-                        <p className="text-xs text-gray-400 mb-3">Choose where to fetch improved metadata. External sources can provide cleaner names and fix formatting issues.</p>
+                        <p className="text-xs text-gray-400 mb-3">Choose an external source, then enable artist and/or album corrections. Discogs is used when a correction is off.</p>
 
                         <SourceSelect
-                            label="Artist Name Source"
-                            description="Source for artist names."
-                            value={settings.artistSource}
-                            onChange={(val) => onSettingsChange({ ...settings, artistSource: val })}
+                            label="Metadata source"
+                            description="Provider used for enabled corrections."
+                            value={provider}
+                            onChange={(val) => onSettingsChange(withMetadataProvider(settings, val))}
                         />
 
-                        <SourceSelect
-                            label="Album Title Source"
-                            description="Source for album titles."
-                            value={settings.albumSource}
-                            onChange={(val) => onSettingsChange({ ...settings, albumSource: val })}
+                        <SettingsToggle
+                            label="Correct artist names"
+                            description="Replace Discogs artist display with names from the selected source."
+                            checked={correctArtist}
+                            onChange={(checked) => onSettingsChange(withCorrectArtist(settings, checked, provider))}
+                        />
+
+                        <SettingsToggle
+                            label="Correct album titles"
+                            description="Replace Discogs album titles with titles from the selected source."
+                            checked={correctAlbum}
+                            onChange={(checked) => onSettingsChange(withCorrectAlbum(settings, checked, provider))}
                         />
                     </div>
                     <div className="pt-4 mt-4 border-t border-gray-700">

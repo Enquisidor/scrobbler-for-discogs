@@ -1,7 +1,8 @@
 import React, { useState, useMemo } from 'react';
 import type { QueueItem as QueueItemType, DiscogsTrack } from '../../libs';
+import { getActiveMetadataProvider, MetadataSourceType } from '../../libs';
 import { Loader } from '../misc/Loader';
-import { ChevronDownIcon, CloseIcon, CheckCircleIcon } from '../misc/Icons';
+import { ChevronDownIcon, CloseIcon, CheckCircleIcon, AppleMusicIcon, MusicBrainzIcon, DeezerIcon } from '../misc/Icons';
 import IndeterminateCheckbox from './IndeterminateCheckbox';
 import Track, { TrackPassthroughProps } from './Track';
 import { assignGroups } from './utils/trackGroupUtils';
@@ -16,6 +17,7 @@ interface QueueItemProps extends TrackPassthroughProps {
     onRemoveAlbumInstanceFromQueue: () => void;
     onScrobbleModeToggle: (useTrackArtist: boolean) => void;
     onScrobbleSingleRelease: () => void;
+    onRefreshMetadata?: () => void;
     isScrobbling: boolean;
 }
 
@@ -27,6 +29,7 @@ const QueueItem: React.FC<QueueItemProps> = ({
     onRemoveAlbumInstanceFromQueue,
     onScrobbleModeToggle,
     onScrobbleSingleRelease,
+    onRefreshMetadata,
     isScrobbling,
     // Gather all props intended for Track via rest parameter
     ...trackPassthroughProps
@@ -45,6 +48,12 @@ const QueueItem: React.FC<QueueItemProps> = ({
 
     const artistName = getReleaseDisplayArtist(item, metadata, settings);
     const title = getReleaseDisplayTitle(item, metadata, settings);
+    const metadataProvider = getActiveMetadataProvider(settings);
+    const MetadataSourceIcon =
+        metadataProvider === MetadataSourceType.Apple ? AppleMusicIcon
+        : metadataProvider === MetadataSourceType.MusicBrainz ? MusicBrainzIcon
+        : metadataProvider === MetadataSourceType.Deezer ? DeezerIcon
+        : null;
 
     const isVarious = useMemo(() => {
         if (isVariousArtist(artistName)) return true;
@@ -146,6 +155,19 @@ const QueueItem: React.FC<QueueItemProps> = ({
                     </button>
                     {!isHistoryItem && (
                         <>
+                            {MetadataSourceIcon && onRefreshMetadata && (
+                                <button
+                                    onClick={(e) => {
+                                        e.stopPropagation();
+                                        onRefreshMetadata();
+                                    }}
+                                    className="p-1 rounded-full hover:bg-gray-700"
+                                    aria-label="Refresh metadata"
+                                    title="Refresh metadata"
+                                >
+                                    <MetadataSourceIcon className="w-5 h-5" />
+                                </button>
+                            )}
                             <button
                                 onClick={onScrobbleSingleRelease}
                                 disabled={isScrobbling}

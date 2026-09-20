@@ -6,7 +6,7 @@ import { calculateTruthScore, isBetterTieBreak, getScores, getDiscogsReleaseType
 import { AppleSearchStrategyType, ReleaseType } from '../../types';
 import { calculateFuzzyScore } from '../../utils/fuzzyUtils';
 import { formatArtistNames, getDisplayArtistName } from '../../utils/formattingUtils';
-import { fetchFromAppleMusic } from './appleMusicAPI';
+import { AppleMusicRateLimitError, fetchFromAppleMusic } from './appleMusicAPI';
 import type { AppleMusicMetadata, CombinedMetadata } from '../../types';
 
 // Strict threshold for acceptance
@@ -24,7 +24,7 @@ const findBestMatch = async (
     parentSignal: AbortSignal | undefined,
     releaseForScoring: DiscogsRelease,
     metadata?: CombinedMetadata
-): Promise<{ bestMatch: ITunesResult | null, bestScore: number, bestStrategy: AppleSearchStrategy | null }> => {
+): Promise<{ bestMatch: ITunesResult | null, bestScore: number, bestStrategy: AppleSearchStrategy | null, rateLimited?: boolean }> => {
     const strategies = generateSearchStrategies(releaseForSearch, settingsForThisRun, metadata);
     
     let overallBestMatch: ITunesResult | null = null;
@@ -111,6 +111,11 @@ const findBestMatch = async (
                 hasMorePages = false; // Stop paginating for this strategy if an error occurs
                 if (e instanceof DOMException && e.name === 'AbortError' && parentSignal?.aborted) {
                     throw e; // Propagate parent-level aborts
+                }
+                // 403 means Apple is throttling this IP — more strategies only deepen the ban.
+                if (e instanceof AppleMusicRateLimitError) {
+                    console.warn(`[Apple Music] Rate limited; stopping search early (best so far ${(overallBestScore * 100).toFixed(1)}%).`);
+                    return { bestMatch: overallBestMatch, bestScore: overallBestScore, bestStrategy: bestMatchStrategy, rateLimited: true };
                 }
                 // Log other errors (like timeouts or network issues) but continue to the next strategy
                 console.warn(`[Apple Music] Strategy page failed for query "${strategy.query}".`, e);
@@ -270,7 +275,7 @@ export const fetchAppleMusicMetadata = async (
     // --- 2. Collaboration Fallback (if necessary) ---
     const artists = release.basic_information.artists ?? [];
     const isCollaboration = artists.length > 1;
-    const shouldFallback = isCollaboration && bestResultSoFar.bestScore < ACCEPTANCE_THRESHOLD;
+    const shouldFallback = isCollaboration && bestResultSoFar.bestScore < ACCEPTANCE_THRESHOLD && !bestResultSoFar.rateLimited;
 
     if (shouldFallback) {
         bestResultSoFar = await handleCollaborationFallback(bestResultSoFar, release, settings, parentSignal);

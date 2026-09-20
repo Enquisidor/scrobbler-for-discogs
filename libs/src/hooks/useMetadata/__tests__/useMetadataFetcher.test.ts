@@ -25,7 +25,6 @@ jest.mock('../../../services/musicbrainz/musicbrainzService', () => ({
 
 import { fetchAppleMusicMetadata } from '../../../services/appleMusic/appleMusicService';
 import { fetchMusicBrainzMetadata } from '../../../services/musicbrainz/musicbrainzService';
-import { toNamespacedPath } from 'node:path';
 
 const mockFetchApple = fetchAppleMusicMetadata as jest.Mock;
 const mockFetchMB = fetchMusicBrainzMetadata as jest.Mock;
@@ -107,13 +106,12 @@ describe('useMetadataFetcher', () => {
   describe('When Discogs is selected (no external fetching)', () => {
     it('should not fetch any metadata when both sources are Discogs', async () => {
       const store = createTestStore();
-      const collection = [createRelease(1), createRelease(2)];
+      const queued = [createRelease(1), createRelease(2)];
 
-      renderHook(() => useMetadataFetcher(collection, defaultSettings), {
+      renderHook(() => useMetadataFetcher(queued, defaultSettings), {
         wrapper: createWrapper(store),
       });
 
-      // Advance timers
       act(() => {
         jest.advanceTimersByTime(1000);
       });
@@ -124,7 +122,7 @@ describe('useMetadataFetcher', () => {
   });
 
   describe('When Apple Music is selected', () => {
-    it('should fetch Apple Music metadata for items in collection', async () => {
+    it('should fetch Apple Music metadata for queued albums', async () => {
       mockFetchApple.mockResolvedValue({
         artist: 'Apple Artist',
         album: 'Apple Album',
@@ -132,16 +130,15 @@ describe('useMetadataFetcher', () => {
       });
 
       const store = createTestStore();
-      const collection = [createRelease(1)];
+      const queued = [createRelease(1)];
 
-      renderHook(() => useMetadataFetcher(collection, appleSettings), {
+      renderHook(() => useMetadataFetcher(queued, appleSettings), {
         wrapper: createWrapper(store),
       });
 
-      // Advance through the dispatcher interval
       await act(async () => {
         jest.advanceTimersByTime(1000);
-        await Promise.resolve(); // Allow promises to resolve
+        await Promise.resolve();
       });
 
       await waitFor(() => {
@@ -149,14 +146,30 @@ describe('useMetadataFetcher', () => {
       });
     });
 
+    it('should not fetch when the queue is empty', async () => {
+      mockFetchApple.mockResolvedValue({ artist: 'Apple Artist', rawItunesResult: {} });
+
+      const store = createTestStore();
+
+      renderHook(() => useMetadataFetcher([], appleSettings), {
+        wrapper: createWrapper(store),
+      });
+
+      act(() => {
+        jest.advanceTimersByTime(2000);
+      });
+
+      expect(mockFetchApple).not.toHaveBeenCalled();
+    });
+
     it('should not fetch Apple metadata if already cached and recent', async () => {
       const recentTimestamp = Date.now();
       const store = createTestStore({
         1: { apple: { artist: 'Cached', album: 'Cached Album', lastChecked: recentTimestamp } },
       });
-      const collection = [createRelease(1)];
+      const queued = [createRelease(1)];
 
-      renderHook(() => useMetadataFetcher(collection, appleSettings), {
+      renderHook(() => useMetadataFetcher(queued, appleSettings), {
         wrapper: createWrapper(store),
       });
 
@@ -166,10 +179,34 @@ describe('useMetadataFetcher', () => {
 
       expect(mockFetchApple).not.toHaveBeenCalled();
     });
+
+    it('should only fetch each release id once when queued multiple times', async () => {
+      mockFetchApple.mockResolvedValue({
+        artist: 'Apple Artist',
+        rawItunesResult: {},
+      });
+
+      const store = createTestStore();
+      const release = createRelease(1);
+      const queued = [release, { ...release, instance_id: 9999 }];
+
+      renderHook(() => useMetadataFetcher(queued, appleSettings), {
+        wrapper: createWrapper(store),
+      });
+
+      await act(async () => {
+        jest.advanceTimersByTime(1000);
+        await Promise.resolve();
+      });
+
+      await waitFor(() => {
+        expect(mockFetchApple).toHaveBeenCalledTimes(1);
+      });
+    });
   });
 
   describe('When MusicBrainz is selected', () => {
-    it('should fetch MusicBrainz metadata for items in collection', async () => {
+    it('should fetch MusicBrainz metadata for queued albums', async () => {
       mockFetchMB.mockResolvedValue({
         artist: 'MB Artist',
         album: 'MB Album',
@@ -177,9 +214,9 @@ describe('useMetadataFetcher', () => {
       });
 
       const store = createTestStore();
-      const collection = [createRelease(1)];
+      const queued = [createRelease(1)];
 
-      renderHook(() => useMetadataFetcher(collection, mbSettings), {
+      renderHook(() => useMetadataFetcher(queued, mbSettings), {
         wrapper: createWrapper(store),
       });
 
@@ -194,72 +231,10 @@ describe('useMetadataFetcher', () => {
     });
   });
 
-  describe('visibleIds filtering', () => {
-    it('should only fetch metadata for visible items when visibleIds is provided', async () => {
-      mockFetchApple.mockResolvedValue({
-        artist: 'Apple Artist',
-        rawItunesResult: {},
-      });
-
-      const store = createTestStore();
-      const collection = [createRelease(1), createRelease(2), createRelease(3)];
-      const visibleIds = new Set([2]); // Only item 2 is visible
-
-      renderHook(
-        () => useMetadataFetcher(collection, appleSettings, { visibleIds }),
-        { wrapper: createWrapper(store) }
-      );
-
-      await act(async () => {
-        jest.advanceTimersByTime(1000);
-        await Promise.resolve();
-      });
-
-      await waitFor(() => {
-        expect(mockFetchApple).toHaveBeenCalledTimes(1);
-      });
-
-      // Verify it was called with release id 2
-      expect(mockFetchApple).toHaveBeenCalledWith(
-        expect.objectContaining({ id: 2 }),
-        expect.any(Object),
-        expect.any(Object),
-        undefined
-      );
-    });
-
-    it('should fetch all items when visibleIds is empty (fallback behavior)', async () => {
-      mockFetchApple.mockResolvedValue({
-        artist: 'Apple Artist',
-        rawItunesResult: {},
-      });
-
-      const store = createTestStore();
-      const collection = [createRelease(1), createRelease(2)];
-      const visibleIds = new Set<number>(); // Empty set
-
-      renderHook(
-        () => useMetadataFetcher(collection, appleSettings, { visibleIds }),
-        { wrapper: createWrapper(store) }
-      );
-
-      await act(async () => {
-        jest.advanceTimersByTime(2000);
-        await Promise.resolve();
-      });
-
-      // With empty visibleIds, it should fetch all
-      await waitFor(() => {
-        expect(mockFetchApple.mock.calls.length).toBeGreaterThanOrEqual(1);
-      });
-    });
-  });
-
   describe('Hydration check', () => {
     it('should not fetch until store is hydrated', async () => {
       mockFetchApple.mockResolvedValue({ artist: 'Test' });
 
-      // Create store with isHydrated = false
       const store = configureStore({
         reducer: { metadata: metadataReducer },
         preloadedState: {
@@ -267,9 +242,9 @@ describe('useMetadataFetcher', () => {
         },
       });
 
-      const collection = [createRelease(1)];
+      const queued = [createRelease(1)];
 
-      renderHook(() => useMetadataFetcher(collection, appleSettings), {
+      renderHook(() => useMetadataFetcher(queued, appleSettings), {
         wrapper: createWrapper(store),
       });
 
@@ -289,10 +264,10 @@ describe('useMetadataFetcher', () => {
       const clearForceFetch = jest.fn();
 
       const store = createTestStore();
-      const collection = [createRelease(1)];
+      const queued = [createRelease(1)];
 
       renderHook(
-        () => useMetadataFetcher(collection, appleSettings, {
+        () => useMetadataFetcher(queued, appleSettings, {
           checkForceFetch,
           clearForceFetch,
         }),
@@ -304,21 +279,20 @@ describe('useMetadataFetcher', () => {
         await Promise.resolve();
       });
 
-      // checkForceFetch should be called when the effect runs
       expect(checkForceFetch).toHaveBeenCalled();
     });
 
     it('should call clearForceFetch when force fetch is true', async () => {
       mockFetchApple.mockResolvedValue({ artist: 'Test', rawItunesResult: {} });
 
-      const checkForceFetch = jest.fn(() => true); // Force fetch is requested
+      const checkForceFetch = jest.fn(() => true);
       const clearForceFetch = jest.fn();
 
       const store = createTestStore();
-      const collection = [createRelease(1)];
+      const queued = [createRelease(1)];
 
       renderHook(
-        () => useMetadataFetcher(collection, appleSettings, {
+        () => useMetadataFetcher(queued, appleSettings, {
           checkForceFetch,
           clearForceFetch,
         }),
@@ -330,8 +304,43 @@ describe('useMetadataFetcher', () => {
         await Promise.resolve();
       });
 
-      // clearForceFetch should be called when checkForceFetch returns true
       expect(clearForceFetch).toHaveBeenCalled();
+    });
+  });
+
+  describe('refreshRelease', () => {
+    it('should force refetch a queued release that already has cached metadata', async () => {
+      mockFetchApple.mockResolvedValue({
+        artist: 'Refetched Artist',
+        album: 'Refetched Album',
+        rawItunesResult: {},
+      });
+
+      const recentTimestamp = Date.now();
+      const store = createTestStore({
+        1: { apple: { artist: 'Cached', album: 'Cached Album', lastChecked: recentTimestamp } },
+      });
+      const queued = [createRelease(1)];
+
+      const { result } = renderHook(() => useMetadataFetcher(queued, appleSettings), {
+        wrapper: createWrapper(store),
+      });
+
+      act(() => {
+        jest.advanceTimersByTime(1000);
+      });
+
+      expect(mockFetchApple).not.toHaveBeenCalled();
+
+      await act(async () => {
+        result.current.refreshRelease(1);
+        jest.advanceTimersByTime(1000);
+        await Promise.resolve();
+      });
+
+      await waitFor(() => {
+        expect(mockFetchApple).toHaveBeenCalledTimes(1);
+      });
     });
   });
 });

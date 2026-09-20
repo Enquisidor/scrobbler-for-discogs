@@ -1,4 +1,4 @@
-import { useEffect, useRef } from 'react';
+import { useCallback, useEffect, useRef } from 'react';
 import { useDispatch, useSelector } from 'react-redux';
 import type { DiscogsRelease, Settings } from '../../types';
 import { MetadataSourceType } from '../../types';
@@ -10,9 +10,10 @@ import { updateMetadataItem } from '../../store/metadataSlice';
 
 const RECHECK_INTERVAL_MS = 30 * 24 * 60 * 60 * 1000; // 30 days
 const MAX_SESSION_QUERIES = 200;
-const MAX_CONCURRENCY = 5;
+/** Keep low: each release can fire multiple iTunes HTTP calls; Apple caps ~20/min. */
+const MAX_CONCURRENCY = 2;
 const DISPATCH_INTERVAL_MS = 500;
-const RATE_LIMIT_COUNT = 18;
+const RATE_LIMIT_COUNT = 12;
 const RATE_LIMIT_WINDOW_MS = 60 * 1000;
 
 /** True when cached provider data is fresh AND has the fields the current settings need. */
@@ -42,26 +43,32 @@ export interface MetadataFetcherOptions {
   checkForceFetch?: () => boolean;
   /** Function to clear the force fetch flag */
   clearForceFetch?: () => void;
-  /** Set of release IDs currently visible on screen - only these will be fetched */
-  visibleIds?: Set<number>;
 }
 
+export interface MetadataFetcherControls {
+  /** Force-refetch metadata for one queued release; keeps existing cache if the fetch fails. */
+  refreshRelease: (releaseId: number) => void;
+}
+
+/**
+ * Fetches external metadata (Apple / MusicBrainz / Deezer) only for the releases
+ * passed in — callers should pass albums currently in the scrobble queue.
+ */
 export function useMetadataFetcher(
-  collection: DiscogsRelease[],
+  queuedReleases: DiscogsRelease[],
   settings: Settings,
   options: MetadataFetcherOptions = {}
-) {
+): MetadataFetcherControls {
   const dispatch = useDispatch();
   const metadata = useSelector((state: RootState) => state.metadata.data);
   const isHydrated = useSelector((state: RootState) => state.metadata.isHydrated);
 
-  const visibleIdsRef = useRef<Set<number>>(options.visibleIds || new Set());
-
-  const queueRef = useRef<number[]>([]);
+  const fetchQueueRef = useRef<number[]>([]);
   const activeCountRef = useRef(0);
   const processedSessionRef = useRef<Set<number>>(new Set());
   const queuedSetRef = useRef<Set<number>>(new Set());
   const activeSetRef = useRef<Set<number>>(new Set());
+  const forceIdsRef = useRef<Set<number>>(new Set());
   const sessionQueryCountRef = useRef(0);
   const forceFetchActiveRef = useRef(false);
   const mountedRef = useRef(true);
@@ -71,16 +78,16 @@ export function useMetadataFetcher(
   const dispatcherIntervalRef = useRef<ReturnType<typeof setInterval> | null>(null);
   const requestTimestampsRef = useRef<number[]>([]);
 
-  const collectionRef = useRef(collection);
+  const releasesRef = useRef(queuedReleases);
   const metadataRef = useRef(metadata);
   const settingsRef = useRef(settings);
+  const processQueueRef = useRef<() => void>(() => undefined);
 
   useEffect(() => {
-    collectionRef.current = collection;
+    releasesRef.current = queuedReleases;
     metadataRef.current = metadata;
     settingsRef.current = settings;
-    visibleIdsRef.current = options.visibleIds || new Set();
-  }, [collection, metadata, settings, options.visibleIds]);
+  }, [queuedReleases, metadata, settings]);
 
   useEffect(() => {
     mountedRef.current = true;
@@ -93,6 +100,20 @@ export function useMetadataFetcher(
     };
   }, []);
 
+  const ensureDispatcher = () => {
+    if (dispatcherIntervalRef.current === null) {
+      dispatcherIntervalRef.current = setInterval(() => processQueueRef.current(), DISPATCH_INTERVAL_MS);
+    }
+  };
+
+  const enqueueRelease = (releaseId: number, force: boolean) => {
+    if (force) forceIdsRef.current.add(releaseId);
+    if (queuedSetRef.current.has(releaseId) || activeSetRef.current.has(releaseId)) return;
+    fetchQueueRef.current.push(releaseId);
+    queuedSetRef.current.add(releaseId);
+    processedSessionRef.current.add(releaseId);
+  };
+
   const processQueue = () => {
     if (!mountedRef.current) {
       if (dispatcherIntervalRef.current) clearInterval(dispatcherIntervalRef.current);
@@ -100,13 +121,13 @@ export function useMetadataFetcher(
     }
 
     if (sessionQueryCountRef.current >= MAX_SESSION_QUERIES) {
-      console.warn(`[MetadataFetcher] Session limit of ${MAX_SESSION_QUERIES} queries reached. Pausing background fetch.`);
+      console.warn(`[MetadataFetcher] Session limit of ${MAX_SESSION_QUERIES} queries reached. Pausing fetch.`);
       if (dispatcherIntervalRef.current) clearInterval(dispatcherIntervalRef.current);
       dispatcherIntervalRef.current = null;
       return;
     }
 
-    if (queueRef.current.length === 0 && activeCountRef.current === 0) {
+    if (fetchQueueRef.current.length === 0 && activeCountRef.current === 0) {
       if (dispatcherIntervalRef.current) clearInterval(dispatcherIntervalRef.current);
       dispatcherIntervalRef.current = null;
       forceFetchActiveRef.current = false;
@@ -125,7 +146,7 @@ export function useMetadataFetcher(
 
     const rateLimitSlots = RATE_LIMIT_COUNT - recentRequests;
     const concurrencySlots = MAX_CONCURRENCY - activeCountRef.current;
-    const itemsToDispatch = Math.min(queueRef.current.length, rateLimitSlots, concurrencySlots);
+    const itemsToDispatch = Math.min(fetchQueueRef.current.length, rateLimitSlots, concurrencySlots);
 
     if (itemsToDispatch <= 0) {
       return;
@@ -134,11 +155,13 @@ export function useMetadataFetcher(
     for (let i = 0; i < itemsToDispatch; i++) {
       if (abortControllerRef.current.signal.aborted) break;
 
-      const releaseId = queueRef.current.shift()!;
+      const releaseId = fetchQueueRef.current.shift()!;
       queuedSetRef.current.delete(releaseId);
       activeSetRef.current.add(releaseId);
+      const forceThis = forceFetchActiveRef.current || forceIdsRef.current.has(releaseId);
+      if (forceThis) forceIdsRef.current.delete(releaseId);
 
-      const release = collectionRef.current.find(r => r.id === releaseId);
+      const release = releasesRef.current.find(r => r.id === releaseId);
       if (!release) {
         activeSetRef.current.delete(releaseId);
         continue;
@@ -162,7 +185,7 @@ export function useMetadataFetcher(
 
       const tasks: Promise<void>[] = [];
 
-      if (needsApple && (!hasApple || forceFetchActiveRef.current)) {
+      if (needsApple && (!hasApple || forceThis)) {
         tasks.push(
           fetchAppleMusicMetadata(release, currentSettings, signal, currentMeta)
             .then(result => {
@@ -182,7 +205,7 @@ export function useMetadataFetcher(
         );
       }
 
-      if (needsMB && (!hasMB || forceFetchActiveRef.current)) {
+      if (needsMB && (!hasMB || forceThis)) {
         tasks.push(
           fetchMusicBrainzMetadata(release, signal)
             .then(result => {
@@ -195,7 +218,7 @@ export function useMetadataFetcher(
         );
       }
 
-      if (needsDeezer && (!hasDeezer || forceFetchActiveRef.current)) {
+      if (needsDeezer && (!hasDeezer || forceThis)) {
         tasks.push(
           fetchDeezerMetadata(release, signal)
             .then(result => {
@@ -211,9 +234,34 @@ export function useMetadataFetcher(
       Promise.all(tasks).finally(() => {
         activeCountRef.current--;
         activeSetRef.current.delete(releaseId);
+        // A refresh requested while this fetch was in flight — run again with force.
+        if (forceIdsRef.current.has(releaseId)) {
+          enqueueRelease(releaseId, true);
+        }
       });
     }
   };
+
+  processQueueRef.current = processQueue;
+
+  const refreshRelease = useCallback((releaseId: number) => {
+    if (!releasesRef.current.some(r => r.id === releaseId)) return;
+
+    const needsAny =
+      settingsRef.current.artistSource !== MetadataSourceType.Discogs ||
+      settingsRef.current.albumSource !== MetadataSourceType.Discogs;
+    if (!needsAny) return;
+
+    processedSessionRef.current.delete(releaseId);
+    forceIdsRef.current.add(releaseId);
+    if (!queuedSetRef.current.has(releaseId) && !activeSetRef.current.has(releaseId)) {
+      fetchQueueRef.current.push(releaseId);
+      queuedSetRef.current.add(releaseId);
+      processedSessionRef.current.add(releaseId);
+    }
+    processQueueRef.current();
+    ensureDispatcher();
+  }, []);
 
   useEffect(() => {
     // Don't start fetching until Redux state is hydrated from storage
@@ -225,9 +273,10 @@ export function useMetadataFetcher(
       abortControllerRef.current.abort();
       abortControllerRef.current = new AbortController();
 
-      queueRef.current = [];
+      fetchQueueRef.current = [];
       queuedSetRef.current.clear();
       activeSetRef.current.clear();
+      forceIdsRef.current.clear();
       processedSessionRef.current.clear();
       sessionQueryCountRef.current = 0;
       activeCountRef.current = 0;
@@ -255,12 +304,13 @@ export function useMetadataFetcher(
       currentSettings.albumSource !== MetadataSourceType.Discogs;
 
     if (!needsAny) {
-      if (queueRef.current.length > 0 || activeCountRef.current > 0) {
+      if (fetchQueueRef.current.length > 0 || activeCountRef.current > 0) {
         abortControllerRef.current.abort();
         abortControllerRef.current = new AbortController();
-        queueRef.current = [];
+        fetchQueueRef.current = [];
         queuedSetRef.current.clear();
         activeSetRef.current.clear();
+        forceIdsRef.current.clear();
         if (dispatcherIntervalRef.current) {
           clearInterval(dispatcherIntervalRef.current);
           dispatcherIntervalRef.current = null;
@@ -277,15 +327,22 @@ export function useMetadataFetcher(
     const now = Date.now();
     let addedCount = 0;
 
-    collection.forEach(release => {
+    // Deduplicate by release id (album may appear more than once in the scrobble queue).
+    const uniqueById = new Map<number, DiscogsRelease>();
+    for (const release of queuedReleases) {
+      const existing = uniqueById.get(release.id);
+      if (!existing || (!(existing as { tracklist?: unknown }).tracklist && (release as { tracklist?: unknown }).tracklist)) {
+        uniqueById.set(release.id, release);
+      }
+    }
+    releasesRef.current = Array.from(uniqueById.values());
+
+    for (const release of uniqueById.values()) {
       const releaseId = release.id;
 
-      // If a visible set is provided, only fetch for on-screen releases.
-      if (visibleIdsRef.current.size > 0 && !visibleIdsRef.current.has(releaseId)) return;
-
-      if (queuedSetRef.current.has(releaseId)) return;
-      if (activeSetRef.current.has(releaseId)) return;
-      if (!settingsChanged && processedSessionRef.current.has(releaseId)) return;
+      if (queuedSetRef.current.has(releaseId)) continue;
+      if (activeSetRef.current.has(releaseId)) continue;
+      if (!settingsChanged && !forceFetch && processedSessionRef.current.has(releaseId)) continue;
 
       const meta = metadataRef.current[releaseId];
 
@@ -298,17 +355,19 @@ export function useMetadataFetcher(
       const hasDeezer = hasUsableProviderMetadata(meta?.deezer, currentSettings, 'deezer', now);
 
       if (forceFetch || (needsApple && !hasApple) || (needsMB && !hasMB) || (needsDeezer && !hasDeezer)) {
-        queueRef.current.push(releaseId);
-        queuedSetRef.current.add(releaseId);
-        processedSessionRef.current.add(releaseId);
+        enqueueRelease(releaseId, forceFetch);
         addedCount++;
+      } else {
+        processedSessionRef.current.add(releaseId);
       }
-    });
+    }
 
-    if (addedCount > 0 && dispatcherIntervalRef.current === null) {
-      processQueue();
-      dispatcherIntervalRef.current = setInterval(processQueue, DISPATCH_INTERVAL_MS);
+    if (addedCount > 0) {
+      processQueueRef.current();
+      ensureDispatcher();
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [collection, settings, isHydrated]);
+  }, [queuedReleases, settings, isHydrated]);
+
+  return { refreshRelease };
 }

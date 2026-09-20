@@ -27,6 +27,7 @@ export * from './styles/misc';
 
 // Utils
 export * from './utils/metadataUtils';
+export * from './utils/metadataSourceSettings';
 export * from './utils/formattingUtils';
 export * from './utils/collectionUtils';
 export * from './utils/collectionSyncUtils';

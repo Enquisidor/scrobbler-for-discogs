@@ -22,6 +22,7 @@ interface QueueSelectionProps {
   onScrobbleModeToggle?: (instanceKey: string, useTrackArtist: boolean) => void;
   onRemoveAlbumInstanceFromQueue: (instanceKey: string) => void;
   onScrobbleSingleRelease: (instanceKey: string) => void;
+  onRefreshMetadata?: (releaseId: number) => void;
   metadata: Record<number, CombinedMetadata>;
   scrobbleTimestamps: Record<string, Record<string, number>>;
   settings: Settings;
@@ -60,6 +61,7 @@ const QueueList: React.FC<QueueListProps> = ({
   onRemoveAlbumInstanceFromQueue,
   onScrobbleModeToggle,
   onScrobbleSingleRelease,
+  onRefreshMetadata,
 }) => {
   return (
     <main className="flex-grow p-4 overflow-y-auto space-y-4">
@@ -86,6 +88,7 @@ const QueueList: React.FC<QueueListProps> = ({
             onScrobbleModeToggle={(useTrackArtist) => onScrobbleModeToggle?.(item.instanceKey, useTrackArtist)}
             isHistoryItem={view === 'history'}
             onScrobbleSingleRelease={() => onScrobbleSingleRelease(item.instanceKey)}
+            onRefreshMetadata={onRefreshMetadata ? () => onRefreshMetadata(item.id) : undefined}
             isScrobbling={isScrobbling}
           />
         ))

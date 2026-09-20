@@ -46,6 +46,7 @@ interface QueueSheetProps {
   onToggleParent?: (instanceKey: string, parentIndex: number, subTrackKeys: string[]) => void;
   onSelectParentAsSingle?: (instanceKey: string, parentKey: string, subTrackKeys: string[]) => void;
   onScrobbleModeToggle?: (instanceKey: string, useTrackArtist: boolean) => void;
+  onRefreshMetadata?: (releaseId: number) => void;
   testID?: string;
 }
 
@@ -76,6 +77,7 @@ export const QueueSheet: React.FC<QueueSheetProps> = ({
   onToggleParent = () => {},
   onSelectParentAsSingle = () => {},
   onScrobbleModeToggle = () => {},
+  onRefreshMetadata,
   testID,
 }) => {
   const totalSelectedTracks = Object.values(selectedTracks)
@@ -175,6 +177,7 @@ export const QueueSheet: React.FC<QueueSheetProps> = ({
                   onRemoveAlbumInstanceFromQueue={() => onRemoveItem(item.instanceKey)}
                   onScrobbleModeToggle={(useTrackArtist) => onScrobbleModeToggle(item.instanceKey, useTrackArtist)}
                   onScrobbleSingleRelease={() => onScrobbleItem(item.instanceKey)}
+                  onRefreshMetadata={onRefreshMetadata ? () => onRefreshMetadata(item.id) : undefined}
                   isScrobbling={isScrobbling}
                   isHistoryItem={false}
                 />

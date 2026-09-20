@@ -263,19 +263,12 @@ export function inferJoinersFromSource<T extends { name: string; anv?: string; j
 }
 
 /**
- * Prefer the metadata artist string when it differs only in joiners
- * (e.g. "E L U C I D, Sebb Bash" vs "E L U C I D & Sebb Bash").
- * Keeps Discogs name spelling/casing — "Mike" vs "MIKE" and "E L U C I D" vs "ELUCID"
- * are not treated as joiner-only diffs.
+ * Prefer the metadata artist string when it is the same artists alphanumerically
+ * (joiners, letter-spacing, and case-only diffs — e.g. MIKE vs Mike, ELUCID vs "E L U C I D").
  */
-function shouldPreferSourceForJoiners(reconstructed: string, sourceString: string): boolean {
+function shouldPreferSourceArtistString(reconstructed: string, sourceString: string): boolean {
     if (reconstructed === sourceString) return false;
-    const normalizeJoiners = (s: string) =>
-        s.replace(/\s*(?:,|&|\bfeat\.|\bvs\.|\band\b)\s*/gi, '\0');
-    const a = normalizeJoiners(reconstructed);
-    const b = normalizeJoiners(sourceString);
-    // Exact (case-preserving) match of the name parts — only the joiners differed.
-    return a === b;
+    return normalizeAlphanumeric(reconstructed) === normalizeAlphanumeric(sourceString);
 }
 
 /** Validate names, merge split artists, and infer joiners from external metadata. */
@@ -307,7 +300,7 @@ export function getTrackArtistDisplay(
 
     const aligned = alignArtistsWithSource(trackArtists, sourceString);
     const reconstructed = formatArtistNames(aligned);
-    if (shouldPreferSourceForJoiners(reconstructed, sourceString)) {
+    if (shouldPreferSourceArtistString(reconstructed, sourceString)) {
         return sourceString;
     }
     return reconstructed;
@@ -337,26 +330,37 @@ export const formatArtistNames = (artists: { name: string; join?: string; anv?: 
     }, '');
 };
 
+/** Return the source chunk matching a name case-insensitively / alphanumerically, if any. */
+function findSourceChunkForName(name: string, chunks: string[], sourceString: string): string | null {
+    const nameLower = name.toLowerCase();
+    const nameAlpha = normalizeAlphanumeric(name);
+    for (const chunk of chunks) {
+        if (chunk.toLowerCase() === nameLower) return chunk;
+        if (normalizeAlphanumeric(chunk) === nameAlpha) return chunk;
+    }
+    if (sourceString.toLowerCase() === nameLower) return sourceString;
+    if (normalizeAlphanumeric(sourceString) === nameAlpha) return sourceString;
+    return null;
+}
+
 /**
  * Validates which name (ANV or Standard) best matches the authoritative source string.
  * Returns the name that should be displayed.
  * 
  * Logic:
  * 1. If source is missing, use Discogs default (ANV if exists, else Standard).
- * 2. If ANV exists and matches source well (threshold met) -> Use ANV. (Validation Success)
- * 3. If ANV fails but Standard matches source well -> Use Standard. (Correction)
- * 4. Fallback -> Use ANV if exists, else Standard.
+ * 2. Stylized ANV with punctuation (e.g. "mike.") — keep when source confirms the artist.
+ * 3. Case-only / spacing diffs — prefer the metadata source form (Mike/MIKE, ELUCID/"E L U C I D").
+ * 4. Otherwise ANV if it matches, else standard, with source casing when it's a case-only variant.
  */
 export function validateArtistName(artist: DiscogsArtist, sourceString: string): string {
     const standard = getDisplayArtistName(artist.name);
     const anv = artist.anv ? getDisplayArtistName(artist.anv) : null;
     
-    // If no source string, default to ANV or Standard (Discogs behavior)
     if (!sourceString) return anv || standard;
 
     const chunks = splitSourceArtistChunks(sourceString);
 
-    // Helper to find best score against any chunk
     const getBestScore = (target: string) => {
         if (!target) return 0;
         let maxScore = Math.max(0, calculateFuzzyScore(target, sourceString));
@@ -366,25 +370,35 @@ export function validateArtistName(artist: DiscogsArtist, sourceString: string):
         return maxScore;
     };
 
-    const THRESHOLD = 0.85; // High confidence required
+    const THRESHOLD = 0.85;
+    const sourceMatch = findSourceChunkForName(standard, chunks, sourceString)
+        ?? (anv ? findSourceChunkForName(anv, chunks, sourceString) : null);
 
-    // Case 1: Discogs has an ANV — use it when source confirms it (e.g. ANV "MIKE" or "mike.").
-    // Never adopt alternate casing from the metadata source; only Discogs ANV/standard names apply.
     if (anv) {
-        const anvScore = getBestScore(anv);
-
-        if (anvScore >= THRESHOLD) {
+        const anvHasStylizedPunctuation = normalizeAlphanumeric(anv) !== anv.toLowerCase().replace(/\s+/g, '');
+        // e.g. "mike." keeps its period even when source is "MIKE"
+        if (anvHasStylizedPunctuation && getBestScore(anv) >= THRESHOLD) {
             return anv;
         }
 
-        const standardScore = getBestScore(standard);
-        if (standardScore >= THRESHOLD) {
-            return standard;
+        // Case-only / spacing ANV — prefer metadata casing when available
+        if (sourceMatch && normalizeAlphanumeric(anv) === normalizeAlphanumeric(sourceMatch)) {
+            return sourceMatch;
         }
 
+        if (getBestScore(anv) >= THRESHOLD) return anv;
+        if (getBestScore(standard) >= THRESHOLD) {
+            return sourceMatch && normalizeAlphanumeric(standard) === normalizeAlphanumeric(sourceMatch)
+                ? sourceMatch
+                : standard;
+        }
         return anv;
     }
 
+    // No ANV — adopt source form for case/spacing-only variants
+    if (sourceMatch && normalizeAlphanumeric(standard) === normalizeAlphanumeric(sourceMatch)) {
+        return sourceMatch;
+    }
     return standard;
 }
 
@@ -404,9 +418,8 @@ export function getSmartArtistDisplay(
 
     const aligned = alignArtistsWithSource(artists, sourceString);
     const reconstructed = formatArtistNames(aligned);
-    // Restore joiner preference from metadata (e.g. "&" over Discogs ",") without
-    // adopting source casing for individual names (Mike must not become MIKE).
-    if (shouldPreferSourceForJoiners(reconstructed, sourceString)) {
+    // Prefer metadata for joiners, letter-spacing, and case-only diffs when names match.
+    if (shouldPreferSourceArtistString(reconstructed, sourceString)) {
         return sourceString;
     }
     return reconstructed;

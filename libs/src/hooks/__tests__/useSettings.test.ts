@@ -48,6 +48,12 @@ const customSettings: Settings = {
     darkMode: true,
     selectFeaturesByDefault: true,
     artistSource: 'apple',
+    albumSource: 'apple',
+};
+
+const legacyMismatchedSettings: Settings = {
+    ...customSettings,
+    artistSource: 'apple',
     albumSource: 'musicbrainz',
 };
 
@@ -82,6 +88,21 @@ describe('useSettings', () => {
 
             expect(result.current.settings).toEqual(customSettings);
             expect(mockGetItem).toHaveBeenCalledWith('scrobbler-for-discogs-settings');
+        });
+
+        it('should migrate mismatched dual providers on load', async () => {
+            mockGetItem.mockResolvedValue(JSON.stringify(legacyMismatchedSettings));
+
+            const { result } = renderHook(() => useSettings());
+
+            await waitFor(() => {
+                expect(result.current.isLoading).toBe(false);
+            });
+
+            expect(result.current.settings).toEqual({
+                ...legacyMismatchedSettings,
+                albumSource: 'apple',
+            });
         });
     });
 
@@ -299,7 +320,7 @@ describe('useSettings', () => {
             expect(savedSettings.showFeatures).toBe(false);
             expect(savedSettings.selectFeaturesByDefault).toBe(true);
             expect(savedSettings.artistSource).toBe('apple');
-            expect(savedSettings.albumSource).toBe('musicbrainz');
+            expect(savedSettings.albumSource).toBe('apple');
         });
     });
 });

@@ -97,7 +97,8 @@ export default function MainScreen({
     return applyMetadataCorrections(fullCollection, metadata, settings);
   }, [fullCollection, metadata, settings]);
 
-  useMetadataFetcher(fullCollection, settings, {
+  // Only fetch external metadata for albums the user has added to the scrobble queue.
+  const { refreshRelease } = useMetadataFetcher(queueHandler.queue, settings, {
     checkForceFetch: () => sessionStorage.getItem('force-metadata-fetch') === 'true',
     clearForceFetch: () => sessionStorage.removeItem('force-metadata-fetch'),
   });
@@ -271,6 +272,7 @@ export default function MainScreen({
           isLastfmConnected={!!credentials.lastfmSessionKey}
           scrobbledHistory={queueHandler.scrobbledHistory}
           onScrobbleSingleRelease={queueHandler.handleScrobbleSingleRelease}
+          onRefreshMetadata={refreshRelease}
         />,
         portalRoot
       )}

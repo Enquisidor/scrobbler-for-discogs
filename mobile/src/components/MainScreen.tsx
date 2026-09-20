@@ -73,8 +73,8 @@ export const MainScreen: React.FC = () => {
   // Redux selectors
   const metadata = useSelector((state: RootState) => state.metadata.data);
 
-  // Visible items tracking for priority metadata fetching
-  const { visibleIds, onViewableItemsChanged, viewabilityConfig } = useVisibleItems();
+  // Visible items tracking (collection list virtualization)
+  const { onViewableItemsChanged, viewabilityConfig } = useVisibleItems();
 
   // Show notification helper
   const showNotification = useCallback((message: string, type: 'success' | 'error' = 'success') => {
@@ -130,8 +130,8 @@ export const MainScreen: React.FC = () => {
     return applyMetadataCorrections(collection, metadata, settings);
   }, [collection, metadata, settings]);
 
-  // Background metadata fetching - only for visible items
-  useMetadataFetcher(collection, settings, { visibleIds });
+  // Only fetch external metadata for albums in the scrobble queue
+  const { refreshRelease } = useMetadataFetcher(queue, settings);
 
   // Collection filters
   const {
@@ -278,6 +278,7 @@ export const MainScreen: React.FC = () => {
         onToggleParent={handleToggleParent}
         onSelectParentAsSingle={handleSelectParentAsSingle}
         onScrobbleModeToggle={handleScrobbleModeToggle}
+        onRefreshMetadata={refreshRelease}
       />
     </SafeAreaView>
   );
