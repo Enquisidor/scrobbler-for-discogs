@@ -2,7 +2,7 @@ import path from 'path';
 import { fileURLToPath } from 'url';
 import { dirname } from 'path';
 import { existsSync } from 'fs';
-import { defineConfig, type Plugin } from 'vite';
+import { defineConfig } from 'vite';
 import react from '@vitejs/plugin-react';
 import { config as dotenvConfig } from 'dotenv';
 
@@ -35,63 +35,13 @@ try {
   console.log('[vite.config] No .env file found, using environment variables');
 }
 
-/**
- * Explicit middleware proxy for iTunes Search API.
- * Vite's `server.proxy` can fall through to the SPA (HTML) on some setups;
- * this always forwards /api/itunes/* to Apple from Node (no browser CORS).
- */
-function itunesProxyPlugin(): Plugin {
-  const handle = async (req: { url?: string; method?: string }, res: {
-    statusCode: number;
-    setHeader: (k: string, v: string) => void;
-    end: (body?: string) => void;
-  }) => {
-    try {
-      const incoming = new URL(req.url || '/', 'http://localhost');
-      // Mounted at /api/itunes → req.url is like /search?term=...
-      const applePath = incoming.pathname.startsWith('/search') || incoming.pathname.startsWith('/lookup')
-        ? incoming.pathname
-        : `/search${incoming.pathname === '/' ? '' : incoming.pathname}`;
-      const appleUrl = `https://itunes.apple.com${applePath}${incoming.search}`;
-
-      const appleRes = await fetch(appleUrl, {
-        headers: { Accept: 'application/json' },
-      });
-      const body = await appleRes.text();
-      res.statusCode = appleRes.status;
-      res.setHeader('Content-Type', appleRes.headers.get('content-type') || 'application/json');
-      res.setHeader('Cache-Control', 'no-store');
-      res.end(body);
-    } catch (err) {
-      console.error('[itunes-proxy] failed', err);
-      res.statusCode = 502;
-      res.setHeader('Content-Type', 'application/json');
-      res.end(JSON.stringify({ error: 'iTunes proxy failed', detail: String(err) }));
-    }
-  };
-
-  return {
-    name: 'itunes-proxy',
-    configureServer(server) {
-      server.middlewares.use('/api/itunes', (req, res) => {
-        void handle(req, res);
-      });
-    },
-    configurePreviewServer(server) {
-      server.middlewares.use('/api/itunes', (req, res) => {
-        void handle(req, res);
-      });
-    },
-  };
-}
-
 export default defineConfig(() => {
   return {
     server: {
       port: 3000,
       host: '0.0.0.0',
     },
-    plugins: [react(), itunesProxyPlugin()],
+    plugins: [react()],
     define: {
       // Expose API keys from libs/.env
       'process.env.DISCOGS_PERSONAL_ACCESS_TOKEN': JSON.stringify(process.env.DISCOGS_PERSONAL_ACCESS_TOKEN),

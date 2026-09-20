@@ -17,6 +17,7 @@ let lastRequestAt = 0;
 let cooldownUntil = 0;
 /** Serialize all iTunes HTTP calls so concurrent releases share one budget. */
 let requestGate: Promise<void> = Promise.resolve();
+let jsonpCallbackSeq = 0;
 
 const sleep = (ms: number, signal?: AbortSignal): Promise<void> =>
     new Promise((resolve, reject) => {
@@ -70,14 +71,57 @@ const buildSearchQuery = (
 };
 
 /**
- * Browser: same-origin `/api/itunes/search` (Vite proxy → Apple; avoids CORS).
- * Native: hit Apple directly (no CORS).
+ * Browser (static Firebase hosting): Apple Search has no CORS for fetch/XHR.
+ * Script-tag JSONP is still what Apple documents for web clients with no backend.
+ * Native: plain fetch (no CORS).
  */
-const resolveSearchUrl = (qs: string): string => {
-    const isBrowser = typeof document !== 'undefined';
-    if (isBrowser) return `/api/itunes/search?${qs}`;
-    return `${ITUNES_SEARCH}?${qs}`;
-};
+const isBrowser = (): boolean =>
+    typeof document !== 'undefined' && typeof document.createElement === 'function';
+
+const fetchViaJsonp = (url: string, signal?: AbortSignal): Promise<ITunesResponse> =>
+    new Promise((resolve, reject) => {
+        const callbackName = `__itunesCb_${Date.now()}_${++jsonpCallbackSeq}`;
+        const script = document.createElement('script');
+        let settled = false;
+
+        const cleanup = () => {
+            delete (window as unknown as Record<string, unknown>)[callbackName];
+            script.remove();
+            signal?.removeEventListener('abort', onAbort);
+        };
+
+        const fail = (err: Error) => {
+            if (settled) return;
+            settled = true;
+            cleanup();
+            reject(err);
+        };
+
+        const onAbort = () => fail(new DOMException('Aborted', 'AbortError'));
+
+        (window as unknown as Record<string, unknown>)[callbackName] = (data: ITunesResponse) => {
+            if (settled) return;
+            settled = true;
+            cleanup();
+            resolve(data);
+        };
+
+        script.onerror = () => {
+            cooldownUntil = Date.now() + RATE_LIMIT_COOLDOWN_MS;
+            fail(new AppleMusicRateLimitError('Apple Music JSONP request failed (likely 403)'));
+        };
+
+        if (signal) {
+            if (signal.aborted) {
+                fail(new DOMException('Aborted', 'AbortError'));
+                return;
+            }
+            signal.addEventListener('abort', onAbort);
+        }
+
+        script.src = `${url}&callback=${encodeURIComponent(callbackName)}`;
+        document.head.appendChild(script);
+    });
 
 /**
  * Raw requests to the Apple Music (iTunes) Search API.
@@ -99,8 +143,12 @@ export const fetchFromAppleMusic = async (
     try {
         await waitForRateBudget(parentSignal);
 
-        const qs = buildSearchQuery(strategyQuery, entity, omitEntity, attribute, offset);
-        const url = resolveSearchUrl(qs);
+        const url = `${ITUNES_SEARCH}?${buildSearchQuery(strategyQuery, entity, omitEntity, attribute, offset)}`;
+
+        if (isBrowser()) {
+            return await fetchViaJsonp(url, pageRequestController.signal);
+        }
+
         const response = await fetch(url, { signal: pageRequestController.signal });
 
         if (response.status === 403) {
@@ -113,14 +161,7 @@ export const fetchFromAppleMusic = async (
             throw new Error(`Apple Music API responded with status ${response.status}`);
         }
 
-        const raw = await response.text();
-        if (raw.trimStart().startsWith('<!DOCTYPE') || raw.trimStart().startsWith('<html')) {
-            throw new Error(
-                'Apple Music proxy returned HTML instead of JSON. Restart the Vite dev server so /api/itunes is active.'
-            );
-        }
-
-        return JSON.parse(raw) as ITunesResponse;
+        return await response.json() as ITunesResponse;
     } catch (e) {
         if (e instanceof DOMException && e.name === 'AbortError') {
             if (parentSignal?.aborted) {
